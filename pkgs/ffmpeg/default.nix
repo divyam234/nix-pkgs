@@ -8,6 +8,7 @@
 
 let
   version = "8.1-latest-2026-05-08";
+  downloadTag = "autobuild-2026-05-08-13-23";
 
   sources = {
     x86_64-linux = {
@@ -28,7 +29,7 @@ stdenv.mkDerivation {
   inherit version;
 
   src = fetchurl {
-    url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${source.asset}";
+    url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/${downloadTag}/${source.asset}";
     inherit (source) hash;
   };
 

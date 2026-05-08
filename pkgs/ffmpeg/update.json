@@ -2,6 +2,7 @@
   "package": "ffmpeg",
   "repo": "BtbN/FFmpeg-Builds",
   "file": "pkgs/ffmpeg/default.nix",
+  "downloadTagField": "downloadTag",
   "tagPrefix": "",
   "versionSource": "release-name-date",
   "versionPrefix": "8.1-latest-",

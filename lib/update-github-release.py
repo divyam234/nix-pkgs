@@ -50,6 +50,13 @@ def current_version(package_text):
     return match.group(1)
 
 
+def read_top_level_field(package_text, field):
+    match = re.search(rf'^\s*{re.escape(field)} = "([^"]+)";', package_text, re.MULTILINE)
+    if not match:
+        raise RuntimeError(f"could not find `{field} = \"...\";` in package file")
+    return match.group(1)
+
+
 def release_version(release, config):
     version_source = config.get("versionSource", "tag")
     version_prefix = config.get("versionPrefix", "")
@@ -85,6 +92,14 @@ def replace_system_field(package_text, system, field, value):
     return package_text[: block_match.start(1)] + updated_block + package_text[block_match.end(1) :]
 
 
+def replace_top_level_field(package_text, field, value):
+    pattern = re.compile(rf'(^\s*{re.escape(field)} = ")[^"]+(";)', re.MULTILINE)
+    updated_text, count = pattern.subn(rf'\g<1>{value}\2', package_text, count=1)
+    if count == 0:
+        raise RuntimeError(f"could not find `{field} = \"...\";` in package file")
+    return updated_text
+
+
 def resolve_asset_name(assets_index, asset_spec):
     if isinstance(asset_spec, str):
         if asset_spec not in assets_index:
@@ -115,6 +130,7 @@ def update_package(repo_root, config_path):
     repo = config["repo"]
     package_file = repo_root / config["file"]
     assets = config["assets"]
+    download_tag_field = config.get("downloadTagField")
 
     package_text = package_file.read_text()
     old_version = current_version(package_text)
@@ -122,6 +138,12 @@ def update_package(repo_root, config_path):
     release = fetch_json(f"https://api.github.com/repos/{repo}/releases/latest")
     tag = release["tag_name"]
     new_version = release_version(release, config)
+
+    if download_tag_field:
+        current_download_tag = read_top_level_field(package_text, download_tag_field)
+        if tag == current_download_tag:
+            print(f"{package} is already current: {current_download_tag}")
+            return False
 
     if new_version == old_version:
         print(f"{package} is already current: {old_version}")
@@ -150,6 +172,9 @@ def update_package(repo_root, config_path):
     for system, source in updates.items():
         updated_text = replace_system_field(updated_text, system, "asset", source["asset"])
         updated_text = replace_system_field(updated_text, system, "hash", source["hash"])
+
+    if download_tag_field:
+        updated_text = replace_top_level_field(updated_text, download_tag_field, tag)
 
     package_file.write_text(updated_text)
     print(f"updated {package}: {old_version} -> {new_version}")
