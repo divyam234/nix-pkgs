@@ -1,0 +1,47 @@
+name: Update Packages
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Update packages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: nix run .#update-all
+
+      - name: Check updated packages
+        run: nix flake check
+
+      - name: Build updated packages
+        run: nix build .#all
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: update packages
+          title: update packages
+          body: |
+            Automated package update from GitHub release metadata.
+
+            This PR was created only because the updater changed files.
+          branch: automated/package-updates
+          delete-branch: true

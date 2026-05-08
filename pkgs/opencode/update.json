@@ -1,0 +1,10 @@
+{
+  "package": "opencode",
+  "repo": "anomalyco/opencode",
+  "file": "pkgs/opencode/default.nix",
+  "tagPrefix": "v",
+  "assets": {
+    "x86_64-linux": "opencode-linux-x64.tar.gz",
+    "aarch64-linux": "opencode-linux-arm64.tar.gz"
+  }
+}

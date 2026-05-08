@@ -1,0 +1,13 @@
+{
+  "package": "rclone",
+  "repo": "tgdrive/rclone",
+  "file": "pkgs/rclone/default.nix",
+  "assets": {
+    "x86_64-linux": {
+      "pattern": "^rclone-v[0-9]+\\.[0-9]+\\.[0-9]+-linux-amd64\\.zip$"
+    },
+    "aarch64-linux": {
+      "pattern": "^rclone-v[0-9]+\\.[0-9]+\\.[0-9]+-linux-arm64\\.zip$"
+    }
+  }
+}
