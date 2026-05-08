@@ -23,6 +23,7 @@ githubReleaseBinary {
   pname = "teldrive";
   owner = "tgdrive";
   repo = "teldrive";
+  downloadTag = version;
 
   binaryName = "teldrive";
 

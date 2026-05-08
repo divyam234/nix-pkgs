@@ -10,6 +10,7 @@
   owner,
   repo,
   sources,
+  downloadTag ? "v${version}",
   binaryName ? pname,
   installName ? binaryName,
   nativeBuildInputs ? [ ],
@@ -27,7 +28,7 @@ stdenv.mkDerivation {
   inherit pname version sourceRoot;
 
   src = fetchurl {
-    url = "https://github.com/${owner}/${repo}/releases/download/v${version}/${source.asset}";
+    url = "https://github.com/${owner}/${repo}/releases/download/${downloadTag}/${source.asset}";
     inherit (source) hash;
   };
 
