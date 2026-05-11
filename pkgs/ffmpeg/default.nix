@@ -7,18 +7,18 @@
 }:
 
 let
-  version = "8.1-latest-2026-05-08";
-  downloadTag = "autobuild-2026-05-08-13-23";
+  version = "8.1-latest-2026-05-10";
+  downloadTag = "latest";
 
   sources = {
     x86_64-linux = {
-      asset = "ffmpeg-n8.1.1-linux64-gpl-shared-8.1.tar.xz";
-      hash = "sha256-+h/QOycsDv6HQ5ZL41wniUqx4WWDIs++yqic7TsFgXQ=";
+      asset = "ffmpeg-n8.1-latest-linux64-gpl-shared-8.1.tar.xz";
+      hash = "sha256-osfVbgUcR+rMHnPk1+5TCIZ1/TX/RL+Pl0se7lO9vwA=";
     };
 
     aarch64-linux = {
-      asset = "ffmpeg-n8.1.1-linuxarm64-gpl-shared-8.1.tar.xz";
-      hash = "sha256-1ZotFoUeNX36zVhd5CVgcmeEPjNc/Ym6lm5d1MuIq50=";
+      asset = "ffmpeg-n8.1-latest-linuxarm64-gpl-shared-8.1.tar.xz";
+      hash = "sha256-/hBjVFbtRuSs1cLzO4M2mFivEREXebBngHrePj38v3Q=";
     };
   };
 

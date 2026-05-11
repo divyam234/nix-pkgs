@@ -1,0 +1,50 @@
+packages:
+  ffmpeg:
+    repo: BtbN/FFmpeg-Builds
+    file: pkgs/ffmpeg/default.nix
+    downloadTagField: downloadTag
+    tagPrefix: ''
+    version:
+      source: release-name-date
+      prefix: 8.1-latest-
+    assets:
+      x86_64-linux:
+        pattern: '^ffmpeg-n8\.1-latest-linux64-gpl-shared-8\.1\.tar\.xz$'
+      aarch64-linux:
+        pattern: '^ffmpeg-n8\.1-latest-linuxarm64-gpl-shared-8\.1\.tar\.xz$'
+
+  opencode:
+    repo: anomalyco/opencode
+    file: pkgs/opencode/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: opencode-linux-x64.tar.gz
+      aarch64-linux:
+        name: opencode-linux-arm64.tar.gz
+
+  rclone:
+    repo: tgdrive/rclone
+    file: pkgs/rclone/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        pattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.zip$'
+      aarch64-linux:
+        pattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.zip$'
+
+  teldrive:
+    repo: tgdrive/teldrive
+    file: pkgs/teldrive/default.nix
+    tagPrefix: ''
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        pattern: '^teldrive-[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.tar\.gz$'
+      aarch64-linux:
+        pattern: '^teldrive-[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.tar\.gz$'

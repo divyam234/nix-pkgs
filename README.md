@@ -134,19 +134,18 @@ home-manager switch --flake .#me
 
 ## Updating Packages
 
-Nix packages are pinned to exact versions and hashes. Package update metadata lives next to each package in `pkgs/<name>/update.json` and is processed by the generic Python updater in `lib/update-github-release.py`.
+Nix packages are pinned to exact versions and hashes. Update metadata is centralized in `updates.yml` and processed by `scripts/update-releases.py`.
 
 ```sh
-nix run .#update-opencode
-nix run .#update-all
+./scripts/update-all.sh
 ```
 
-GitHub Actions runs `nix run .#update-all` daily and opens a pull request only when package files change.
+GitHub Actions runs `./scripts/update-all.sh` daily and commits directly when package files change.
 
 To add another GitHub release package:
 
 1. Add `pkgs/<name>/default.nix`.
-2. Add `pkgs/<name>/update.json`.
+2. Add a package entry under `packages` in `updates.yml`.
 3. Add the package name to `packageNames` in `flake.nix`.
 
 ### Template: single binary tarball
@@ -191,29 +190,29 @@ githubReleaseBinary {
 }
 ```
 
-`pkgs/<name>/update.json`:
+`updates.yml` entry:
 
-```json
-{
-  "package": "<name>",
-  "repo": "<org>/<repo>",
-  "file": "pkgs/<name>/default.nix",
-  "assets": {
-    "x86_64-linux": {
-      "pattern": "^<name>-v?[0-9]+\\.[0-9]+\\.[0-9]+-linux-amd64\\.tar\\.gz$"
-    },
-    "aarch64-linux": {
-      "pattern": "^<name>-v?[0-9]+\\.[0-9]+\\.[0-9]+-linux-arm64\\.tar\\.gz$"
-    }
-  }
-}
+```yaml
+packages:
+  <name>:
+    repo: <org>/<repo>
+    file: pkgs/<name>/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        pattern: '^<name>-v?[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.tar\.gz$'
+      aarch64-linux:
+        pattern: '^<name>-v?[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.tar\.gz$'
 ```
 
-If upstream uses `latest`/moving tags, you can also set:
+If upstream uses release names instead of semver tags, you can set:
 
-```json
-"versionSource": "release-name-date",
-"versionPrefix": "8.1-latest-"
+```yaml
+version:
+  source: release-name-date
+  prefix: 8.1-latest-
 ```
 
 After editing the package, validate it:

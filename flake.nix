@@ -39,50 +39,6 @@
           default = pkgs.opencode;
         });
 
-      apps = forAllSystems (system:
-        let
-          pkgs = import nixpkgs { inherit system; };
-          updater = pkgs.writeShellApplication {
-            name = "update-github-release";
-            runtimeInputs = [
-              pkgs.nix
-              pkgs.python3
-            ];
-            text = ''
-              python3 ${./lib/update-github-release.py} "$@"
-            '';
-          };
-
-          updateApps = builtins.listToAttrs (map (name: {
-            name = "update-${name}";
-            value = {
-              type = "app";
-              program = "${pkgs.writeShellApplication {
-                name = "update-${name}";
-                runtimeInputs = [ updater ];
-                text = ''
-                  update-github-release pkgs/${name}/update.json
-                '';
-              }}/bin/update-${name}";
-              meta.description = "Update ${name} from GitHub release metadata";
-            };
-          }) packageNames);
-
-          updateAll = pkgs.writeShellApplication {
-            name = "update-all";
-            runtimeInputs = [ updater ];
-            text = builtins.concatStringsSep "\n" (map (name: ''
-              echo "==> updating ${name}"
-              update-github-release pkgs/${name}/update.json
-            '') packageNames);
-          };
-        in
-        updateApps // {
-          update-all = {
-            type = "app";
-            program = "${updateAll}/bin/update-all";
-            meta.description = "Update every configured package";
-          };
-        });
+      apps = forAllSystems (_system: { });
     };
 }
