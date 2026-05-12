@@ -18,6 +18,7 @@
         "ffmpeg"
         "opencode"
         "rclone"
+        "restic"
         "teldrive"
       ];
     in

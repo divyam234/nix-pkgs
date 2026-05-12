@@ -15,4 +15,6 @@ in
   opencode = pkgs.callPackage ./opencode {
     inherit githubReleaseBinary;
   };
+
+  restic = pkgs.callPackage ./restic { };
 }
