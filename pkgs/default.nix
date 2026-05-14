@@ -4,6 +4,10 @@ let
   githubReleaseBinary = pkgs.callPackage ../lib/github-release-binary.nix { };
 in
 {
+  aria2 = pkgs.callPackage ./aria2 {
+    inherit githubReleaseBinary;
+  };
+
   rclone = pkgs.callPackage ./rclone { };
 
   teldrive = pkgs.callPackage ./teldrive {

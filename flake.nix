@@ -15,6 +15,7 @@
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
       packageNames = [
+        "aria2"
         "opencode"
         "rclone"
         "teldrive"

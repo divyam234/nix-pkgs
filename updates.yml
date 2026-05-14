@@ -1,4 +1,16 @@
 packages:
+  aria2:
+    repo: divyam234/aria2c-static
+    file: pkgs/aria2/default.nix
+    tagPrefix: release-
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: aria2-linux-amd64.tar.gz
+      aarch64-linux:
+        name: aria2-linux-arm64.tar.gz
+
   opencode:
     repo: anomalyco/opencode
     file: pkgs/opencode/default.nix
