@@ -15,7 +15,6 @@
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
       packageNames = [
-        "ffmpeg"
         "opencode"
         "rclone"
         "teldrive"
