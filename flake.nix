@@ -16,6 +16,7 @@
 
       packageNames = [
         "aria2"
+        "bun"
         "opencode"
         "rclone"
         "teldrive"

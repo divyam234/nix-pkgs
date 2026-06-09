@@ -9,12 +9,12 @@ let
   sources = {
     x86_64-linux = {
       asset = "aria2-linux-amd64.tar.gz";
-      hash = "sha256-zHrc2dDj8Tf5J3mJlEV4kcmuULnE/5gR+PFU2CF//Fc=";
+      hash = "sha256-pGEiLhdm7sVSTaQ0fFjhw4hjKRj3iI3EDeu49z3d0uc=";
     };
 
     aarch64-linux = {
       asset = "aria2-linux-arm64.tar.gz";
-      hash = "sha256-nZhyGotvnlCbvFC9h4DfjKFpQVjHKtGqeJNglfEGFrE=";
+      hash = "sha256-6POOuhOJb5KOFuOYfhFPFq2os9MtINQL/z12sSb9t/A=";
     };
   };
 in

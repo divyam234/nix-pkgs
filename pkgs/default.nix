@@ -8,6 +8,8 @@ in
     inherit githubReleaseBinary;
   };
 
+  bun = pkgs.callPackage ./bun { };
+
   rclone = pkgs.callPackage ./rclone { };
 
   teldrive = pkgs.callPackage ./teldrive {

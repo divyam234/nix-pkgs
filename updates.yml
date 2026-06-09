@@ -11,6 +11,18 @@ packages:
       aarch64-linux:
         name: aria2-linux-arm64.tar.gz
 
+  bun:
+    repo: oven-sh/bun
+    file: pkgs/bun/default.nix
+    tagPrefix: bun-v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: bun-linux-x64.zip
+      aarch64-linux:
+        name: bun-linux-aarch64.zip
+
   opencode:
     repo: anomalyco/opencode
     file: pkgs/opencode/default.nix

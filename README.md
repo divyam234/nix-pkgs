@@ -66,6 +66,7 @@ Add this flake as an input in your system flake, then use its overlay:
         ({ pkgs, ... }: {
           nixpkgs.overlays = [ my-pkgs.overlays.default ];
           environment.systemPackages = with pkgs; [
+            bun
             opencode
             ffmpeg
             rclone
@@ -105,6 +106,7 @@ If you use Home Manager with flakes:
       modules = [
         ({ pkgs, ... }: {
           home.packages = with pkgs; [
+            bun
             opencode
             ffmpeg
             rclone
@@ -127,6 +129,7 @@ home-manager switch --flake .#me
 
 | Package | Source | Notes |
 | --- | --- | --- |
+| `bun` | `oven-sh/bun` GitHub releases | Linux `x86_64` and `aarch64` binaries |
 | `ffmpeg` | `BtbN/FFmpeg-Builds` GitHub releases | FFmpeg 8.1 GPL shared Linux `x86_64` and `aarch64` binaries |
 | `opencode` | `anomalyco/opencode` GitHub releases | Linux `x86_64` and `aarch64` binaries |
 | `rclone` | `tgdrive/rclone` GitHub releases | Linux `x86_64` and `aarch64` binaries |
