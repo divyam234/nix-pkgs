@@ -8,17 +8,17 @@
 }:
 
 let
-  version = "1.17.0";
+  version = "1.17.3";
 
   sources = {
     x86_64-linux = {
       asset = "opencode-linux-x64.tar.gz";
-      hash = "sha256-XIL2CCB66CVMQ+Mx2Q2WkVrqGeeEdOMRssiLa7t8k/A=";
+      hash = "sha256-1L0jiiwf9WrKHNM5fSGgoxf1mSI0UXp/jir7vXIBCn0=";
     };
 
     aarch64-linux = {
       asset = "opencode-linux-arm64.tar.gz";
-      hash = "sha256-ahritE0VtTG34KocYjnxb4oV7J+SFFe/qKKxLiI1jtM=";
+      hash = "sha256-hhuMZs7VHW2aZup3POR+3mY6RL0X2De5whrPo0aIAeU=";
     };
   };
 in
