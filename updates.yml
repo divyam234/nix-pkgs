@@ -58,3 +58,15 @@ packages:
         pattern: '^teldrive-[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.tar\.gz$'
       aarch64-linux:
         pattern: '^teldrive-[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.tar\.gz$'
+
+  zjstatus:
+    repo: dj95/zjstatus
+    file: pkgs/zjstatus/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: zjstatus.wasm
+      aarch64-linux:
+        name: zjstatus.wasm

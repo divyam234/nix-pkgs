@@ -20,6 +20,7 @@
         "opencode"
         "rclone"
         "teldrive"
+        "zjstatus"
       ];
     in
     {

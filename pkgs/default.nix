@@ -19,4 +19,6 @@ in
   opencode = pkgs.callPackage ./opencode {
     inherit githubReleaseBinary;
   };
+
+  zjstatus = pkgs.callPackage ./zjstatus { };
 }
