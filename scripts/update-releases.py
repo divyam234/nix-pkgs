@@ -9,24 +9,41 @@ from pathlib import Path
 import yaml
 
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def run_json(command):
+    try:
+        result = subprocess.run(
+            command,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except subprocess.CalledProcessError as error:
+        message = error.stderr.strip() or error.stdout.strip() or str(error)
+        raise RuntimeError(f"command failed: {' '.join(command)}\n{message}") from error
+
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"command returned invalid JSON: {' '.join(command)}") from error
+
+
+def run_command(command):
+    try:
+        subprocess.run(command, check=True, cwd=REPO_ROOT)
+    except subprocess.CalledProcessError as error:
+        raise RuntimeError(f"command failed: {' '.join(command)}") from error
+
+
 def run_gh_release_view(repo):
-    result = subprocess.run(
-        ["gh", "release", "view", "--repo", repo, "--json", "tagName,name,assets"],
-        check=True,
-        stdout=subprocess.PIPE,
-        text=True,
-    )
-    return json.loads(result.stdout)
+    return run_json(["gh", "release", "view", "--repo", repo, "--json", "tagName,name,assets"])
 
 
 def prefetch_hash(url):
-    result = subprocess.run(
-        ["nix", "store", "prefetch-file", "--json", url],
-        check=True,
-        stdout=subprocess.PIPE,
-        text=True,
-    )
-    return json.loads(result.stdout)["hash"]
+    return run_json(["nix", "store", "prefetch-file", "--json", url])["hash"]
 
 
 def load_manifest(path):
@@ -170,9 +187,11 @@ def main():
     parser = argparse.ArgumentParser(description="Update package versions/hashes from GitHub releases")
     parser.add_argument("manifest", nargs="?", default="updates.yml", type=Path)
     parser.add_argument("packages", nargs="*", help="Optional package names to update")
+    parser.add_argument("--check", action="store_true", help="Run `nix flake check` after updating")
+    parser.add_argument("--build", action="store_true", help="Run `nix build .#all` after updating")
     args = parser.parse_args()
 
-    repo_root = Path.cwd()
+    repo_root = REPO_ROOT
     package_configs = load_manifest(repo_root / args.manifest)
 
     selected = args.packages or list(package_configs.keys())
@@ -183,6 +202,12 @@ def main():
     changed = False
     for package_name in selected:
         changed = update_package(repo_root, package_name, package_configs[package_name]) or changed
+
+    if args.check:
+        run_command(["nix", "flake", "check"])
+
+    if args.build:
+        run_command(["nix", "build", ".#all"])
 
     return 0
 

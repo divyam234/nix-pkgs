@@ -140,10 +140,10 @@ home-manager switch --flake .#me
 Nix packages are pinned to exact versions and hashes. Update metadata is centralized in `updates.yml` and processed by `scripts/update-releases.py`.
 
 ```sh
-./scripts/update-all.sh
+uv run --with pyyaml python -B scripts/update-releases.py updates.yml --check --build
 ```
 
-GitHub Actions runs `./scripts/update-all.sh` daily and commits directly when package files change.
+GitHub Actions runs `scripts/update-releases.py` daily and commits directly when package files change.
 
 To add another GitHub release package:
 

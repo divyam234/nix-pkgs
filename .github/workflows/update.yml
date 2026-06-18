@@ -26,8 +26,8 @@ jobs:
 
       - name: Update packages
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: ./scripts/update-all.sh
+          GH_TOKEN: ${{ github.token }}
+        run: uv run --with pyyaml python -B scripts/update-releases.py updates.yml --check --build
 
       - name: Commit updates directly
         env:
