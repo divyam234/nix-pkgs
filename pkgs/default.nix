@@ -1,4 +1,4 @@
-{ pkgs }:
+{ pkgs, prev }:
 
 let
   githubReleaseBinary = pkgs.callPackage ../lib/github-release-binary.nix { };
@@ -19,6 +19,8 @@ in
   opencode = pkgs.callPackage ./opencode {
     inherit githubReleaseBinary;
   };
+
+  brave = pkgs.callPackage ./brave { originalBrave = prev.brave; };
 
   zjstatus = pkgs.callPackage ./zjstatus { };
 }

@@ -16,6 +16,7 @@
 
       packageNames = [
         "aria2"
+        "brave"
         "bun"
         "opencode"
         "rclone"
@@ -24,7 +25,7 @@
       ];
     in
     {
-      overlays.default = final: _prev: import ./pkgs { pkgs = final; };
+      overlays.default = final: prev: import ./pkgs { pkgs = final; inherit prev; };
 
       packages = forAllSystems (system:
         let
