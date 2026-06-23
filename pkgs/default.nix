@@ -20,6 +20,8 @@ in
     inherit githubReleaseBinary;
   };
 
+  mcontrolcenter = pkgs.callPackage ./mcontrolcenter { };
+
   brave = pkgs.callPackage ./brave { originalBrave = prev.brave; };
 
   dbeaver-bin = pkgs.callPackage ./dbeaver-bin { originalDbeaverBin = prev.dbeaver-bin; };

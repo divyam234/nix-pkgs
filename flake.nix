@@ -18,6 +18,7 @@
         "aria2"
         "brave"
         "bun"
+        "mcontrolcenter"
         "opencode"
         "rclone"
         "teldrive"
