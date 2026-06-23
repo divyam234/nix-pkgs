@@ -11,7 +11,31 @@ packages:
       aarch64-linux:
         pattern: '^brave-browser_[0-9]+\.[0-9]+\.[0-9]+_arm64\.deb$'
 
-aria2:
+  dbeaver-bin:
+    repo: dbeaver/dbeaver
+    file: pkgs/dbeaver-bin/default.nix
+    tagPrefix: ''
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        pattern: '^dbeaver-ce-[0-9]+\.[0-9]+\.[0-9]+-linux-x86_64\.tar\.gz$'
+      aarch64-linux:
+        pattern: '^dbeaver-ce-[0-9]+\.[0-9]+\.[0-9]+-linux-aarch64\.tar\.gz$'
+
+  zed-editor:
+    repo: zed-industries/zed
+    file: pkgs/zed-editor/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: zed-linux-x86_64.tar.gz
+      aarch64-linux:
+        name: zed-linux-aarch64.tar.gz
+
+  aria2:
     repo: divyam234/aria2c-static
     file: pkgs/aria2/default.nix
     tagPrefix: release-

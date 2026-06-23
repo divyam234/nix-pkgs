@@ -22,5 +22,9 @@ in
 
   brave = pkgs.callPackage ./brave { originalBrave = prev.brave; };
 
+  dbeaver-bin = pkgs.callPackage ./dbeaver-bin { originalDbeaverBin = prev.dbeaver-bin; };
+
+  zed-editor = pkgs.callPackage ./zed-editor { };
+
   zjstatus = pkgs.callPackage ./zjstatus { };
 }

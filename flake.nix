@@ -21,6 +21,7 @@
         "opencode"
         "rclone"
         "teldrive"
+        "zed-editor"
         "zjstatus"
       ];
     in
