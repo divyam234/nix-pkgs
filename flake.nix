@@ -20,6 +20,7 @@
         "bun"
         "dbeaver-bin"
         "opencode"
+        "zed-editor"
         "rclone"
         "teldrive"
         "zjstatus"

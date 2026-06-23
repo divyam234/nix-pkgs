@@ -24,5 +24,7 @@ in
 
   dbeaver-bin = pkgs.callPackage ./dbeaver-bin { originalDbeaverBin = prev.dbeaver-bin; };
 
+  zed-editor = pkgs.callPackage ./zed-editor { originalZedEditor = prev.zed-editor; };
+
   zjstatus = pkgs.callPackage ./zjstatus { };
 }
