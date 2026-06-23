@@ -75,16 +75,12 @@ stdenvNoCC.mkDerivation {
     runHook preInstall
 
     install -Dm755 libexec/zed-editor $out/libexec/zed-editor
-    install -Dm755 bin/zed $out/bin/zeditor
+    install -Dm755 bin/zed $out/bin/zed
 
     install -Dm644 share/icons/hicolor/1024x1024/apps/zed.png $out/share/icons/hicolor/512x512@2/apps/zed.png
     install -Dm644 share/icons/hicolor/512x512/apps/zed.png $out/share/icons/hicolor/512x512/apps/zed.png
 
     install -Dm644 share/applications/dev.zed.Zed.desktop $out/share/applications/dev.zed.Zed.desktop
-    substituteInPlace $out/share/applications/dev.zed.Zed.desktop \
-      --replace-fail "TryExec=zed" "TryExec=zeditor" \
-      --replace-fail "Exec=zed %U" "Exec=zeditor %U" \
-      --replace-fail "Exec=zed --new" "Exec=zeditor --new"
 
     mkdir -p $out/lib
     cp -r lib/* $out/lib/
@@ -105,7 +101,7 @@ stdenvNoCC.mkDerivation {
     homepage = "https://zed.dev";
     license = lib.licenses.gpl3Only;
     maintainers = [ ];
-    mainProgram = "zeditor";
+    mainProgram = "zed";
     platforms = builtins.attrNames sources;
   };
 }
