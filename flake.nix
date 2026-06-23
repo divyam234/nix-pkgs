@@ -18,6 +18,7 @@
         "aria2"
         "brave"
         "bun"
+        "dbeaver-bin"
         "opencode"
         "rclone"
         "teldrive"

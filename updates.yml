@@ -1,5 +1,19 @@
 packages:
   brave:
+
+  dbeaver-bin:
+    repo: dbeaver/dbeaver
+    file: pkgs/dbeaver-bin/default.nix
+    tagPrefix: ''
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        pattern: '^dbeaver-ce-[0-9]+\.[0-9]+\.[0-9]+-linux-x86_64\.deb$'
+      aarch64-linux:
+        pattern: '^dbeaver-ce-[0-9]+\.[0-9]+\.[0-9]+-linux-aarch64\.deb$'
+
+  aria2:
     repo: brave/brave-browser
     file: pkgs/brave/default.nix
     tagPrefix: v
