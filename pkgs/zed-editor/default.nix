@@ -6,10 +6,14 @@
   makeBinaryWrapper,
   nodejs,
   alsa-lib,
+  libdrm,
   libGL,
+  libglvnd,
+  libxkbcommon,
   stdenv,
   vulkan-loader,
   wayland,
+  xkeyboard_config,
 }:
 
 let
@@ -28,6 +32,17 @@ let
   };
 
   source = sources.${stdenvNoCC.hostPlatform.system} or (throw "zed-editor is not packaged for ${stdenvNoCC.hostPlatform.system}");
+
+  runtimeLibs = lib.makeLibraryPath [
+    alsa-lib
+    libdrm
+    libGL
+    libglvnd
+    libxkbcommon
+    stdenv.cc.cc.lib
+    vulkan-loader
+    wayland
+  ];
 in
 stdenvNoCC.mkDerivation {
   pname = "zed-editor";
@@ -47,7 +62,10 @@ stdenvNoCC.mkDerivation {
 
   buildInputs = [
     alsa-lib
+    libdrm
     libGL
+    libglvnd
+    libxkbcommon
     stdenv.cc.cc.lib
     vulkan-loader
     wayland
@@ -75,8 +93,11 @@ stdenvNoCC.mkDerivation {
   '';
 
   postFixup = ''
-    patchelf $out/libexec/zed-editor --add-rpath ${lib.makeLibraryPath [ libGL vulkan-loader wayland ]}
-    wrapProgram $out/libexec/zed-editor --suffix PATH : ${lib.makeBinPath [ nodejs ]}
+    patchelf $out/libexec/zed-editor --add-rpath ${runtimeLibs}
+    wrapProgram $out/libexec/zed-editor \
+      --suffix PATH : ${lib.makeBinPath [ nodejs ]} \
+      --prefix LD_LIBRARY_PATH : ${runtimeLibs} \
+      --set-default XKB_CONFIG_ROOT "${xkeyboard_config}/share/X11/xkb"
   '';
 
   meta = {
