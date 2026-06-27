@@ -19,6 +19,7 @@
         "brave"
         "bun"
         "mcontrolcenter"
+        "nordvpn"
         "opencode"
         "rclone"
         "teldrive"

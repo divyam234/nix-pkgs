@@ -22,6 +22,8 @@ in
 
   mcontrolcenter = pkgs.callPackage ./mcontrolcenter { };
 
+  nordvpn = pkgs.callPackage ./nordvpn { };
+
   brave = pkgs.callPackage ./brave { originalBrave = prev.brave; };
 
   dbeaver-bin = pkgs.callPackage ./dbeaver-bin { originalDbeaverBin = prev.dbeaver-bin; };
