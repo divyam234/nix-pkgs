@@ -22,6 +22,7 @@
         "nordvpn"
         "opencode"
         "rclone"
+        "sublime"
         "teldrive"
         "zed-editor"
         "zjstatus"

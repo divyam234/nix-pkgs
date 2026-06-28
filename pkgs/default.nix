@@ -12,6 +12,8 @@ in
 
   rclone = pkgs.callPackage ./rclone { };
 
+  sublime = pkgs.callPackage ./sublime { };
+
   teldrive = pkgs.callPackage ./teldrive {
     inherit githubReleaseBinary;
   };
