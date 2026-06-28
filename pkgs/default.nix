@@ -28,6 +28,8 @@ in
 
   brave = pkgs.callPackage ./brave { originalBrave = prev.brave; };
 
+  beekeeper-studio = pkgs.callPackage ./beekeeper-studio { originalBeekeeperStudio = prev.beekeeper-studio; };
+
   dbeaver-bin = pkgs.callPackage ./dbeaver-bin { originalDbeaverBin = prev.dbeaver-bin; };
 
   zed-editor = pkgs.callPackage ./zed-editor { };

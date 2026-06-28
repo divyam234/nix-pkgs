@@ -16,6 +16,7 @@
 
       packageNames = [
         "aria2"
+        "beekeeper-studio"
         "brave"
         "bun"
         "mcontrolcenter"
