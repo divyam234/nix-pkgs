@@ -10,6 +10,10 @@ in
 
   bun = pkgs.callPackage ./bun { };
 
+  hydra = pkgs.callPackage ./hydra {
+    inherit githubReleaseBinary;
+  };
+
   rclone = pkgs.callPackage ./rclone { };
 
   sublime = pkgs.callPackage ./sublime { };

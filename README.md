@@ -131,6 +131,7 @@ home-manager switch --flake .#me
 | --- | --- | --- |
 | `bun` | `oven-sh/bun` GitHub releases | Linux `x86_64` and `aarch64` binaries |
 | `ffmpeg` | `BtbN/FFmpeg-Builds` GitHub releases | FFmpeg 8.1 GPL shared Linux `x86_64` and `aarch64` binaries |
+| `hydra` | `divyam234/hydra` GitHub releases | Linux `x86_64` and `aarch64` binaries |
 | `opencode` | `anomalyco/opencode` GitHub releases | Linux `x86_64` and `aarch64` binaries |
 | `rclone` | `tgdrive/rclone` GitHub releases | Linux `x86_64` and `aarch64` binaries |
 | `teldrive` | `tgdrive/teldrive` GitHub releases | Linux `x86_64` and `aarch64` binaries |

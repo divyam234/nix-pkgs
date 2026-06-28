@@ -71,6 +71,18 @@ packages:
       aarch64-linux:
         name: bun-linux-aarch64.zip
 
+  hydra:
+    repo: divyam234/hydra
+    file: pkgs/hydra/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: hydra_Linux_x86_64.tar.gz
+      aarch64-linux:
+        name: hydra_Linux_arm64.tar.gz
+
   opencode:
     repo: anomalyco/opencode
     file: pkgs/opencode/default.nix

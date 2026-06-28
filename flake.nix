@@ -19,6 +19,7 @@
         "beekeeper-studio"
         "brave"
         "bun"
+        "hydra"
         "mcontrolcenter"
         "nordvpn"
         "opencode"
