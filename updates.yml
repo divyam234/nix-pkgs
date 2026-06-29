@@ -95,6 +95,18 @@ packages:
       aarch64-linux:
         name: opencode-linux-arm64.tar.gz
 
+  openlogi:
+    repo: AprilNEA/OpenLogi
+    file: pkgs/openlogi/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        pattern: '^openlogi-v[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.deb$'
+      aarch64-linux:
+        pattern: '^openlogi-v[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.deb$'
+
   rclone:
     repo: tgdrive/rclone
     file: pkgs/rclone/default.nix

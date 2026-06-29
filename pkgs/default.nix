@@ -39,4 +39,6 @@ in
   zed-editor = pkgs.callPackage ./zed-editor { };
 
   zjstatus = pkgs.callPackage ./zjstatus { };
+
+  openlogi = pkgs.callPackage ./openlogi { };
 }

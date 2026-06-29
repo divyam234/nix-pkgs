@@ -28,6 +28,7 @@
         "teldrive"
         "zed-editor"
         "zjstatus"
+        "openlogi"
       ];
     in
     {
@@ -49,5 +50,9 @@
         });
 
       apps = forAllSystems (_system: { });
+
+      nixosModules.openlogi = import ./modules/nixos/openlogi.nix;
+
+      homeManagerModules.openlogi = import ./modules/home-manager/openlogi.nix;
     };
 }
