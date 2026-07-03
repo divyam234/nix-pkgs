@@ -35,6 +35,14 @@ packages:
       aarch64-linux:
         pattern: '^dbeaver-ce-[0-9]+\.[0-9]+\.[0-9]+-linux-aarch64\.tar\.gz$'
 
+  foliate:
+    source: github-head
+    repo: johnfactotum/foliate
+    file: pkgs/foliate/default.nix
+    fetchSubmodules: true
+    version:
+      base: 3.3.0
+
   zed-editor:
     repo: zed-industries/zed
     file: pkgs/zed-editor/default.nix
@@ -58,6 +66,10 @@ packages:
         name: aria2-linux-amd64.tar.gz
       aarch64-linux:
         name: aria2-linux-arm64.tar.gz
+    test:
+      command: bin/aria2c
+      args: [--version]
+      expectedOutput: '{version}'
 
   bun:
     repo: oven-sh/bun
@@ -70,6 +82,10 @@ packages:
         name: bun-linux-x64.zip
       aarch64-linux:
         name: bun-linux-aarch64.zip
+    test:
+      command: bin/bun
+      args: [--version]
+      expectedOutput: '{version}'
 
   hydra:
     repo: divyam234/hydra
@@ -94,6 +110,10 @@ packages:
         name: opencode-linux-x64.tar.gz
       aarch64-linux:
         name: opencode-linux-arm64.tar.gz
+    test:
+      command: bin/opencode
+      args: [--version]
+      expectedOutput: '{version}'
 
   openlogi:
     repo: AprilNEA/OpenLogi
@@ -118,6 +138,10 @@ packages:
         pattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.zip$'
       aarch64-linux:
         pattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.zip$'
+    test:
+      command: bin/rclone
+      args: [version]
+      expectedOutput: '{version}'
 
   teldrive:
     repo: tgdrive/teldrive
@@ -130,6 +154,10 @@ packages:
         pattern: '^teldrive-[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.tar\.gz$'
       aarch64-linux:
         pattern: '^teldrive-[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.tar\.gz$'
+    test:
+      command: bin/teldrive
+      args: [--version]
+      expectedOutput: '{version}'
 
   zjstatus:
     repo: dj95/zjstatus
@@ -137,6 +165,7 @@ packages:
     tagPrefix: v
     version:
       source: tag
+    allowSharedAsset: true
     assets:
       x86_64-linux:
         name: zjstatus.wasm

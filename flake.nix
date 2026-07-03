@@ -13,43 +13,27 @@
       ];
 
       forAllSystems = nixpkgs.lib.genAttrs systems;
-
-      packageNames = [
-        "aria2"
-        "beekeeper-studio"
-        "brave"
-        "bun"
-        "hydra"
-        "mcontrolcenter"
-        "nordvpn"
-        "opencode"
-        "rclone"
-        "sublime"
-        "teldrive"
-        "zed-editor"
-        "zjstatus"
-        "openlogi"
-      ];
     in
     {
       overlays.default = final: prev: import ./pkgs { pkgs = final; inherit prev; };
 
       packages = forAllSystems (system:
         let
+          prev = import nixpkgs { inherit system; };
           pkgs = import nixpkgs {
             inherit system;
             overlays = [ self.overlays.default ];
           };
+          customPackages = import ./pkgs { inherit pkgs prev; };
+          packageNames = builtins.attrNames customPackages;
         in
-        (nixpkgs.lib.genAttrs packageNames (name: pkgs.${name})) // {
+        customPackages // {
           all = pkgs.symlinkJoin {
             name = "all-packages";
-            paths = map (name: pkgs.${name}) packageNames;
+            paths = map (name: customPackages.${name}) packageNames;
           };
-          default = pkgs.opencode;
+          default = customPackages.opencode;
         });
-
-      apps = forAllSystems (_system: { });
 
       nixosModules.openlogi = import ./modules/nixos/openlogi.nix;
 

@@ -3,8 +3,13 @@
   stdenv,
   fetchurl,
   autoPatchelfHook,
+  makeBinaryWrapper,
   libxkbcommon,
   libxcb,
+  wayland,
+  libglvnd,
+  vulkan-loader,
+  libdrm,
 }:
 
 let
@@ -23,6 +28,16 @@ let
   };
 
   source = sources.${stdenv.hostPlatform.system} or (throw "openlogi is not packaged for ${stdenv.hostPlatform.system}");
+
+  runtimeLibs = lib.makeLibraryPath [
+    libdrm
+    libglvnd
+    libxkbcommon
+    libxcb
+    stdenv.cc.cc.lib
+    vulkan-loader
+    wayland
+  ];
 in
 stdenv.mkDerivation {
   pname = "openlogi";
@@ -33,12 +48,16 @@ stdenv.mkDerivation {
     hash = source.hash;
   };
 
-  nativeBuildInputs = [ autoPatchelfHook ];
+  nativeBuildInputs = [ autoPatchelfHook makeBinaryWrapper ];
 
   buildInputs = [
+    libdrm
+    libglvnd
     libxkbcommon
     libxcb
     stdenv.cc.cc.lib
+    vulkan-loader
+    wayland
   ];
 
   dontUnpack = true;
@@ -68,6 +87,15 @@ stdenv.mkDerivation {
       > $out/lib/systemd/user/openlogi-agent.service
 
     runHook postInstall
+  '';
+
+  preFixup = ''
+    patchelf $out/bin/openlogi-gui --add-rpath ${runtimeLibs}
+  '';
+
+  postFixup = ''
+    wrapProgram $out/bin/openlogi-gui \
+      --prefix LD_LIBRARY_PATH : ${runtimeLibs}
   '';
 
   meta = {
