@@ -10,6 +10,10 @@ in
 
   bun = pkgs.callPackage ./bun { };
 
+  codeforge = pkgs.callPackage ./codeforge {
+    inherit githubReleaseBinary;
+  };
+
   hydra = pkgs.callPackage ./hydra {
     inherit githubReleaseBinary;
   };

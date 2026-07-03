@@ -130,6 +130,7 @@ home-manager switch --flake .#me
 | Package | Source | Notes |
 | --- | --- | --- |
 | `bun` | `oven-sh/bun` GitHub releases | Linux `x86_64` and `aarch64` binaries |
+| `codeforge` | `divyam234/codeforge` GitHub releases | Linux `x86_64` and `aarch64` binaries |
 | `ffmpeg` | `BtbN/FFmpeg-Builds` GitHub releases | FFmpeg 8.1 GPL shared Linux `x86_64` and `aarch64` binaries |
 | `foliate` | `johnfactotum/foliate` latest GitHub commit | GTK eBook reader built from source with submodules |
 | `hydra` | `divyam234/hydra` GitHub releases | Linux `x86_64` and `aarch64` binaries |
@@ -151,7 +152,7 @@ To add another GitHub release package:
 
 1. Add `pkgs/<name>/default.nix`.
 2. Add a package entry under `packages` in `updates.yml`.
-3. Add the package name to `packageNames` in `flake.nix`.
+3. Add the package to `pkgs/default.nix`.
 
 ### Template: single binary tarball
 

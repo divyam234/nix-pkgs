@@ -35,6 +35,22 @@ packages:
       aarch64-linux:
         pattern: '^dbeaver-ce-[0-9]+\.[0-9]+\.[0-9]+-linux-aarch64\.tar\.gz$'
 
+  codeforge:
+    repo: divyam234/codeforge
+    file: pkgs/codeforge/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: codeforge_{version}_linux_amd64.tar.gz
+      aarch64-linux:
+        name: codeforge_{version}_linux_arm64.tar.gz
+    test:
+      command: bin/codeforge
+      args: [--version]
+      expectedOutput: '{version}'
+
   foliate:
     source: github-head
     repo: johnfactotum/foliate
