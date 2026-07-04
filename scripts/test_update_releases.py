@@ -47,6 +47,57 @@ class UpdateReleasesTests(unittest.TestCase):
         selected = update_releases.select_release(releases, {"tagPrefix": "v"})
         self.assertEqual(selected["tag_name"], "v1.10.0")
 
+    def test_select_release_skips_versions_without_configured_assets(self):
+        releases = [
+            {
+                "tag_name": "v1.94.37",
+                "draft": False,
+                "prerelease": False,
+                "assets": [{"name": "brave-browser-nightly_1.94.37_amd64.deb"}],
+            },
+            {
+                "tag_name": "v1.92.134",
+                "draft": False,
+                "prerelease": False,
+                "assets": [{"name": "brave-browser_1.92.134_amd64.deb"}],
+            },
+        ]
+        selected = update_releases.select_release(
+            releases,
+            {
+                "tagPrefix": "v",
+                "assets": {
+                    "x86_64-linux": {
+                        "pattern": r"^brave-browser_[0-9]+\.[0-9]+\.[0-9]+_amd64\.deb$"
+                    }
+                },
+            },
+        )
+        self.assertEqual(selected["tag_name"], "v1.92.134")
+
+    def test_run_gh_selected_releases_uses_latest_by_default(self):
+        release = {"tag_name": "v1.2.3"}
+        with mock.patch.object(update_releases, "run_gh_latest_release", return_value=release) as latest:
+            with mock.patch.object(update_releases, "run_gh_releases") as releases:
+                selected = update_releases.run_gh_selected_releases({"repo": "owner/tool"})
+
+        self.assertEqual(selected, [release])
+        latest.assert_called_once_with("owner/tool")
+        releases.assert_not_called()
+
+    def test_run_gh_selected_releases_can_use_release_list(self):
+        release = {"tag_name": "v1.2.3"}
+        with mock.patch.object(update_releases, "run_gh_latest_release") as latest:
+            with mock.patch.object(update_releases, "run_gh_releases", return_value=[release]) as releases:
+                selected = update_releases.run_gh_selected_releases({
+                    "repo": "owner/tool",
+                    "release": {"source": "list"},
+                })
+
+        self.assertEqual(selected, [release])
+        releases.assert_called_once_with("owner/tool")
+        latest.assert_not_called()
+
     def test_prepare_update_refuses_downgrade(self):
         package = '''let
   version = "2.0.0";
@@ -62,7 +113,7 @@ in null
             "tag_name": "v1.0.0",
             "draft": False,
             "prerelease": False,
-            "assets": [],
+            "assets": [{"name": "tool.tar.gz"}],
         }
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -74,7 +125,7 @@ in null
                 "tagPrefix": "v",
                 "assets": {"x86_64-linux": {"name": "tool.tar.gz"}},
             }
-            with mock.patch.object(update_releases, "run_gh_releases", return_value=[release]):
+            with mock.patch.object(update_releases, "run_gh_latest_release", return_value=release):
                 with self.assertRaisesRegex(RuntimeError, "refusing to downgrade"):
                     update_releases.prepare_update(root, "tool", config)
 

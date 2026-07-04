@@ -141,6 +141,7 @@ home-manager switch --flake .#me
 ## Updating Packages
 
 Nix packages are pinned to exact versions and hashes. Update metadata is centralized in `updates.yml` and processed by `scripts/update-releases.py`.
+GitHub release packages use GitHub's `/releases/latest` endpoint by default, which ignores draft and prerelease channel releases.
 
 ```sh
 uv run --with pyyaml python -B scripts/update-releases.py updates.yml --check --build
@@ -219,6 +220,13 @@ If upstream uses release names instead of semver tags, you can set:
 version:
   source: release-name-date
   prefix: 8.1-latest-
+```
+
+If a package needs to scan the full releases list instead of GitHub's latest release, set:
+
+```yaml
+release:
+  source: list
 ```
 
 After editing the package, validate it:

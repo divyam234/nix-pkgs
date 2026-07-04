@@ -65,7 +65,23 @@ def run_command(command, *, capture=False):
 
 
 def run_gh_releases(repo):
-    return run_json(["gh", "api", f"repos/{repo}/releases?per_page=100"])
+    return run_json(["gh", "api", f"repos/{repo}/releases?per_page=20"])
+
+
+def run_gh_latest_release(repo):
+    return run_json(["gh", "api", f"repos/{repo}/releases/latest"])
+
+
+def run_gh_selected_releases(config):
+    release_cfg = config.get("release", {})
+    source = release_cfg.get("source", "latest")
+
+    if source == "latest":
+        return [run_gh_latest_release(config["repo"])]
+    if source == "list":
+        return run_gh_releases(config["repo"])
+
+    raise RuntimeError(f"unknown release source: {source}")
 
 
 def run_gh_commit(repo, ref):
@@ -204,6 +220,23 @@ def resolve_asset_name(assets_index, asset_spec, version):
     return matches[0]
 
 
+def release_has_configured_assets(release, config):
+    asset_specs = config.get("assets")
+    if not asset_specs:
+        return True
+
+    version = release_version(release, config)
+    assets_index = {asset["name"]: asset for asset in release.get("assets", [])}
+    for asset_spec in asset_specs.values():
+        try:
+            resolve_asset_name(assets_index, asset_spec, version)
+        except RuntimeError as error:
+            if "multiple assets" in str(error):
+                raise
+            return False
+    return True
+
+
 def release_version(release, config):
     version_cfg = config.get("version", {})
     source = version_cfg.get("source", "tag")
@@ -243,10 +276,12 @@ def select_release(releases, config):
             continue
         if tag_regex and not tag_regex.fullmatch(release.get("tag_name", "")):
             continue
+        if not release_has_configured_assets(release, config):
+            continue
         candidates.append(release)
 
     if not candidates:
-        raise RuntimeError("no release matched the configured release policy")
+        raise RuntimeError("no release matched the configured release policy and assets")
 
     versioned = []
     for release in candidates:
@@ -269,7 +304,7 @@ def prepare_update(repo_root, package_name, config):
     package_text = package_file.read_text()
     old_version = current_version(package_text)
 
-    release = select_release(run_gh_releases(config["repo"]), config)
+    release = select_release(run_gh_selected_releases(config), config)
     tag = release["tag_name"]
     new_version = release_version(release, config)
 
