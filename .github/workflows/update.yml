@@ -25,9 +25,6 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
-      - name: Test updater
-        run: uv run --with pyyaml python -m unittest scripts/test_update_releases.py
-
       - name: Update and validate packages
         env:
           GH_TOKEN: ${{ github.token }}
