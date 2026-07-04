@@ -8,12 +8,12 @@ let
 
   sources = {
     x86_64-linux = {
-      asset = "teldrive-${version}-linux-amd64.tar.gz";
+      asset = "teldrive-1.8.3-linux-amd64.tar.gz";
       hash = "sha256-QRQ2LJvtrVnfHwFkLXJo3HO2OsLdmXCpV8fQwOpw0KQ=";
     };
 
     aarch64-linux = {
-      asset = "teldrive-${version}-linux-arm64.tar.gz";
+      asset = "teldrive-1.8.3-linux-arm64.tar.gz";
       hash = "sha256-7HhGNEe1YxRA8HF0mloqI5gxYHPELj+TmxRCA4HR784=";
     };
   };

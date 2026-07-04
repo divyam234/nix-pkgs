@@ -17,12 +17,12 @@ let
 
   sources = {
     x86_64-linux = {
-      asset = "openlogi-v${version}-linux-amd64.deb";
+      asset = "openlogi-v0.6.18-linux-amd64.deb";
       hash = "sha256-Q30YWMEv3U7UZLeg2qk4NVx430Shln8tRyMi9qdZ5DA=";
     };
 
     aarch64-linux = {
-      asset = "openlogi-v${version}-linux-arm64.deb";
+      asset = "openlogi-v0.6.18-linux-arm64.deb";
       hash = "sha256-xbb8PSep0xui/lY61knTsWqn0elQOEXU5BnTTQVHX9A=";
     };
   };

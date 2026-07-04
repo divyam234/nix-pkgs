@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -436,6 +437,13 @@ def run_smoke_test(package_name, config, version):
     return output
 
 
+def prepare_named_update(repo_root, package_configs, name):
+    try:
+        return prepare_update(repo_root, name, package_configs[name])
+    except RuntimeError as error:
+        raise RuntimeError(f"{name}: {error}") from error
+
+
 def render_report(updates, validation):
     lines = ["# Automated package update", ""]
     changed = [update for update in updates if update.changed]
@@ -484,6 +492,7 @@ def main():
     parser.add_argument("--smoke-test", action="store_true", help="Run configured smoke tests after builds")
     parser.add_argument("--report", type=Path, help="Write a Markdown update report")
     parser.add_argument("--json", action="store_true", help="Print machine-readable update data")
+    parser.add_argument("--jobs", type=int, default=4, help="Package updates to resolve in parallel")
     args = parser.parse_args()
 
     repo_root = REPO_ROOT
@@ -493,12 +502,15 @@ def main():
     if missing:
         raise RuntimeError(f"unknown package(s) in manifest: {', '.join(missing)}")
 
-    updates = []
-    for name in selected:
-        try:
-            updates.append(prepare_update(repo_root, name, package_configs[name]))
-        except RuntimeError as error:
-            raise RuntimeError(f"{name}: {error}") from error
+    jobs = max(1, min(args.jobs, len(selected)))
+    if jobs == 1:
+        updates = [prepare_named_update(repo_root, package_configs, name) for name in selected]
+    else:
+        with ThreadPoolExecutor(max_workers=jobs) as executor:
+            updates = list(executor.map(
+                lambda name: prepare_named_update(repo_root, package_configs, name),
+                selected,
+            ))
     validation = []
 
     if args.verify:

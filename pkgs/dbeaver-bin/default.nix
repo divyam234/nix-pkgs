@@ -5,12 +5,12 @@ let
 
   sources = {
     x86_64-linux = {
-      asset = "dbeaver-ce-${version}-linux-x86_64.tar.gz";
+      asset = "dbeaver-ce-26.1.1-linux-x86_64.tar.gz";
       hash = "sha256-atbQ00lq589FlNem85NgzTKGyhTRpFII8OSfVfYQuD0=";
     };
 
     aarch64-linux = {
-      asset = "dbeaver-ce-${version}-linux-aarch64.tar.gz";
+      asset = "dbeaver-ce-26.1.1-linux-aarch64.tar.gz";
       hash = "sha256-Sde0q31hXMqX2oxfhgj5EcpeUYYFZJy61usaJVpZkLM=";
     };
   };
