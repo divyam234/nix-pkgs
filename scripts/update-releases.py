@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -148,11 +149,8 @@ def read_top_level_field(package_text, field):
 
 
 def read_system_field(package_text, system, field):
-    block_pattern = re.compile(rf'({re.escape(system)} = \{{.*?\n\s*\}};)', re.DOTALL)
-    block_match = block_pattern.search(package_text)
-    if not block_match:
-        raise RuntimeError(f"could not find source block for {system}")
-    match = re.search(rf'{re.escape(field)} = "([^"]+)";', block_match.group(1))
+    _, _, block = find_system_block(package_text, system)
+    match = re.search(rf'{re.escape(field)} = "([^"]+)";', block)
     if not match:
         raise RuntimeError(f"could not find {field} for {system}")
     return match.group(1)
@@ -166,6 +164,41 @@ def replace_top_level_field(package_text, field, value):
     return updated_text
 
 
+def find_system_block(package_text, system):
+    header = re.search(rf'(^\s*{re.escape(system)}\s*=\s*\{{)', package_text, re.MULTILINE)
+    if not header:
+        raise RuntimeError(f"could not find source block for {system}")
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(header.end() - 1, len(package_text)):
+        char = package_text[index]
+        if in_string:
+            escaped = char == "\\" and not escaped
+            if char == '"' and not escaped:
+                in_string = False
+            elif char != "\\":
+                escaped = False
+            continue
+
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                end = index + 1
+                while end < len(package_text) and package_text[end].isspace():
+                    end += 1
+                if end < len(package_text) and package_text[end] == ";":
+                    end += 1
+                return header.start(1), end, package_text[header.start(1) : end]
+
+    raise RuntimeError(f"could not find source block for {system}")
+
+
 def github_head_version(current, commit, config):
     version_cfg = config.get("version", {})
     base = version_cfg.get("base") or current.split("-unstable-", 1)[0]
@@ -174,12 +207,7 @@ def github_head_version(current, commit, config):
 
 
 def replace_system_field(package_text, system, field, value):
-    block_pattern = re.compile(rf'({re.escape(system)} = \{{.*?\n\s*\}};)', re.DOTALL)
-    block_match = block_pattern.search(package_text)
-    if not block_match:
-        raise RuntimeError(f"could not find source block for {system}")
-
-    block = block_match.group(1)
+    start, end, block = find_system_block(package_text, system)
     updated_block, count = re.subn(
         rf'({re.escape(field)} = ")[^"]+(";)',
         rf'\g<1>{value}\2',
@@ -189,7 +217,7 @@ def replace_system_field(package_text, system, field, value):
     if count == 0:
         raise RuntimeError(f"could not update {field} for {system}")
 
-    return package_text[: block_match.start(1)] + updated_block + package_text[block_match.end(1) :]
+    return package_text[:start] + updated_block + package_text[end:]
 
 
 def resolve_asset_name(assets_index, asset_spec, version):
@@ -319,6 +347,7 @@ def prepare_update(repo_root, package_name, config):
     updates = {}
     used_assets = set()
 
+    selected_assets = []
     for system, asset_spec in config["assets"].items():
         asset_name = resolve_asset_name(release_assets, asset_spec, new_version)
         if asset_name in used_assets and not config.get("allowSharedAsset", False):
@@ -327,9 +356,21 @@ def prepare_update(repo_root, package_name, config):
         asset_url = release_assets[asset_name].get("browser_download_url") or release_assets[asset_name].get("url")
         if not asset_url:
             raise RuntimeError(f"release asset {asset_name} has no download URL")
+        selected_assets.append((system, asset_name, asset_url))
+
+    hashes = {}
+    with ThreadPoolExecutor(max_workers=min(4, len(selected_assets))) as executor:
+        futures = {
+            executor.submit(prefetch_hash, asset_url): system
+            for system, _, asset_url in selected_assets
+        }
+        for future in as_completed(futures):
+            hashes[futures[future]] = future.result()
+
+    for system, asset_name, _ in selected_assets:
         updates[system] = {
             "asset": asset_name,
-            "hash": prefetch_hash(asset_url),
+            "hash": hashes[system],
         }
 
     updated_text = replace_top_level_field(package_text, "version", new_version)

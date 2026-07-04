@@ -98,6 +98,46 @@ class UpdateReleasesTests(unittest.TestCase):
         releases.assert_called_once_with("owner/tool")
         latest.assert_not_called()
 
+    def test_read_system_field_handles_nested_blocks(self):
+        package = '''let
+  sources = {
+    x86_64-linux = {
+      asset = "tool.tar.gz";
+      passthru = {
+        nested = "value";
+      };
+      hash = "sha256-old";
+    };
+  };
+in null
+'''
+        self.assertEqual(
+            update_releases.read_system_field(package, "x86_64-linux", "hash"),
+            "sha256-old",
+        )
+
+    def test_replace_system_field_handles_nested_blocks(self):
+        package = '''let
+  sources = {
+    x86_64-linux = {
+      asset = "tool.tar.gz";
+      passthru = {
+        nested = "value";
+      };
+      hash = "sha256-old";
+    };
+  };
+in null
+'''
+        updated = update_releases.replace_system_field(
+            package,
+            "x86_64-linux",
+            "hash",
+            "sha256-new",
+        )
+        self.assertIn('hash = "sha256-new";', updated)
+        self.assertIn('nested = "value";', updated)
+
     def test_prepare_update_refuses_downgrade(self):
         package = '''let
   version = "2.0.0";

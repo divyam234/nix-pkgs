@@ -174,16 +174,3 @@ packages:
       command: bin/teldrive
       args: [--version]
       expectedOutput: '{version}'
-
-  zjstatus:
-    repo: dj95/zjstatus
-    file: pkgs/zjstatus/default.nix
-    tagPrefix: v
-    version:
-      source: tag
-    allowSharedAsset: true
-    assets:
-      x86_64-linux:
-        name: zjstatus.wasm
-      aarch64-linux:
-        name: zjstatus.wasm
