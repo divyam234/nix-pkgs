@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   update:
@@ -30,14 +29,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           uv run --with pyyaml python -B scripts/update-releases.py
-          updates.yml --check --build --smoke-test --report .git/update-report.md
+          updates.yml --check --build --smoke-test
 
-      - name: Create or update pull request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          branch: automated/package-updates
-          delete-branch: true
-          commit-message: update packages
-          title: Update Nix packages
-          body-path: .git/update-report.md
-          labels: dependencies,automated
+      - name: Commit package updates
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No package updates to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "update packages"
+          git push origin HEAD:${{ github.ref_name }}
