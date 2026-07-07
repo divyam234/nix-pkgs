@@ -1,4 +1,4 @@
-{ originalBeekeeperStudio, fetchurl, stdenv }:
+{ originalBeekeeperStudio, fetchurl, lib, stdenv, unixodbc }:
 
 let
   version = "5.8.1";
@@ -19,6 +19,13 @@ let
 in
 originalBeekeeperStudio.overrideAttrs (old: {
   inherit version;
+
+  buildInputs = (old.buildInputs or [ ]) ++ [ unixodbc ];
+
+  postFixup = (old.postFixup or "") + ''
+    wrapProgram $out/bin/beekeeper-studio \
+      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ unixodbc ]}
+  '';
 
   src = fetchurl {
     url = "https://github.com/beekeeper-studio/beekeeper-studio/releases/download/v${version}/${sources.${sys}.asset}";
