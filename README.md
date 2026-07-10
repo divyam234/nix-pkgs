@@ -154,7 +154,7 @@ GitHub Actions runs `scripts/update-releases.py` daily and commits directly when
 **Publish rclone prerelease** runs daily. It lists stable tags in
 `divyam234/rclone-private`, selects the newest tag without a release, builds
 that exact tag for Linux `amd64` and `arm64`, then creates a prerelease with
-both archives and `checksums.txt`. You can also run it manually with a specific
+both `.tar.gz` archives and `checksums.txt`. You can also run it manually with a specific
 existing tag such as `v1.74.4`, or leave the version blank to use the newest
 unpublished stable tag.
 

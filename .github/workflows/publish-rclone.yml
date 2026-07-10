@@ -100,7 +100,7 @@ jobs:
           sudo modprobe fuse
           sudo chmod 666 /dev/fuse
           sudo apt-get update
-          sudo apt-get install -y fuse3 libfuse-dev pkg-config zip
+          sudo apt-get install -y fuse3 libfuse-dev pkg-config
 
       - name: Cross-compile Linux amd64 and arm64 binaries
         working-directory: source
@@ -110,7 +110,7 @@ jobs:
             -include '^linux/(amd64|arm64)$' \
             "$VERSION"
 
-      - name: Create ZIP release archives
+      - name: Create tar.gz release archives
         working-directory: source
         run: |
           for arch in amd64 arm64; do
@@ -118,18 +118,15 @@ jobs:
             cp MANUAL.txt "$directory/README.txt"
             cp MANUAL.html "$directory/README.html"
             cp rclone.1 "$directory/rclone.1"
-            (
-              cd build
-              zip -r9 "rclone-${VERSION}-linux-${arch}.zip" "$(basename "$directory")"
-            )
+            tar -C build -czf "build/rclone-${VERSION}-linux-${arch}.tar.gz" "$(basename "$directory")"
           done
 
       - name: Verify release assets
         working-directory: source
         run: |
           assets=(
-            "build/rclone-${VERSION}-linux-amd64.zip"
-            "build/rclone-${VERSION}-linux-arm64.zip"
+            "build/rclone-${VERSION}-linux-amd64.tar.gz"
+            "build/rclone-${VERSION}-linux-arm64.tar.gz"
           )
           for asset in "${assets[@]}"; do
             test -f "$asset"
@@ -140,8 +137,8 @@ jobs:
         working-directory: source
         run: |
           gh release create "$VERSION" \
-            build/rclone-"${VERSION}"-linux-amd64.zip \
-            build/rclone-"${VERSION}"-linux-arm64.zip \
+            build/rclone-"${VERSION}"-linux-amd64.tar.gz \
+            build/rclone-"${VERSION}"-linux-arm64.tar.gz \
             build/checksums.txt \
             --repo "$SOURCE_REPOSITORY" \
             --title "rclone $VERSION" \
