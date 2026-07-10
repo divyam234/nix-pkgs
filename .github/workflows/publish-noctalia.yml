@@ -86,7 +86,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y \
-            git meson ninja-build g++ just pkg-config \
+            meson g++ just \
             libwayland-dev wayland-protocols \
             libegl-dev libgles-dev \
             libfreetype-dev libfontconfig-dev libcairo2-dev libpango1.0-dev libharfbuzz-dev \
