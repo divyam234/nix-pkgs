@@ -100,15 +100,29 @@ jobs:
           sudo modprobe fuse
           sudo chmod 666 /dev/fuse
           sudo apt-get update
-          sudo apt-get install -y fuse3 libfuse-dev rpm pkg-config
+          sudo apt-get install -y fuse3 libfuse-dev pkg-config zip
 
-      - name: Cross-compile Linux amd64 and arm64 archives
+      - name: Cross-compile Linux amd64 and arm64 binaries
         working-directory: source
         run: |
           go run bin/cross-compile.go \
-            -release release \
+            -compile-only \
             -include '^linux/(amd64|arm64)$' \
             "$VERSION"
+
+      - name: Create ZIP release archives
+        working-directory: source
+        run: |
+          for arch in amd64 arm64; do
+            directory="build/rclone-${VERSION}-linux-${arch}"
+            cp MANUAL.txt "$directory/README.txt"
+            cp MANUAL.html "$directory/README.html"
+            cp rclone.1 "$directory/rclone.1"
+            (
+              cd build
+              zip -r9 "rclone-${VERSION}-linux-${arch}.zip" "$(basename "$directory")"
+            )
+          done
 
       - name: Verify release assets
         working-directory: source
