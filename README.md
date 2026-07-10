@@ -149,6 +149,20 @@ uv run --with pyyaml python -B scripts/update-releases.py updates.yml --check --
 
 GitHub Actions runs `scripts/update-releases.py` daily and commits directly when package files change.
 
+### Publishing rclone prereleases
+
+**Publish rclone prerelease** runs daily. It lists stable tags in
+`divyam234/rclone-private`, selects the newest tag without a release, builds
+that exact tag for Linux `amd64` and `arm64`, then creates a prerelease with
+both archives and `checksums.txt`. You can also run it manually with a specific
+existing tag such as `v1.74.4`, or leave the version blank to use the newest
+unpublished stable tag.
+
+Before running it, add a `PAT_TOKEN` Actions secret to this
+repository. Use a fine-grained personal access token with **Contents: Read and
+write** access to `divyam234/rclone-private`; it is needed to read the private
+source repository and create its release.
+
 To add another GitHub release package:
 
 1. Add `pkgs/<name>/default.nix`.

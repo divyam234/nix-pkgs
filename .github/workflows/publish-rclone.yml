@@ -1,0 +1,137 @@
+name: Publish rclone prerelease
+
+on:
+  schedule:
+    - cron: "15 5 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing tag to publish, for example v1.74.4; leave empty for the newest unpublished stable tag
+        required: false
+        type: string
+
+run-name: Publish rclone ${{ inputs.version || 'latest unpublished tag' }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-rclone
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Find an unpublished rclone tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.select.outputs.tag }}
+      publish: ${{ steps.select.outputs.publish }}
+    env:
+      SOURCE_REPOSITORY: divyam234/rclone-private
+      REQUESTED_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+    steps:
+      - id: select
+        name: Select newest unpublished stable tag
+        run: |
+          set -euo pipefail
+
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            candidates=("$REQUESTED_VERSION")
+          else
+            candidates=()
+            while IFS= read -r tag; do
+              if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                candidates+=("$tag")
+              fi
+            done < <(gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name')
+            if (( ${#candidates[@]} > 0 )); then
+              mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | sort -Vr)
+            fi
+          fi
+
+          for tag in "${candidates[@]}"; do
+            if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "version must be an existing stable tag such as v1.74.4" >&2
+              exit 1
+            fi
+
+            gh api "repos/$SOURCE_REPOSITORY/git/ref/tags/$tag" >/dev/null
+            if ! gh release view "$tag" --repo "$SOURCE_REPOSITORY" >/dev/null 2>&1; then
+              echo "tag=$tag" >> "$GITHUB_OUTPUT"
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          echo "No unpublished stable rclone tag found."
+          echo "publish=false" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Build and publish Linux archives
+    needs: discover
+    if: needs.discover.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REPOSITORY: divyam234/rclone-private
+      VERSION: ${{ needs.discover.outputs.tag }}
+      GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+    steps:
+      - name: Check out rclone source
+        uses: actions/checkout@v4
+        with:
+          repository: divyam234/rclone-private
+          ref: ${{ needs.discover.outputs.tag }}
+          token: ${{ secrets.PAT_TOKEN }}
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: source/go.mod
+          cache-dependency-path: source/go.sum
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo modprobe fuse
+          sudo chmod 666 /dev/fuse
+          sudo apt-get update
+          sudo apt-get install -y fuse3 libfuse-dev rpm pkg-config
+
+      - name: Cross-compile Linux amd64 and arm64 archives
+        working-directory: source
+        run: |
+          go run bin/cross-compile.go \
+            -release release \
+            -include '^linux/(amd64|arm64)$' \
+            "$VERSION"
+
+      - name: Verify release assets
+        working-directory: source
+        run: |
+          assets=(
+            "build/rclone-${VERSION}-linux-amd64.zip"
+            "build/rclone-${VERSION}-linux-arm64.zip"
+          )
+          for asset in "${assets[@]}"; do
+            test -f "$asset"
+          done
+          sha256sum "${assets[@]}" > build/checksums.txt
+
+      - name: Create prerelease and upload assets
+        working-directory: source
+        run: |
+          gh release create "$VERSION" \
+            build/rclone-"${VERSION}"-linux-amd64.zip \
+            build/rclone-"${VERSION}"-linux-arm64.zip \
+            build/checksums.txt \
+            --repo "$SOURCE_REPOSITORY" \
+            --title "rclone $VERSION" \
+            --generate-notes \
+            --prerelease \
+            --latest=false \
+            --verify-tag
