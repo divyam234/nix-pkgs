@@ -202,6 +202,22 @@ jobs:
           ref: ${{ needs.discover.outputs.source-tag }}
           persist-credentials: false
 
+      - name: Configure portable CPU target
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          sed -i \
+            -e "s/'-march=native'/'-march=x86-64-v3'/g" \
+            -e "s/'-mtune=native'/'-mtune=generic'/g" \
+            meson.build
+
+          if grep -Eq -- '-march=native|-mtune=native' meson.build; then
+            echo "Native CPU flags are still present" >&2
+            exit 1
+          fi
+          grep -En -- '-march=|-mtune=' meson.build
+
       - name: Build portable archive
         env:
           VERSION: ${{ needs.discover.outputs.source-tag }}

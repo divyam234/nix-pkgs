@@ -4,10 +4,6 @@ let
   githubReleaseBinary = pkgs.callPackage ../lib/github-release-binary.nix { };
 in
 {
-  aria2 = pkgs.callPackage ./aria2 {
-    inherit githubReleaseBinary;
-  };
-
   bun = pkgs.callPackage ./bun { };
 
   codeforge = pkgs.callPackage ./codeforge {

@@ -71,22 +71,6 @@ packages:
       aarch64-linux:
         name: zed-linux-aarch64.tar.gz
 
-  aria2:
-    repo: divyam234/aria2c-static
-    file: pkgs/aria2/default.nix
-    tagPrefix: release-
-    version:
-      source: tag
-    assets:
-      x86_64-linux:
-        name: aria2-linux-amd64.tar.gz
-      aarch64-linux:
-        name: aria2-linux-arm64.tar.gz
-    test:
-      command: bin/aria2c
-      args: [--version]
-      expectedOutput: '{version}'
-
   bun:
     repo: oven-sh/bun
     file: pkgs/bun/default.nix
