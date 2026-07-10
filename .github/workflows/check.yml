@@ -2,9 +2,19 @@ name: Check
 
 on:
   pull_request:
+    paths:
+      - '**'
+      - '!README.md'
+      - '!.github/workflows/**'
+      - '.github/workflows/check.yml'
   push:
     branches:
       - main
+    paths:
+      - '**'
+      - '!README.md'
+      - '!.github/workflows/**'
+      - '.github/workflows/check.yml'
 
 jobs:
   check:
