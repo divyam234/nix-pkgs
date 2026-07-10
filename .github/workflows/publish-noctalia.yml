@@ -78,24 +78,23 @@ jobs:
     name: Build Linux amd64 archive
     needs: discover
     if: needs.discover.outputs.publish == 'true'
-    runs-on: ubuntu-24.04
-    container: archlinux:latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Install build dependencies
         run: |
-          pacman -Syu --noconfirm --needed \
-            base-devel git meson ninja pkgconf \
-            wayland wayland-protocols \
-            libglvnd freetype2 fontconfig \
-            cairo pango harfbuzz \
-            libxkbcommon glib2 \
-            sdbus-cpp libpipewire wireplumber polkit \
-            pam curl libwebp librsvg \
-            libqalculate libxml2 \
-            md4c tomlplusplus \
-            nlohmann-json stb \
-            jemalloc just
+          sudo apt-get update
+          sudo apt-get install -y \
+            meson ninja-build g++ just pkg-config \
+            libwayland-dev wayland-protocols \
+            libegl-dev libgles-dev libglvnd-dev \
+            libfreetype-dev libfontconfig1-dev libcairo2-dev libpango1.0-dev libharfbuzz-dev \
+            libxkbcommon-dev libglib2.0-dev \
+            libsdbus-c++-dev libpipewire-0.3-dev libwireplumber-0.5-dev \
+            libpam0g-dev libpolkit-agent-1-dev libpolkit-gobject-1-dev \
+            libcurl4-openssl-dev libwebp-dev librsvg2-dev \
+            libqalculate-dev libxml2-dev libmd4c-dev libtomlplusplus-dev \
+            nlohmann-json3-dev libstb-dev libjemalloc-dev
 
       - name: Check out Noctalia source
         uses: actions/checkout@v4
