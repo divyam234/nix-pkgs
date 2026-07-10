@@ -79,16 +79,17 @@ jobs:
     needs: discover
     if: needs.discover.outputs.publish == 'true'
     runs-on: ubuntu-latest
+    container: debian:trixie
 
     steps:
       - name: Install build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            meson ninja-build g++ just pkg-config \
+          apt-get update
+          apt-get install -y \
+            git meson ninja-build g++ just pkg-config \
             libwayland-dev wayland-protocols \
-            libegl-dev libgles-dev libglvnd-dev \
-            libfreetype-dev libfontconfig1-dev libcairo2-dev libpango1.0-dev libharfbuzz-dev \
+            libegl-dev libgles-dev \
+            libfreetype-dev libfontconfig-dev libcairo2-dev libpango1.0-dev libharfbuzz-dev \
             libxkbcommon-dev libglib2.0-dev \
             libsdbus-c++-dev libpipewire-0.3-dev libwireplumber-0.5-dev \
             libpam0g-dev libpolkit-agent-1-dev libpolkit-gobject-1-dev \
