@@ -75,18 +75,10 @@ jobs:
           echo "publish=false" >> "$GITHUB_OUTPUT"
 
   build:
-    name: Build Linux ${{ matrix.arch }} archive
+    name: Build Linux amd64 archive
     needs: discover
     if: needs.discover.outputs.publish == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-24.04
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-24.04
     container: archlinux:latest
 
     steps:
@@ -115,7 +107,7 @@ jobs:
       - name: Build portable archive
         env:
           VERSION: ${{ needs.discover.outputs.source-tag }}
-          ARCH: ${{ matrix.arch }}
+          ARCH: amd64
         run: |
           set -euo pipefail
           just configure release /usr
@@ -129,10 +121,10 @@ jobs:
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
-          name: noctalia-${{ matrix.arch }}
+          name: noctalia-amd64
           path: |
-            noctalia-${{ needs.discover.outputs.source-tag }}-linux-${{ matrix.arch }}.tar.gz
-            noctalia-${{ needs.discover.outputs.source-tag }}-linux-${{ matrix.arch }}.tar.gz.sha256
+            noctalia-${{ needs.discover.outputs.source-tag }}-linux-amd64.tar.gz
+            noctalia-${{ needs.discover.outputs.source-tag }}-linux-amd64.tar.gz.sha256
           if-no-files-found: error
 
   publish:
@@ -160,7 +152,6 @@ jobs:
           set -euo pipefail
           assets=(
             "noctalia-${VERSION}-linux-amd64.tar.gz"
-            "noctalia-${VERSION}-linux-arm64.tar.gz"
           )
           for asset in "${assets[@]}"; do
             test -f "$asset"
@@ -173,7 +164,6 @@ jobs:
         run: |
           gh release create "$RELEASE_TAG" \
             noctalia-"${VERSION}"-linux-amd64.tar.gz \
-            noctalia-"${VERSION}"-linux-arm64.tar.gz \
             checksums.txt \
             --repo "$RELEASE_REPOSITORY" \
             --target "$GITHUB_SHA" \
