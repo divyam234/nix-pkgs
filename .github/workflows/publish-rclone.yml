@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Existing tag to publish, for example v1.74.4; leave empty for the newest unpublished stable tag
         required: false
         type: string
 
@@ -151,6 +150,5 @@ jobs:
             --repo "$RELEASE_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "rclone $VERSION" \
-            --generate-notes \
             --prerelease \
             --latest=false

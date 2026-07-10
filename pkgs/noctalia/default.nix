@@ -80,7 +80,7 @@ stdenv.mkDerivation {
     systemd
     pipewire
     pam
-
+    curl
     libxml2_13
     libwebp
     glib
