@@ -1,0 +1,183 @@
+name: Publish Noctalia prerelease
+
+on:
+  schedule:
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing tag to publish, for example v5.0.0-beta2; leave empty for the newest unpublished tag
+        required: false
+        type: string
+
+run-name: Publish Noctalia ${{ inputs.version || 'latest unpublished tag' }}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-noctalia
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Find an unpublished Noctalia tag
+    runs-on: ubuntu-latest
+    outputs:
+      source-tag: ${{ steps.select.outputs.source-tag }}
+      release-tag: ${{ steps.select.outputs.release-tag }}
+      publish: ${{ steps.select.outputs.publish }}
+    env:
+      SOURCE_REPOSITORY: noctalia-dev/noctalia
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      REQUESTED_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - id: select
+        name: Select newest unpublished tag
+        run: |
+          set -euo pipefail
+
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            candidates=("$REQUESTED_VERSION")
+          else
+            candidates=()
+            while IFS= read -r tag; do
+              if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+                candidates+=("$tag")
+              fi
+            done < <(gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name')
+            if (( ${#candidates[@]} > 0 )); then
+              mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | sort -Vr)
+            fi
+          fi
+
+          for tag in "${candidates[@]}"; do
+            if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+              echo "version must be an existing tag such as v5.0.0-beta2" >&2
+              exit 1
+            fi
+
+            gh api "repos/$SOURCE_REPOSITORY/git/ref/tags/$tag" >/dev/null
+            release_tag="noctalia-$tag"
+            if ! gh release view "$release_tag" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
+              {
+                echo "source-tag=$tag"
+                echo "release-tag=$release_tag"
+                echo "publish=true"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          echo "No unpublished Noctalia tag found."
+          echo "publish=false" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build Linux ${{ matrix.arch }} archive
+    needs: discover
+    if: needs.discover.outputs.publish == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: archlinux:latest
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            base-devel git meson ninja pkgconf \
+            wayland wayland-protocols \
+            libglvnd freetype2 fontconfig \
+            cairo pango harfbuzz \
+            libxkbcommon glib2 \
+            sdbus-cpp libpipewire wireplumber polkit \
+            pam curl libwebp librsvg \
+            libqalculate libxml2 \
+            md4c tomlplusplus \
+            nlohmann-json stb \
+            jemalloc just
+
+      - name: Check out Noctalia source
+        uses: actions/checkout@v4
+        with:
+          repository: noctalia-dev/noctalia
+          ref: ${{ needs.discover.outputs.source-tag }}
+          persist-credentials: false
+
+      - name: Build portable archive
+        env:
+          VERSION: ${{ needs.discover.outputs.source-tag }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          just configure release /usr
+          just build release
+          DESTDIR="$PWD/stage" just install release
+          test -x stage/usr/bin/noctalia
+          test -d stage/usr/share/noctalia/assets
+          tar -C stage/usr -czf "noctalia-${VERSION}-linux-${ARCH}.tar.gz" bin/noctalia share/noctalia
+          sha256sum "noctalia-${VERSION}-linux-${ARCH}.tar.gz" > "noctalia-${VERSION}-linux-${ARCH}.tar.gz.sha256"
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: noctalia-${{ matrix.arch }}
+          path: |
+            noctalia-${{ needs.discover.outputs.source-tag }}-linux-${{ matrix.arch }}.tar.gz
+            noctalia-${{ needs.discover.outputs.source-tag }}-linux-${{ matrix.arch }}.tar.gz.sha256
+          if-no-files-found: error
+
+  publish:
+    name: Create prerelease
+    needs:
+      - discover
+      - build
+    if: needs.discover.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      VERSION: ${{ needs.discover.outputs.source-tag }}
+      RELEASE_TAG: ${{ needs.discover.outputs.release-tag }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Download release archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: noctalia-*
+          merge-multiple: true
+
+      - name: Verify release assets
+        run: |
+          set -euo pipefail
+          assets=(
+            "noctalia-${VERSION}-linux-amd64.tar.gz"
+            "noctalia-${VERSION}-linux-arm64.tar.gz"
+          )
+          for asset in "${assets[@]}"; do
+            test -f "$asset"
+            test -f "$asset.sha256"
+            sha256sum --check "$asset.sha256"
+          done
+          cat "${assets[@]/%/.sha256}" > checksums.txt
+
+      - name: Create prerelease and upload assets
+        run: |
+          gh release create "$RELEASE_TAG" \
+            noctalia-"${VERSION}"-linux-amd64.tar.gz \
+            noctalia-"${VERSION}"-linux-arm64.tar.gz \
+            checksums.txt \
+            --repo "$RELEASE_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Noctalia $VERSION" \
+            --generate-notes \
+            --prerelease \
+            --latest=false
