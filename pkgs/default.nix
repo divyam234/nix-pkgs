@@ -48,3 +48,8 @@ in
 
   openlogi = pkgs.callPackage ./openlogi { };
 }
+// prev.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
+  noctalia = pkgs.callPackage ./noctalia {
+    curl = pkgs.curl.override { gnutlsSupport = true; };
+  };
+}

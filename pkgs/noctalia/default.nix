@@ -1,0 +1,107 @@
+{
+  lib,
+  stdenv,
+  fetchurl,
+  autoPatchelfHook,
+  wayland,
+  wayland-protocols,
+  libGL,
+  libglvnd,
+  freetype,
+  fontconfig,
+  cairo,
+  pango,
+  harfbuzz,
+  libxkbcommon,
+  sdbus-cpp_2,
+  systemd,
+  pipewire,
+  pam,
+  curl,
+  libwebp,
+  glib,
+  polkit,
+  librsvg,
+  libqalculate,
+  libxml2,
+  md4c,
+  stb,
+  nlohmann_json,
+  tomlplusplus,
+  wireplumber,
+  jemalloc,
+}:
+
+let
+  version = "5.0.0-beta2";
+  sources = {
+    x86_64-linux = {
+      asset = "noctalia-v5.0.0-beta2-linux-amd64.tar.gz";
+      hash = "sha256-GXcS9qo/n6UOCn5fo4sSBNHgFnqcnuHBKvAJU3uViEg=";
+    };
+  };
+  source = sources.${stdenv.hostPlatform.system} or (throw "noctalia is not packaged for ${stdenv.hostPlatform.system}");
+in
+stdenv.mkDerivation {
+  pname = "noctalia";
+  inherit version;
+
+  src = fetchurl {
+    url = "https://github.com/divyam234/nix-pkgs/releases/download/noctalia-v${version}/${source.asset}";
+    inherit (source) hash;
+  };
+
+  sourceRoot = ".";
+  dontConfigure = true;
+  dontBuild = true;
+  dontStrip = true;
+
+  nativeBuildInputs = [ autoPatchelfHook ];
+
+  buildInputs = [
+    wayland
+    wayland-protocols
+    libGL
+    libglvnd
+    freetype
+    fontconfig
+    cairo
+    pango
+    harfbuzz
+    libxkbcommon
+    sdbus-cpp_2
+    systemd
+    pipewire
+    pam
+    curl
+    libwebp
+    glib
+    polkit
+    librsvg
+    libqalculate
+    libxml2
+    md4c
+    stb
+    nlohmann_json
+    tomlplusplus
+    wireplumber
+    jemalloc
+  ];
+
+  installPhase = ''
+    runHook preInstall
+
+    install -Dm755 bin/noctalia "$out/bin/noctalia"
+    cp -r share "$out/"
+
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "A lightweight Wayland shell and bar built directly on Wayland and OpenGL ES";
+    homepage = "https://github.com/noctalia-dev/noctalia";
+    license = lib.licenses.mit;
+    mainProgram = "noctalia";
+    platforms = builtins.attrNames sources;
+  };
+}
