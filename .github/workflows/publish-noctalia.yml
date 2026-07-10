@@ -83,19 +83,107 @@ jobs:
 
     steps:
       - name: Install build dependencies
+        shell: bash
         run: |
+          set -euxo pipefail
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get install -y \
-            curl meson g++ just \
-            libwayland-dev wayland-protocols \
-            libegl-dev libgles-dev \
-            libfreetype-dev libfontconfig-dev libcairo2-dev libpango1.0-dev libharfbuzz-dev \
-            libxkbcommon-dev libglib2.0-dev \
-            libsdbus-c++-dev libpipewire-0.3-dev libwireplumber-0.5-dev \
-            libpam0g-dev libpolkit-agent-1-dev libpolkit-gobject-1-dev \
-            libcurl4-gnutls-dev libwebp-dev librsvg2-dev \
-            libqalculate-dev libxml2-dev libmd4c-dev libtomlplusplus-dev \
-            nlohmann-json3-dev libstb-dev libjemalloc-dev
+          apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            git \
+            g++ \
+            meson \
+            ninja-build \
+            pkgconf \
+            dpkg-dev \
+            just \
+            binutils \
+            wayland-protocols \
+            libwayland-dev \
+            libegl-dev \
+            libgles-dev \
+            libfreetype-dev \
+            libfontconfig-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libharfbuzz-dev \
+            libxkbcommon-dev \
+            libglib2.0-dev \
+            libsdbus-c++-dev \
+            libpipewire-0.3-dev \
+            libwireplumber-0.5-dev \
+            libpam0g-dev \
+            libpolkit-agent-1-dev \
+            libpolkit-gobject-1-dev \
+            libcurl4-openssl-dev \
+            libwebp-dev \
+            librsvg2-dev \
+            libqalculate23 \
+            libcln-dev \
+            libmpfr-dev \
+            libxml2-dev \
+            libmd4c-dev \
+            libtomlplusplus-dev \
+            nlohmann-json3-dev \
+            libstb-dev \
+            libjemalloc-dev
+
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "$tmpdir"' EXIT
+
+          cd "$tmpdir"
+          apt-get download libqalculate-dev
+
+          qalculate_deb="$(
+            find . -maxdepth 1 -type f \
+              -name 'libqalculate-dev_*.deb' \
+              -print -quit
+          )"
+
+          test -n "$qalculate_deb"
+
+          mkdir unpacked
+          dpkg-deb --extract "$qalculate_deb" unpacked
+
+          multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+          source_libdir="$tmpdir/unpacked/usr/lib/$multiarch"
+          target_libdir="/usr/lib/$multiarch"
+
+          # Headers
+          cp -a \
+            "$tmpdir/unpacked/usr/include/libqalculate" \
+            /usr/include/
+
+          # Dynamic linker symlink used by -lqalculate
+          cp -a \
+            "$source_libdir/libqalculate.so" \
+            "$target_libdir/"
+
+          # pkg-config metadata used by Meson
+          install -Dm644 \
+            "$source_libdir/pkgconfig/libqalculate.pc" \
+            "$target_libdir/pkgconfig/libqalculate.pc"
+
+          cd /
+
+          # Validate the manually assembled development environment.
+          test -e "$target_libdir/libqalculate.so"
+          pkg-config --exists libqalculate
+          pkg-config --exists libcurl
+
+          echo "libqalculate version:"
+          pkg-config --modversion libqalculate
+
+          echo "libcurl version:"
+          pkg-config --modversion libcurl
+
+          echo "libcurl linker flags:"
+          pkg-config --libs libcurl
+
+          # Ensure compilation will use the OpenSSL curl development library.
+          readelf --version-info "$target_libdir/libcurl.so.4" \
+            | grep -F 'CURL_OPENSSL_4'
 
       - name: Build wayland-protocols from source
         run: |

@@ -23,7 +23,7 @@
   polkit,
   librsvg,
   libqalculate,
-  libxml2,
+  libxml2_13,
   md4c,
   stb,
   nlohmann_json,
@@ -34,13 +34,17 @@
 
 let
   version = "5.0.0-beta2";
+
   sources = {
     x86_64-linux = {
-      asset = "noctalia-v5.0.0-beta2-linux-amd64.tar.gz";
-      hash = "sha256-QUIxO7QnqCA/3msARCLPVOjpiiR8VpZZ384KaCgS4SA=";
+      asset = "noctalia-v${version}-linux-amd64.tar.gz";
+      hash = "sha256-7ScRp/TmmK/coOqpu16kkzydCCYBLbdsCNoRwsKF+YA=";
     };
   };
-  source = sources.${stdenv.hostPlatform.system} or (throw "noctalia is not packaged for ${stdenv.hostPlatform.system}");
+
+  source =
+    sources.${stdenv.hostPlatform.system}
+      or (throw "noctalia is not packaged for ${stdenv.hostPlatform.system}");
 in
 stdenv.mkDerivation {
   pname = "noctalia";
@@ -52,11 +56,14 @@ stdenv.mkDerivation {
   };
 
   sourceRoot = ".";
+
   dontConfigure = true;
   dontBuild = true;
   dontStrip = true;
 
-  nativeBuildInputs = [ autoPatchelfHook ];
+  nativeBuildInputs = [
+    autoPatchelfHook
+  ];
 
   buildInputs = [
     wayland
@@ -73,13 +80,13 @@ stdenv.mkDerivation {
     systemd
     pipewire
     pam
-    curl
+
+    libxml2_13
     libwebp
     glib
     polkit
     librsvg
     libqalculate
-    libxml2
     md4c
     stb
     nlohmann_json
