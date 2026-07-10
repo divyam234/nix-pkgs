@@ -2,22 +2,21 @@
   lib,
   stdenv,
   fetchurl,
-  unzip,
 }:
 
 let
-  version = "1.73.1";
+  version = "1.74.4";
 
   sources = {
     x86_64-linux = {
-      asset = "rclone-v1.73.1-linux-amd64.zip";
-      hash = "sha256-g5ZlR9iXl1bns3cGz9RQKf0NsdK2ISXpyT6F23sobEM=";
+      asset = "rclone-v1.74.4-linux-amd64.tar.gz";
+      hash = "sha256-nhjq7TCZXQeh/l78SpWrw0c1utjagU+ax0St21/Y424=";
       dir = "rclone-v${version}-linux-amd64";
     };
 
     aarch64-linux = {
-      asset = "rclone-v1.73.1-linux-arm64.zip";
-      hash = "sha256-MkJe+ffEAPpsqUHYvZdNvES8Wwn7RL65zYZAJWrX4B4=";
+      asset = "rclone-v1.74.4-linux-arm64.tar.gz";
+      hash = "sha256-Ba2yFYTZXsOvu2xXOC8DJlUyfF+S5QhHZRxp24vyKiY=";
       dir = "rclone-v${version}-linux-arm64";
     };
   };
@@ -29,15 +28,11 @@ stdenv.mkDerivation {
   inherit version;
 
   src = fetchurl {
-    url = "https://github.com/tgdrive/rclone/releases/download/v${version}/${source.asset}";
+    url = "https://github.com/divyam234/nix-pkgs/releases/download/rclone-v${version}/${source.asset}";
     inherit (source) hash;
   };
 
   sourceRoot = source.dir;
-
-  nativeBuildInputs = [
-    unzip
-  ];
 
   dontConfigure = true;
   dontBuild = true;

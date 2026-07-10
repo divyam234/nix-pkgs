@@ -144,16 +144,20 @@ packages:
         pattern: '^openlogi-v[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.deb$'
 
   rclone:
-    repo: tgdrive/rclone
+    repo: divyam234/nix-pkgs
     file: pkgs/rclone/default.nix
-    tagPrefix: v
+    tagPrefix: rclone-v
+    release:
+      source: list
+      includePrereleases: true
+      tagPattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+$'
     version:
       source: tag
     assets:
       x86_64-linux:
-        pattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.zip$'
+        pattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.tar\.gz$'
       aarch64-linux:
-        pattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.zip$'
+        pattern: '^rclone-v[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.tar\.gz$'
     test:
       command: bin/rclone
       args: [version]
