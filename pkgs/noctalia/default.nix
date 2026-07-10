@@ -38,7 +38,7 @@ let
   sources = {
     x86_64-linux = {
       asset = "noctalia-v${version}-linux-amd64.tar.gz";
-      hash = "sha256-GXsTVfh1K/96uJen5BEf1rZk89LEOfismJPz00foWhk=";
+      hash = "sha256-IFj53H265oXq4jRM/I0sBP3nonXOHsys3Hs/y/FNeNs=";
     };
   };
 
