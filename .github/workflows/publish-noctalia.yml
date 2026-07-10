@@ -86,7 +86,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y \
-            meson g++ just \
+            curl meson g++ just \
             libwayland-dev wayland-protocols \
             libegl-dev libgles-dev \
             libfreetype-dev libfontconfig-dev libcairo2-dev libpango1.0-dev libharfbuzz-dev \
@@ -96,6 +96,13 @@ jobs:
             libcurl4-gnutls-dev libwebp-dev librsvg2-dev \
             libqalculate-dev libxml2-dev libmd4c-dev libtomlplusplus-dev \
             nlohmann-json3-dev libstb-dev libjemalloc-dev
+
+      - name: Add required Wayland protocol
+        run: |
+          install -d /usr/share/wayland-protocols/staging/ext-background-effect
+          curl --fail --location --retry 3 \
+            https://gitlab.freedesktop.org/wayland/wayland-protocols/-/raw/1.48/staging/ext-background-effect/ext-background-effect-v1.xml \
+            --output /usr/share/wayland-protocols/staging/ext-background-effect/ext-background-effect-v1.xml
 
       - name: Check out Noctalia source
         uses: actions/checkout@v4
