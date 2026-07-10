@@ -37,7 +37,7 @@ let
   sources = {
     x86_64-linux = {
       asset = "noctalia-v5.0.0-beta2-linux-amd64.tar.gz";
-      hash = "sha256-GXcS9qo/n6UOCn5fo4sSBNHgFnqcnuHBKvAJU3uViEg=";
+      hash = "sha256-QUIxO7QnqCA/3msARCLPVOjpiiR8VpZZ384KaCgS4SA=";
     };
   };
   source = sources.${stdenv.hostPlatform.system} or (throw "noctalia is not packaged for ${stdenv.hostPlatform.system}");
