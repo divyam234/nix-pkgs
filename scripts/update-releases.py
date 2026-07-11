@@ -9,13 +9,11 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
+import semver
 import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$")
-
-
 @dataclass
 class PackageUpdate:
     name: str
@@ -193,6 +191,10 @@ def replace_system_field(package_text, system, field, value):
     return package_text[: block_match.start(1)] + updated_block + package_text[block_match.end(1) :]
 
 
+def render_version_template(value, version):
+    return value.replace("${version}", version)
+
+
 def resolve_asset_name(assets_index, asset_spec, version):
     if isinstance(asset_spec, str):
         asset_spec = {"name": asset_spec}
@@ -255,11 +257,11 @@ def release_version(release, config):
     raise RuntimeError(f"unknown version source: {source}")
 
 
-def semver_tuple(version):
-    match = SEMVER_RE.fullmatch(version)
-    if not match:
+def parse_semver(version):
+    try:
+        return semver.Version.parse(version)
+    except ValueError:
         return None
-    return tuple(int(part) for part in match.groups())
 
 
 def select_release(releases, config):
@@ -277,6 +279,8 @@ def select_release(releases, config):
             continue
         if tag_regex and not tag_regex.fullmatch(release.get("tag_name", "")):
             continue
+        if config.get("version", {}).get("requireSemver") and not parse_semver(release_version(release, config)):
+            continue
         if not release_has_configured_assets(release, config):
             continue
         candidates.append(release)
@@ -287,7 +291,7 @@ def select_release(releases, config):
     versioned = []
     for release in candidates:
         version = release_version(release, config)
-        parsed = semver_tuple(version)
+        parsed = parse_semver(version)
         if parsed is not None:
             versioned.append((parsed, release))
 
@@ -309,8 +313,8 @@ def prepare_update(repo_root, package_name, config):
     tag = release["tag_name"]
     new_version = release_version(release, config)
 
-    old_semver = semver_tuple(old_version)
-    new_semver = semver_tuple(new_version)
+    old_semver = parse_semver(old_version)
+    new_semver = parse_semver(new_version)
     if old_semver and new_semver and new_semver < old_semver:
         raise RuntimeError(
             f"refusing to downgrade {package_name} from {old_version} to {new_version}"
@@ -335,7 +339,9 @@ def prepare_update(repo_root, package_name, config):
 
     updated_text = replace_top_level_field(package_text, "version", new_version)
     for system, source in updates.items():
-        updated_text = replace_system_field(updated_text, system, "asset", source["asset"])
+        current_asset = read_system_field(package_text, system, "asset")
+        if render_version_template(current_asset, new_version) != source["asset"]:
+            updated_text = replace_system_field(updated_text, system, "asset", source["asset"])
         updated_text = replace_system_field(updated_text, system, "hash", source["hash"])
 
     download_tag_field = config.get("downloadTagField")
@@ -411,7 +417,7 @@ def verify_update(update):
     for system, source in update.sources.items():
         current_asset = read_system_field(current_text, system, "asset")
         current_hash = read_system_field(current_text, system, "hash")
-        if current_asset != source["asset"]:
+        if render_version_template(current_asset, update.new_version) != source["asset"]:
             problems.append(f"{system} asset is {current_asset}, expected {source['asset']}")
         if current_hash != source["hash"]:
             problems.append(f"{system} hash does not match the release asset")

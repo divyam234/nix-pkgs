@@ -38,23 +38,37 @@ jobs:
         run: |
           set -euo pipefail
 
+          semver=(npx --yes semver@7.8.5)
+
+          is_valid_tag() {
+            local tag="$1"
+            local version
+            [[ "$tag" == v* ]] || return 1
+            version="$("${semver[@]}" -- "${tag#v}")"
+            [[ "$version" == "${tag#v}" ]]
+          }
+
           if [[ -n "$REQUESTED_VERSION" ]]; then
             candidates=("$REQUESTED_VERSION")
           else
-            candidates=()
-            while IFS= read -r tag; do
-              if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
-                candidates+=("$tag")
-              fi
-            done < <(gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name')
-            if (( ${#candidates[@]} > 0 )); then
-              mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | sort -Vr)
-            fi
+            mapfile -t versions < <(
+              gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name' |
+                while IFS= read -r tag; do
+                  [[ "$tag" == v* ]] && printf '%s\n' "${tag#v}"
+                done
+            )
+            mapfile -t candidates < <(
+              "${semver[@]}" -- "${versions[@]}" |
+                while IFS= read -r version; do
+                  printf 'v%s\n' "$version"
+                done |
+                tac
+            )
           fi
 
           for tag in "${candidates[@]}"; do
-            if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
-              echo "version must be an existing tag such as v5.0.0-beta2" >&2
+            if ! is_valid_tag "$tag"; then
+              echo "version must be a valid SemVer tag such as v5.0.0-beta.2" >&2
               exit 1
             fi
 

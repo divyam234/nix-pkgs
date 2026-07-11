@@ -154,12 +154,13 @@ packages:
     release:
       source: list
       includePrereleases: true
-      tagPattern: '^noctalia-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+      tagPattern: '^noctalia-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$'
     version:
       source: tag
+      requireSemver: true
     assets:
       x86_64-linux:
-        pattern: '^noctalia-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?-linux-amd64\.tar\.gz$'
+        pattern: '^noctalia-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?-linux-amd64\.tar\.gz$'
 
   teldrive:
     repo: tgdrive/teldrive
