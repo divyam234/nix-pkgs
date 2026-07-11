@@ -80,6 +80,8 @@ packages:
     assets:
       x86_64-linux:
         name: bun-linux-x64.zip
+      x86_64-linux-baseline:
+        name: bun-linux-x64-baseline.zip
       aarch64-linux:
         name: bun-linux-aarch64.zip
     test:
