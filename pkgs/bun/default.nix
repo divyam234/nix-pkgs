@@ -73,15 +73,14 @@ stdenvNoCC.mkDerivation {
         mkdir baseline
         unzip -q "$baselineSrc" -d baseline
         install -Dm755 "baseline/${baselineSource.dir}/bun" "$out/libexec/bun-baseline"
-        install -Dm755 /dev/stdin "$out/bin/bun" <<'EOF'
+        install -Dm755 /dev/stdin "$out/bin/bun" <<EOF
         #!${runtimeShell}
-        bin_dir="${"$"}{0%/*}"
 
-        if [[ -r /proc/cpuinfo && $(< /proc/cpuinfo) == *avx2* ]]; then
-          exec "$bin_dir/../libexec/bun" "$@"
+        if [[ -r /proc/cpuinfo && \$(< /proc/cpuinfo) == *avx2* ]]; then
+          exec "$out/libexec/bun" "\$@"
         fi
 
-        exec "$bin_dir/../libexec/bun-baseline" "$@"
+        exec "$out/libexec/bun-baseline" "\$@"
         EOF
         ln -s "$out/bin/bun" "$out/bin/bunx"
 
