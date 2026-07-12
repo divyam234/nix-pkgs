@@ -14,7 +14,7 @@ on:
         required: false
         type: string
 
-run-name: Publish IDA Pro ${{ inputs.version || 'latest from hexrays.su' }}
+run-name: Publish IDA Pro ${{ inputs.version || 'latest from hex-rays.com' }}
 
 permissions:
   contents: write
