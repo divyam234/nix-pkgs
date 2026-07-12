@@ -39,52 +39,50 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
 
       - id: detect
-        env:
-          UV_SCRIPT: "1"
         run: |
           uv run --with beautifulsoup4 python3 << 'PYEOF'
-import os, re, sys, urllib.request
-from bs4 import BeautifulSoup
+          import os, re, sys, urllib.request
+          from bs4 import BeautifulSoup
 
-req = urllib.request.Request(
-    "https://hexrays.su/",
-    headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"},
-)
-html = urllib.request.urlopen(req, timeout=30).read().decode()
+          req = urllib.request.Request(
+              "https://hexrays.su/",
+              headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"},
+          )
+          html = urllib.request.urlopen(req, timeout=30).read().decode()
 
-soup = BeautifulSoup(html, "html.parser")
-details = soup.find("details", class_="rel")
-if not details:
-    with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-        f.write("publish=false\n")
-    sys.exit(0)
+          soup = BeautifulSoup(html, "html.parser")
+          details = soup.find("details", class_="rel")
+          if not details:
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write("publish=false\n")
+              sys.exit(0)
 
-ver_span = details.find("span", class_="ver")
-date_span = details.find("span", class_="date")
+          ver_span = details.find("span", class_="ver")
+          date_span = details.find("span", class_="date")
 
-raw = ver_span.get_text(strip=True) if ver_span else ""
-ver = re.sub(r"^IDA(?:\s+Pro)?\s+", "", raw)
-ver = re.sub(r"\s+Beta\s+", "-beta", ver, flags=re.IGNORECASE)
-ver = re.sub(r"\s+SP\s*", "sp", ver, flags=re.IGNORECASE)
-ver = ver.replace(" ", "")
+          raw = ver_span.get_text(strip=True) if ver_span else ""
+          ver = re.sub(r"^IDA(?:\s+Pro)?\s+", "", raw)
+          ver = re.sub(r"\s+Beta\s+", "-beta", ver, flags=re.IGNORECASE)
+          ver = re.sub(r"\s+SP\s*", "sp", ver, flags=re.IGNORECASE)
+          ver = ver.replace(" ", "")
 
-date = date_span.get_text(strip=True) if date_span else ""
+          date = date_span.get_text(strip=True) if date_span else ""
 
-magnet_link = details.find("a", href=lambda h: h and h.startswith("magnet:"))
-magnet = magnet_link["href"] if magnet_link else ""
+          magnet_link = details.find("a", href=lambda h: h and h.startswith("magnet:"))
+          magnet = magnet_link["href"] if magnet_link else ""
 
-current = ""
-with open("pkgs/ida-pro/default.nix") as f:
-    m = re.search(r'^\s*version = "([^"]+)";', f.read(), re.MULTILINE)
-    if m:
-        current = m.group(1)
+          current = ""
+          with open("pkgs/ida-pro/default.nix") as f:
+              m = re.search(r'^\s*version = "([^"]+)";', f.read(), re.MULTILINE)
+              if m:
+                  current = m.group(1)
 
-with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-    f.write(f"version={ver}\n")
-    f.write(f"date={date}\n")
-    f.write(f"magnet={magnet}\n")
-    f.write("publish=false\n" if ver == current else "publish=true\n")
-PYEOF
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"version={ver}\n")
+              f.write(f"date={date}\n")
+              f.write(f"magnet={magnet}\n")
+              f.write("publish=false\n" if ver == current else "publish=true\n")
+          PYEOF
 
   prepare:
     name: Download, repack, and publish
