@@ -1,0 +1,205 @@
+name: Publish IDA Pro release
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Override auto-detected version (e.g. 9.4)"
+        required: false
+        type: string
+      magnet:
+        description: "Override magnet link"
+        required: false
+        type: string
+
+run-name: Publish IDA Pro ${{ inputs.version || 'latest from hexrays.su' }}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-ida-pro
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    name: Check hexrays.su for new release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.detect.outputs.version }}
+      date: ${{ steps.detect.outputs.date }}
+      magnet: ${{ steps.detect.outputs.magnet }}
+      publish: ${{ steps.detect.outputs.publish }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - id: detect
+        run: |
+          set -euo pipefail
+
+          HTML=$(curl -sS --max-time 30 \
+            -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
+            https://hexrays.su/)
+
+          BLOCK=$(echo "$HTML" \
+            | awk '/<details class="rel"/{p=1} p; /<\/details>/ && p{print; exit}')
+
+          RAW=$(echo "$BLOCK" | sed -n 's/.*<span class="ver">\(.*\)<\/span>.*/\1/p')
+          VER=$(echo "$RAW" \
+            | sed 's/^IDA Pro //' \
+            | sed 's/^IDA //' \
+            | sed 's/ Beta /-beta/I' \
+            | sed 's/ SP */sp/I' \
+            | tr -d ' ')
+
+          DATE=$(echo "$BLOCK" | sed -n 's/.*<span class="date">\(.*\)<\/span>.*/\1/p')
+
+          MAGNET=$(echo "$BLOCK" \
+            | sed -n 's/.*<a href="\(magnet:[^"]*\)">.*/\1/p')
+
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "magnet=$MAGNET" >> "$GITHUB_OUTPUT"
+
+          CURRENT=$(sed -n 's/^\s*version = "\(.*\)";/\1/p' pkgs/ida-pro/default.nix)
+          if [ "$VER" = "$CURRENT" ]; then
+            echo "IDA Pro $CURRENT is current."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+  prepare:
+    name: Download, repack, and publish
+    needs: scrape
+    if: needs.scrape.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Download torrent
+        env:
+          MAGNET: ${{ inputs.magnet || needs.scrape.outputs.magnet }}
+        run: |
+          mkdir -p torrent
+          aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
+            --dir torrent "$MAGNET"
+
+      - name: Find assets
+        id: assets
+        run: |
+          set -euo pipefail
+
+          TORRENT_DIR="torrent"
+          shopt -s nullglob
+          if ls torrent/*/setup/ >/dev/null 2>&1; then
+            TORRENT_DIR="torrent/*/setup"
+          elif ls torrent/setup/ >/dev/null 2>&1; then
+            TORRENT_DIR="torrent/setup"
+          elif ls torrent/*/ >/dev/null 2>&1; then
+            d=(torrent/*/)
+            TORRENT_DIR="${d[0]}"
+          fi
+
+          echo "torrent-dir=$TORRENT_DIR" >> "$GITHUB_OUTPUT"
+
+
+      - name: Extract .run installers
+        run: |
+          set -euo pipefail
+
+          CONTENT="$PWD/content/ida-pro-${{ needs.scrape.outputs.version }}"
+          mkdir -p "$CONTENT"
+
+          TORRENT_DIR="${{ steps.assets.outputs.torrent-dir }}"
+          echo "Torrent dir: $TORRENT_DIR"
+          ls -la "$TORRENT_DIR"
+
+          shopt -s nullglob
+          for f in "$TORRENT_DIR"/ida-pro_*_x64linux.run; do
+            subdir="x86_64-linux"
+            mkdir -p "$CONTENT/$subdir"
+            cp "$f" /tmp/ida-installer
+            chmod +x /tmp/ida-installer
+            /tmp/ida-installer --mode unattended --unattendedmodeui none \
+              --prefix "$CONTENT/$subdir"
+          done
+
+          for dir in kg_patch; do
+            src=""
+            [ -d "$TORRENT_DIR/../$dir" ] && src="$TORRENT_DIR/../$dir"
+            [ -d "$TORRENT_DIR/$dir" ] && src="$TORRENT_DIR/$dir"
+            [ -n "$src" ] && cp -r "$src" "$CONTENT/"
+          done
+
+          rm -rf "$CONTENT/kg_patch/x64win" "$CONTENT/kg_patch/README" 2>/dev/null || true
+
+      - name: Create tarball
+        run: |
+          VERSION=${{ needs.scrape.outputs.version }}
+          mkdir -p _releases
+          tar czf "_releases/ida-pro-${VERSION}.tar.gz" \
+            -C content "ida-pro-${VERSION}"
+          ls -lh "_releases/ida-pro-${VERSION}.tar.gz"
+
+      - name: Get Nix hash
+        id: hash
+        run: |
+          VERSION=${{ needs.scrape.outputs.version }}
+          HASH=$(nix store prefetch-file --json "_releases/ida-pro-${VERSION}.tar.gz" \
+            | jq -r '.hash')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=${{ needs.scrape.outputs.version }}
+          TAG="ida-pro-${VERSION}"
+          TARBALL="_releases/ida-pro-${VERSION}.tar.gz"
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$TARBALL" --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "$TAG" "$TARBALL" \
+              --repo "${{ github.repository }}" \
+              --title "IDA Pro ${VERSION}" \
+              --notes "IDA Pro ${VERSION} (published ${{ needs.scrape.outputs.date }}) — Nix package"
+          fi
+
+      - name: Update nix package
+        run: |
+          VERSION=${{ needs.scrape.outputs.version }}
+          HASH=${{ steps.hash.outputs.hash }}
+
+          sed -i \
+            -e "s/^\(\s*\)version = \".*\";/\1version = \"${VERSION}\";/" \
+            -e "s/^\(\s*\)hash = \".*\";/\1hash = \"${HASH}\";/" \
+            pkgs/ida-pro/default.nix
+
+      - name: Commit package update
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No package updates to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "ida-pro: ${{ needs.scrape.outputs.version }}"
+          git push origin HEAD:"${{ github.event.repository.default_branch }}"

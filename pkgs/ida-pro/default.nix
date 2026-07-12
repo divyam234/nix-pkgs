@@ -1,52 +1,104 @@
-{ lib, stdenvNoCC, fetchurl, makeBinaryWrapper }:
+{ pkgs, lib, stdenv, fetchzip, autoPatchelfHook, makeWrapper, copyDesktopItems
+, perl, cairo, dbus, fontconfig, freetype, glib, gtk3, libdrm, libGL
+, libkrb5, libsecret, libunwind, libxkbcommon, openssl
+, qt6, libice, libsm, libX11, libxcb, libXext, libXi, libXrender
+, zlib, curl, python313
+}:
 
 let
   version = "9.4";
 
-  sources = {
-    x86_64-linux = {
-      asset = "ida-pro_${version}_x64linux.run";
-      hash = "sha256-7ByCvaphbsqyilC1VA9PbyYCrcIr0rS8if00BAO9sZo=";
-    };
-  };
+  pythonForIDA = python313.withPackages (ps: with ps; [ rpyc ]);
+
+  runtimeDependencies = [
+    cairo dbus fontconfig freetype glib gtk3 libdrm libGL
+    libkrb5 libsecret libunwind libxkbcommon openssl.out
+    qt6.qtbase qt6.qtwayland
+    stdenv.cc libice libsm libX11 libxcb libXext libXi libXrender
+    zlib curl.out pythonForIDA
+  ];
 in
-stdenvNoCC.mkDerivation {
+stdenv.mkDerivation {
   pname = "ida-pro";
   inherit version;
 
-  src = fetchurl {
-    url = "https://github.com/divyam234/nix-pkgs/releases/download/ida-pro-${version}/${sources.${stdenvNoCC.hostPlatform.system}.asset}";
-    hash = sources.${stdenvNoCC.hostPlatform.system}.hash;
+  src = fetchzip {
+    url = "https://github.com/divyam234/nix-pkgs/releases/download/ida-pro-${version}/ida-pro-${version}.tar.gz";
+    hash = "sha256-7ByCvaphbsqyilC1VA9PbyYCrcIr0rS8if00BAO9sZo=";
   };
 
-  nativeBuildInputs = [
-    makeBinaryWrapper
+  desktopItems = [
+    (pkgs.makeDesktopItem {
+      name = "ida-pro";
+      exec = "ida";
+      icon = "ida";
+      comment = "Interactive disassembler";
+      desktopName = "IDA Pro";
+      genericName = "Interactive Disassembler";
+      categories = [ "Development" ];
+      startupWMClass = "IDA";
+    })
   ];
+
+  nativeBuildInputs = [
+    autoPatchelfHook
+    makeWrapper
+    copyDesktopItems
+    qt6.wrapQtAppsHook
+    perl
+  ];
+
+  runtimeDependencies = runtimeDependencies;
+  buildInputs = runtimeDependencies;
 
   dontConfigure = true;
   dontBuild = true;
-
-  unpackPhase = ''
-    runHook preUnpack
-    sh "$src" --noexec --target "$PWD/ida"
-    runHook postUnpack
-  '';
+  dontWrapQtApps = true;
 
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/opt $out/bin
-    cp -r ida/* $out/opt/ida-pro-${version}
+    IDADIR="$out/opt/ida-pro-${version}"
+    mkdir -p "$IDADIR" "$out/bin"
 
-    makeWrapper $out/opt/ida-pro-${version}/ida $out/bin/ida \
-      --chdir $out/opt/ida-pro-${version}
+    cp -r $src/x86_64-linux/* "$IDADIR"
+
+    if [ -d "$src/kg_patch/x64linux" ]; then
+      cp "$src/kg_patch/x64linux/libida.so" "$IDADIR/"
+      cp "$src/kg_patch/x64linux/libida32.so" "$IDADIR/" 2>/dev/null || true
+    fi
+
+    if [ -f "$src/kg_patch/idapro.hexlic" ]; then
+      cp "$src/kg_patch/idapro.hexlic" "$IDADIR/"
+    fi
+
+    for lib in "$IDADIR"/*.so "$IDADIR"/*.so.6; do
+      [ -f "$lib" ] && ln -s "$lib" "$out/lib/$(basename "$lib")"
+    done
+
+    patchelf --add-needed libpython3.13.so "$out/lib/libida.so" 2>/dev/null || true
+    patchelf --add-needed libcrypto.so "$out/lib/libida.so" 2>/dev/null || true
+    patchelf --add-needed libsecret-1.so.0 "$out/lib/libida.so" 2>/dev/null || true
+
+    addAutoPatchelfSearchPath "$IDADIR"
+
+    for b in ida idat; do
+      [ -x "$IDADIR/$b" ] || continue
+      wrapProgram "$IDADIR/$b" \
+        --prefix IDADIR : "$IDADIR" \
+        --prefix QT_PLUGIN_PATH : "$IDADIR/plugins/platforms" \
+        --prefix PYTHONPATH : "$out/bin/idalib/python" \
+        --prefix PATH : "${pythonForIDA}/bin:$IDADIR" \
+        --prefix LD_LIBRARY_PATH : "$out/lib"
+      ln -s "$IDADIR/$b" "$out/bin/$b"
+    done
 
     runHook postInstall
   '';
 
   meta = {
-    description = "IDA Pro interactive disassembler";
-    homepage = "https://hex-rays.com/";
+    description = "Interactive disassembler and debugger";
+    homepage = "https://hex-rays.com/ida-pro/";
     license = lib.licenses.unfree;
     maintainers = [ ];
     mainProgram = "ida";
