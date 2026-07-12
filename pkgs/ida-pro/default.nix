@@ -64,6 +64,10 @@ stdenv.mkDerivation {
 
     cp -r --no-preserve=mode $src/x86_64-linux/* "$IDADIR"
 
+    rm -f "$IDADIR"/Uninstall*.desktop
+
+    install -Dm644 "$IDADIR/appico.png" "$out/share/pixmaps/ida.png"
+
     chmod +x "$IDADIR"/ida "$IDADIR"/idat 2>/dev/null || true
 
     if [ -d "$src/kg_patch/x64linux" ]; then
