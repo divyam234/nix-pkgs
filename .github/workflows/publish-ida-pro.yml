@@ -39,41 +39,52 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
 
       - id: detect
+        env:
+          UV_SCRIPT: "1"
         run: |
-          set -euo pipefail
+          uv run --with beautifulsoup4 python3 << 'PYEOF'
+import os, re, sys, urllib.request
+from bs4 import BeautifulSoup
 
-          HTML=$(curl -sS --max-time 30 \
-            -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-            https://hexrays.su/)
+req = urllib.request.Request(
+    "https://hexrays.su/",
+    headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"},
+)
+html = urllib.request.urlopen(req, timeout=30).read().decode()
 
-          BLOCK=$(echo "$HTML" \
-            | awk '/<details class="rel"/{p=1} p; /<\/details>/ && p{print; exit}')
+soup = BeautifulSoup(html, "html.parser")
+details = soup.find("details", class_="rel")
+if not details:
+    with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+        f.write("publish=false\n")
+    sys.exit(0)
 
-          RAW=$(echo "$BLOCK" | sed -n 's/.*<span class="ver">\(.*\)<\/span>.*/\1/p')
-          VER=$(echo "$RAW" \
-            | sed 's/^IDA Pro //' \
-            | sed 's/^IDA //' \
-            | sed 's/ Beta /-beta/I' \
-            | sed 's/ SP */sp/I' \
-            | tr -d ' ')
+ver_span = details.find("span", class_="ver")
+date_span = details.find("span", class_="date")
 
-          DATE=$(echo "$BLOCK" | sed -n 's/.*<span class="date">\(.*\)<\/span>.*/\1/p')
+raw = ver_span.get_text(strip=True) if ver_span else ""
+ver = re.sub(r"^IDA(?:\s+Pro)?\s+", "", raw)
+ver = re.sub(r"\s+Beta\s+", "-beta", ver, flags=re.IGNORECASE)
+ver = re.sub(r"\s+SP\s*", "sp", ver, flags=re.IGNORECASE)
+ver = ver.replace(" ", "")
 
-          MAGNET=$(echo "$BLOCK" \
-            | sed -n 's/.*<a href="\(magnet:[^"]*\)">.*/\1/p')
+date = date_span.get_text(strip=True) if date_span else ""
 
-          echo "version=$VER" >> "$GITHUB_OUTPUT"
-          echo "date=$DATE" >> "$GITHUB_OUTPUT"
-          echo "magnet=$MAGNET" >> "$GITHUB_OUTPUT"
+magnet_link = details.find("a", href=lambda h: h and h.startswith("magnet:"))
+magnet = magnet_link["href"] if magnet_link else ""
 
-          CURRENT=$(sed -n 's/^\s*version = "\(.*\)";/\1/p' pkgs/ida-pro/default.nix)
-          if [ "$VER" = "$CURRENT" ]; then
-            echo "IDA Pro $CURRENT is current."
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+current = ""
+with open("pkgs/ida-pro/default.nix") as f:
+    m = re.search(r'^\s*version = "([^"]+)";', f.read(), re.MULTILINE)
+    if m:
+        current = m.group(1)
 
-          echo "publish=true" >> "$GITHUB_OUTPUT"
+with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+    f.write(f"version={ver}\n")
+    f.write(f"date={date}\n")
+    f.write(f"magnet={magnet}\n")
+    f.write("publish=false\n" if ver == current else "publish=true\n")
+PYEOF
 
   prepare:
     name: Download, repack, and publish
