@@ -64,6 +64,7 @@ jobs:
                 done |
                 tac
             )
+            candidates=("${candidates[0]}")
           fi
 
           for tag in "${candidates[@]}"; do
