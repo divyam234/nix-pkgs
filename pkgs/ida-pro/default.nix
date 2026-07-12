@@ -6,7 +6,7 @@
 }:
 
 let
-  version = "9.4";
+  version = "9.4-beta1";
 
   pythonForIDA = python313.withPackages (ps: with ps; [ rpyc ]);
 
@@ -24,7 +24,7 @@ stdenv.mkDerivation {
 
   src = fetchzip {
     url = "https://github.com/divyam234/nix-pkgs/releases/download/ida-pro-${version}/ida-pro-${version}.tar.gz";
-    hash = "sha256-7ByCvaphbsqyilC1VA9PbyYCrcIr0rS8if00BAO9sZo=";
+    hash = "sha256-NQLqA5jRa/YGWBq++u6ooO9ISX1XLbQGXUd+EiZjY6o=";
   };
 
   desktopItems = [
@@ -99,7 +99,6 @@ stdenv.mkDerivation {
   meta = {
     description = "Interactive disassembler and debugger";
     homepage = "https://hex-rays.com/ida-pro/";
-    license = lib.licenses.unfree;
     maintainers = [ ];
     mainProgram = "ida";
     platforms = [ "x86_64-linux" ];

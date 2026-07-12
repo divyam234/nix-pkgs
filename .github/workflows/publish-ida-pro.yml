@@ -168,8 +168,9 @@ jobs:
         id: hash
         run: |
           VERSION=${{ needs.scrape.outputs.version }}
-          HASH=$(nix store prefetch-file --json "_releases/ida-pro-${VERSION}.tar.gz" \
-            | jq -r '.hash')
+          mkdir -p /tmp/hash-extract
+          tar xzf "$PWD/_releases/ida-pro-${VERSION}.tar.gz" -C /tmp/hash-extract
+          HASH=$(nix hash path --mode nar --sri "/tmp/hash-extract/ida-pro-${VERSION}")
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
