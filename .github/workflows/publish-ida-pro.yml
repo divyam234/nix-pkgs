@@ -115,15 +115,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          TORRENT_DIR="torrent"
           shopt -s nullglob
-          if ls torrent/*/setup/ >/dev/null 2>&1; then
-            TORRENT_DIR="torrent/*/setup"
-          elif ls torrent/setup/ >/dev/null 2>&1; then
-            TORRENT_DIR="torrent/setup"
-          elif ls torrent/*/ >/dev/null 2>&1; then
-            d=(torrent/*/)
-            TORRENT_DIR="${d[0]}"
+          entries=(torrent/*/)
+          TORRENT_DIR="${entries[0]:-torrent}"
+
+          if [ -d "$TORRENT_DIR/setup" ]; then
+            TORRENT_DIR="$TORRENT_DIR/setup"
           fi
 
           echo "torrent-dir=$TORRENT_DIR" >> "$GITHUB_OUTPUT"
