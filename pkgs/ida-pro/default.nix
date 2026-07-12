@@ -51,6 +51,7 @@ stdenv.mkDerivation {
   runtimeDependencies = runtimeDependencies;
   buildInputs = runtimeDependencies;
 
+  dontUnpack = true;
   dontConfigure = true;
   dontBuild = true;
   dontWrapQtApps = true;
@@ -59,9 +60,11 @@ stdenv.mkDerivation {
     runHook preInstall
 
     IDADIR="$out/opt/ida-pro-${version}"
-    mkdir -p "$IDADIR" "$out/bin"
+    mkdir -p "$IDADIR" "$out/bin" "$out/lib"
 
-    cp -r $src/x86_64-linux/* "$IDADIR"
+    cp -r --no-preserve=mode $src/x86_64-linux/* "$IDADIR"
+
+    chmod +x "$IDADIR"/ida "$IDADIR"/idat 2>/dev/null || true
 
     if [ -d "$src/kg_patch/x64linux" ]; then
       cp "$src/kg_patch/x64linux/libida.so" "$IDADIR/"
@@ -73,7 +76,7 @@ stdenv.mkDerivation {
     fi
 
     for lib in "$IDADIR"/*.so "$IDADIR"/*.so.6; do
-      [ -f "$lib" ] && ln -s "$lib" "$out/lib/$(basename "$lib")"
+      [ -f "$lib" ] && ln -s "../opt/ida-pro-${version}/$(basename "$lib")" "$out/lib/$(basename "$lib")"
     done
 
     patchelf --add-needed libpython3.13.so "$out/lib/libida.so" 2>/dev/null || true
