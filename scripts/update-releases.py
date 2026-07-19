@@ -324,7 +324,8 @@ def prepare_update(repo_root, package_name, config):
 
     old_semver = parse_semver(old_version)
     new_semver = parse_semver(new_version)
-    if old_semver and new_semver and new_semver < old_semver:
+    sort_by = config.get("release", {}).get("sortBy", "semver")
+    if sort_by == "semver" and old_semver and new_semver and new_semver < old_semver:
         raise RuntimeError(
             f"refusing to downgrade {package_name} from {old_version} to {new_version}"
         )
