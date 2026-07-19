@@ -13,17 +13,17 @@
 }:
 
 let
-  version = "0.6.19";
+  version = "0.6.20";
 
   sources = {
     x86_64-linux = {
-      asset = "openlogi-v0.6.19-linux-amd64.deb";
-      hash = "sha256-heEq68pLxcmLewqqShXUNkxFxnsou8lrrvFtWau/LMQ=";
+      asset = "openlogi-v0.6.20-linux-amd64.deb";
+      hash = "sha256-KEt8XKThkDOS2yjabYn/qe/rvLDy4joFYIcb/cMJLdk=";
     };
 
     aarch64-linux = {
-      asset = "openlogi-v0.6.19-linux-arm64.deb";
-      hash = "sha256-NnUiM24tBzhdIyNvtDKd4e9HEZpKVWLijOBpinCfTFE=";
+      asset = "openlogi-v0.6.20-linux-arm64.deb";
+      hash = "sha256-8bZNdsSz7dlqFmp8vapOrg8DhgfFPiPj6nBGgxHylUg=";
     };
   };
 
