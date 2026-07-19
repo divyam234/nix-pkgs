@@ -51,20 +51,15 @@ jobs:
           if [[ -n "$REQUESTED_VERSION" ]]; then
             candidates=("$REQUESTED_VERSION")
           else
-            mapfile -t versions < <(
-              gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name' |
-                while IFS= read -r tag; do
-                  [[ "$tag" == v* ]] && printf '%s\n' "${tag#v}"
-                done
+            candidates=()
+            while IFS= read -r tag; do
+              if is_valid_tag "$tag"; then
+                candidates=("$tag")
+                break
+              fi
+            done < <(
+              gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name'
             )
-            mapfile -t candidates < <(
-              "${semver[@]}" -- "${versions[@]}" |
-                while IFS= read -r version; do
-                  printf 'v%s\n' "$version"
-                done |
-                tac
-            )
-            candidates=("${candidates[0]}")
           fi
 
           for tag in "${candidates[@]}"; do
@@ -299,3 +294,44 @@ jobs:
             --title "Noctalia $VERSION" \
             --prerelease \
             --latest=false
+
+  update-package:
+    name: Update Nix package
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out package repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Update and validate Noctalia
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          uv run --with pyyaml --with semver==3.0.4 python -B scripts/update-releases.py
+          updates.yml noctalia --check --build
+
+      - name: Commit package update
+        env:
+          TARGET_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if git diff --quiet -- pkgs/noctalia/default.nix; then
+            echo "No Noctalia package update to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pkgs/noctalia/default.nix
+          git commit -m "update noctalia"
+          git push origin HEAD:"$TARGET_BRANCH"

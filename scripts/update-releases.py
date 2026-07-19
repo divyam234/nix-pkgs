@@ -268,6 +268,7 @@ def select_release(releases, config):
     release_cfg = config.get("release", {})
     include_drafts = release_cfg.get("includeDrafts", False)
     include_prereleases = release_cfg.get("includePrereleases", False)
+    sort_by = release_cfg.get("sortBy", "semver")
     tag_pattern = release_cfg.get("tagPattern")
     tag_regex = re.compile(tag_pattern) if tag_pattern else None
 
@@ -287,6 +288,14 @@ def select_release(releases, config):
 
     if not candidates:
         raise RuntimeError("no release matched the configured release policy and assets")
+
+    if sort_by == "publishedAt":
+        return max(
+            candidates,
+            key=lambda release: release.get("published_at") or release.get("created_at") or "",
+        )
+    if sort_by != "semver":
+        raise RuntimeError(f"unknown release sort order: {sort_by}")
 
     versioned = []
     for release in candidates:
