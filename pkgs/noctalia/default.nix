@@ -30,6 +30,7 @@
   tomlplusplus,
   wireplumber,
   jemalloc,
+  libsecret,
 }:
 
 let
@@ -93,6 +94,7 @@ stdenv.mkDerivation {
     tomlplusplus
     wireplumber
     jemalloc
+    libsecret
   ];
 
   installPhase = ''
