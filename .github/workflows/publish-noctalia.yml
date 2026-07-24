@@ -104,6 +104,7 @@ jobs:
             g++ \
             meson \
             ninja-build \
+            cmake \
             pkgconf \
             dpkg-dev \
             just \
@@ -136,7 +137,8 @@ jobs:
             libtomlplusplus-dev \
             nlohmann-json3-dev \
             libstb-dev \
-            libjemalloc-dev
+            libjemalloc-dev \
+            libsecret-1-dev
 
           tmpdir="$(mktemp -d)"
           trap 'rm -rf "$tmpdir"' EXIT
