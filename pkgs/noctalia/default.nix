@@ -3,6 +3,7 @@
   stdenv,
   fetchurl,
   autoPatchelfHook,
+  patchelf,
   wayland,
   wayland-protocols,
   libGL,
@@ -65,6 +66,7 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [
     autoPatchelfHook
+    patchelf
   ];
 
   buildInputs = [
@@ -107,7 +109,9 @@ stdenv.mkDerivation {
 
     runHook postInstall
   '';
-
+  preFixup = ''
+    patchelf --replace-needed libsodium.so.23 libsodium.so.26 "$out/bin/noctalia"
+  '';
   meta = {
     description = "A lightweight Wayland shell and bar built directly on Wayland and OpenGL ES";
     homepage = "https://github.com/noctalia-dev/noctalia";
