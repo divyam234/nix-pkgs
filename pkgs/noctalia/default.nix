@@ -31,6 +31,7 @@
   wireplumber,
   jemalloc,
   libsecret,
+  libsodium,
 }:
 
 let
@@ -95,6 +96,7 @@ stdenv.mkDerivation {
     wireplumber
     jemalloc
     libsecret
+    libsodium
   ];
 
   installPhase = ''
