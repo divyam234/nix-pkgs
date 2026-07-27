@@ -115,6 +115,16 @@ jobs:
           cp -r "$out/bin" "$out/share" "$stage/"
           chmod -R u+w "$stage"
 
+          # Keep the ABI used by the upstream flake when the consumer's
+          # nixpkgs has already moved to a newer libdisplay-info SONAME.
+          display_info="$(
+            nix-store --query --references "$out" \
+              | grep -m1 '/[^/]*-libdisplay-info-'
+          )"
+          test -n "$display_info"
+          mkdir -p "$stage/lib"
+          cp -a "$display_info"/lib/libdisplay-info.so* "$stage/lib/"
+
           # Remove references to the producer output. The consumer package
           # supplies its own shell and Niri output path.
           sed -i '1c #!/bin/sh' "$stage/bin/niri-session"
@@ -122,7 +132,7 @@ jobs:
             "$stage/share/systemd/user/niri.service"
 
           asset="niri-${VERSION}-linux-${ARCH}.tar.gz"
-          tar -C "$stage" -czf "$asset" bin share
+          tar -C "$stage" -czf "$asset" bin lib share
           sha256sum "$asset" > "$asset.sha256"
 
       - name: Upload release archive
