@@ -22,7 +22,7 @@ let
   sources = {
     x86_64-linux = {
       asset = "niri-v${version}-linux-amd64.tar.gz";
-      hash = lib.fakeHash;
+      hash = "sha256-u7rqBFvjFGJi6OFREBLExxBxzpmEuPj1g35dh9CRYOY=";
     };
   };
 
@@ -63,6 +63,7 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
+    mkdir -p "$out"
     cp -r bin lib share "$out/"
     chmod +x "$out/bin/niri" "$out/bin/niri-session"
     patchShebangs "$out/bin/niri-session"

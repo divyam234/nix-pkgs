@@ -136,6 +136,12 @@ jobs:
           install -Dm644 README.md "$stage/share/doc/niri/README.md"
           cp -r docs/wiki "$stage/share/doc/niri/wiki"
 
+          # Ubuntu's libdisplay-info SONAME differs from current nixpkgs.
+          # Ship the ABI that this binary was linked against.
+          display_info="$(ldconfig -p | awk '/libdisplay-info\.so\.1 / { print $NF; exit }')"
+          test -n "$display_info"
+          install -Dm755 "$display_info" "$stage/lib/libdisplay-info.so.1"
+
           mkdir -p \
             "$stage/share/bash-completion/completions" \
             "$stage/share/fish/vendor_completions.d" \
