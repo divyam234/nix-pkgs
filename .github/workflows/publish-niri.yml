@@ -100,7 +100,7 @@ jobs:
             in
             flake.packages.${builtins.currentSystem}.niri.overrideAttrs (_: {
               inherit version;
-              NIRI_BUILD_COMMIT = tag;
+              __intentionallyOverridingVersion = true;
             })
           ')"
           actual_version="$($out/bin/niri --version)"
