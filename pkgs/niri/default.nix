@@ -22,7 +22,7 @@ let
   sources = {
     x86_64-linux = {
       asset = "niri-v${version}-linux-amd64.tar.gz";
-      hash = "sha256-u7rqBFvjFGJi6OFREBLExxBxzpmEuPj1g35dh9CRYOY=";
+      hash = "sha256-RME4w1oGTmSs8wT/3AM5UQbtzdu3/03Kcbk6RQq+qKI=";
     };
   };
 
