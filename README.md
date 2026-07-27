@@ -14,7 +14,7 @@ Replace `rclone` with any package below.
 ## Packages
 
 `aria2`, `beekeeper-studio`, `brave`, `bun`, `codeforge`, `dbeaver-bin`,
-`foliate`, `hydra`, `mcontrolcenter`, `nordvpn`, `opencode`, `openlogi`,
+`foliate`, `hydra`, `mcontrolcenter`, `niri`, `nordvpn`, `opencode`, `openlogi`,
 `rclone`, `sublime`, `teldrive`, `zed-editor`, `zjstatus`.
 
 ## Update

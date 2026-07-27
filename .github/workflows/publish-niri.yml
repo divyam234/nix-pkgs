@@ -1,0 +1,238 @@
+name: Publish Niri release
+
+on:
+  schedule:
+    - cron: "45 5 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Upstream tag, for example v26.04"
+        required: false
+        type: string
+
+run-name: Publish Niri ${{ inputs.version || 'latest unpublished tag' }}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-niri
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Find an unpublished Niri tag
+    runs-on: ubuntu-latest
+    outputs:
+      source-tag: ${{ steps.select.outputs.source-tag }}
+      release-tag: ${{ steps.select.outputs.release-tag }}
+      publish: ${{ steps.select.outputs.publish }}
+    env:
+      SOURCE_REPOSITORY: niri-wm/niri
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      REQUESTED_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - id: select
+        name: Select newest unpublished tag
+        run: |
+          set -euo pipefail
+
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            candidates=("$REQUESTED_VERSION")
+          else
+            mapfile -t candidates < <(
+              gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name' \
+                | grep -E '^v[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+                | sort -Vr
+            )
+          fi
+
+          for tag in "${candidates[@]}"; do
+            if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+              echo "version must be an existing Niri tag such as v26.04" >&2
+              exit 1
+            fi
+
+            gh api "repos/$SOURCE_REPOSITORY/git/ref/tags/$tag" >/dev/null
+            release_tag="niri-$tag"
+            if ! gh release view "$release_tag" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
+              {
+                echo "source-tag=$tag"
+                echo "release-tag=$release_tag"
+                echo "publish=true"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          echo "No unpublished Niri tag found."
+          echo "publish=false" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build Linux amd64 archive
+    needs: discover
+    if: needs.discover.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out Niri source
+        uses: actions/checkout@v4
+        with:
+          repository: niri-wm/niri
+          ref: ${{ needs.discover.outputs.source-tag }}
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang \
+            libclang-dev \
+            libdbus-1-dev \
+            libdisplay-info-dev \
+            libegl-dev \
+            libgbm-dev \
+            libinput-dev \
+            libpango1.0-dev \
+            libpipewire-0.3-dev \
+            libseat-dev \
+            libsystemd-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            pkg-config
+
+      - name: Build portable archive
+        env:
+          VERSION: ${{ needs.discover.outputs.source-tag }}
+          ARCH: amd64
+          NIRI_BUILD_COMMIT: ${{ needs.discover.outputs.source-tag }}
+          RUSTFLAGS: >-
+            -C link-arg=-Wl,--push-state,--no-as-needed
+            -C link-arg=-lEGL
+            -C link-arg=-lwayland-client
+            -C link-arg=-Wl,--pop-state
+        run: |
+          set -euo pipefail
+          cargo build --locked --release --no-default-features \
+            --features dbus,xdp-gnome-screencast,systemd
+          target/release/niri --version
+
+          stage="$PWD/stage"
+          install -Dm755 target/release/niri "$stage/bin/niri"
+          install -Dm755 resources/niri-session "$stage/bin/niri-session"
+          install -Dm644 resources/niri.desktop "$stage/share/wayland-sessions/niri.desktop"
+          install -Dm644 resources/niri-portals.conf "$stage/share/xdg-desktop-portal/niri-portals.conf"
+          install -Dm644 resources/niri.service "$stage/lib/systemd/user/niri.service"
+          install -Dm644 resources/niri-shutdown.target "$stage/lib/systemd/user/niri-shutdown.target"
+          install -Dm644 resources/default-config.kdl "$stage/share/doc/niri/default-config.kdl"
+          install -Dm644 README.md "$stage/share/doc/niri/README.md"
+          cp -r docs/wiki "$stage/share/doc/niri/wiki"
+
+          mkdir -p \
+            "$stage/share/bash-completion/completions" \
+            "$stage/share/fish/vendor_completions.d" \
+            "$stage/share/nushell/vendor/autoload" \
+            "$stage/share/zsh/site-functions"
+          target/release/niri completions bash > "$stage/share/bash-completion/completions/niri"
+          target/release/niri completions fish > "$stage/share/fish/vendor_completions.d/niri.fish"
+          target/release/niri completions nushell > "$stage/share/nushell/vendor/autoload/niri.nu"
+          target/release/niri completions zsh > "$stage/share/zsh/site-functions/_niri"
+
+          asset="niri-${VERSION}-linux-${ARCH}.tar.gz"
+          tar -C "$stage" -czf "$asset" bin lib share
+          sha256sum "$asset" > "$asset.sha256"
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: niri-amd64
+          path: |
+            niri-${{ needs.discover.outputs.source-tag }}-linux-amd64.tar.gz
+            niri-${{ needs.discover.outputs.source-tag }}-linux-amd64.tar.gz.sha256
+          if-no-files-found: error
+
+  publish:
+    name: Create release
+    needs:
+      - discover
+      - build
+    if: needs.discover.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      VERSION: ${{ needs.discover.outputs.source-tag }}
+      RELEASE_TAG: ${{ needs.discover.outputs.release-tag }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Download release archive
+        uses: actions/download-artifact@v4
+        with:
+          name: niri-amd64
+
+      - name: Verify release asset
+        run: |
+          set -euo pipefail
+          asset="niri-${VERSION}-linux-amd64.tar.gz"
+          sha256sum --check "$asset.sha256"
+          cp "$asset.sha256" checksums.txt
+
+      - name: Create release and upload assets
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "niri-${VERSION}-linux-amd64.tar.gz" \
+            checksums.txt \
+            --repo "$RELEASE_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Niri $VERSION" \
+            --latest=false
+
+  update-package:
+    name: Update Nix package
+    needs: publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out package repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Update and validate Niri
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          uv run --with pyyaml --with semver==3.0.4 python -B scripts/update-releases.py
+          updates.yml niri --check --build --smoke-test
+
+      - name: Commit package update
+        env:
+          TARGET_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if git diff --quiet -- pkgs/niri/default.nix; then
+            echo "No Niri package update to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pkgs/niri/default.nix
+          git commit -m "update niri"
+          git push origin HEAD:"$TARGET_BRANCH"

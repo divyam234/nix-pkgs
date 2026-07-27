@@ -32,7 +32,9 @@ in
 
   brave = pkgs.callPackage ./brave { originalBrave = prev.brave; };
 
-  beekeeper-studio = pkgs.callPackage ./beekeeper-studio { originalBeekeeperStudio = prev.beekeeper-studio; };
+  beekeeper-studio = pkgs.callPackage ./beekeeper-studio {
+    originalBeekeeperStudio = prev.beekeeper-studio;
+  };
 
   dbeaver-bin = pkgs.callPackage ./dbeaver-bin { originalDbeaverBin = prev.dbeaver-bin; };
 
@@ -47,5 +49,6 @@ in
   ida-pro = pkgs.callPackage ./ida-pro { };
 }
 // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
-  noctalia = pkgs.callPackage ./noctalia {};
+  niri = pkgs.callPackage ./niri { };
+  noctalia = pkgs.callPackage ./noctalia { };
 }
