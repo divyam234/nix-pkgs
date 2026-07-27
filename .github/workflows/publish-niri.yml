@@ -113,6 +113,7 @@ jobs:
           stage="$PWD/stage"
           mkdir -p "$stage"
           cp -r "$out/bin" "$out/share" "$stage/"
+          chmod -R u+w "$stage"
 
           # Remove references to the producer output. The consumer package
           # supplies its own shell and Niri output path.
