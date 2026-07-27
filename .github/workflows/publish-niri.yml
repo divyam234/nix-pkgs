@@ -92,7 +92,17 @@ jobs:
           ARCH: amd64
         run: |
           set -euo pipefail
-          out="$(nix build --no-link --print-out-paths "github:niri-wm/niri/$VERSION")"
+          out="$(nix build --no-link --print-out-paths --impure --expr '
+            let
+              tag = builtins.getEnv "VERSION";
+              version = builtins.substring 1 ((builtins.stringLength tag) - 1) tag;
+              flake = builtins.getFlake "github:niri-wm/niri/${tag}";
+            in
+            flake.packages.${builtins.currentSystem}.niri.overrideAttrs (_: {
+              inherit version;
+              NIRI_BUILD_COMMIT = tag;
+            })
+          ')"
           actual_version="$($out/bin/niri --version)"
           expected_version="${VERSION#v}"
           [[ "$actual_version" == *"$expected_version"* ]] || {
