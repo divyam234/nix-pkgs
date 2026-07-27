@@ -92,8 +92,7 @@ jobs:
           ARCH: amd64
         run: |
           set -euo pipefail
-          nixpkgs_rev="$(nix flake metadata --json | jq -r '.locks.nodes.nixpkgs.locked.rev')"
-          out="$(nix build --no-link --print-out-paths "github:NixOS/nixpkgs/$nixpkgs_rev#niri")"
+          out="$(nix build --no-link --print-out-paths "github:niri-wm/niri/$VERSION")"
           actual_version="$($out/bin/niri --version)"
           expected_version="${VERSION#v}"
           [[ "$actual_version" == *"$expected_version"* ]] || {
@@ -102,10 +101,11 @@ jobs:
           }
 
           stage="$PWD/stage"
+          mkdir -p "$stage"
           cp -r "$out/bin" "$out/share" "$stage/"
 
-          # Remove references to the temporary producer output. The consumer
-          # package supplies its own shell and Niri output path.
+          # Remove references to the producer output. The consumer package
+          # supplies its own shell and Niri output path.
           sed -i '1c #!/bin/sh' "$stage/bin/niri-session"
           sed -i 's|^ExecStart=.*|ExecStart=niri --session|' \
             "$stage/share/systemd/user/niri.service"
