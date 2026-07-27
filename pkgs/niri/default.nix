@@ -64,10 +64,10 @@ stdenv.mkDerivation {
     runHook preInstall
 
     mkdir -p "$out"
-    cp -r bin lib share "$out/"
+    cp -r bin share "$out/"
     chmod +x "$out/bin/niri" "$out/bin/niri-session"
     patchShebangs "$out/bin/niri-session"
-    substituteInPlace "$out/lib/systemd/user/niri.service" \
+    substituteInPlace "$out/share/systemd/user/niri.service" \
       --replace-fail 'ExecStart=niri --session' "ExecStart=$out/bin/niri --session"
 
     runHook postInstall

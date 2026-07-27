@@ -77,83 +77,37 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Check out Niri source
-        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
         with:
-          repository: niri-wm/niri
-          ref: ${{ needs.discover.outputs.source-tag }}
-          persist-credentials: false
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            clang \
-            libclang-dev \
-            libdbus-1-dev \
-            libdisplay-info-dev \
-            libegl-dev \
-            libgbm-dev \
-            libinput-dev \
-            libpango1.0-dev \
-            libpipewire-0.3-dev \
-            libseat-dev \
-            libsystemd-dev \
-            libwayland-dev \
-            libxkbcommon-dev \
-            pkg-config
+          extra_nix_config: |
+            experimental-features = nix-command flakes
 
       - name: Build portable archive
         env:
           VERSION: ${{ needs.discover.outputs.source-tag }}
           ARCH: amd64
-          NIRI_BUILD_COMMIT: ${{ needs.discover.outputs.source-tag }}
-          RUSTFLAGS: >-
-            -C link-arg=-Wl,--push-state,--no-as-needed
-            -C link-arg=-lEGL
-            -C link-arg=-lwayland-client
-            -C link-arg=-Wl,--pop-state
         run: |
           set -euo pipefail
-          cargo build --locked --release --no-default-features \
-            --features dbus,xdp-gnome-screencast,systemd
-          target/release/niri --version
+          out="$(nix build --no-link --print-out-paths github:NixOS/nixpkgs/nixos-unstable#niri)"
+          actual_version="$($out/bin/niri --version)"
+          expected_version="${VERSION#v}"
+          [[ "$actual_version" == *"$expected_version"* ]] || {
+            echo "nixpkgs built $actual_version, expected $expected_version" >&2
+            exit 1
+          }
 
           stage="$PWD/stage"
-          install -Dm755 target/release/niri "$stage/bin/niri"
-          install -Dm755 resources/niri-session "$stage/bin/niri-session"
-          install -Dm644 resources/niri.desktop "$stage/share/wayland-sessions/niri.desktop"
-          install -Dm644 resources/niri-portals.conf "$stage/share/xdg-desktop-portal/niri-portals.conf"
-          install -Dm644 resources/niri.service "$stage/lib/systemd/user/niri.service"
-          install -Dm644 resources/niri-shutdown.target "$stage/lib/systemd/user/niri-shutdown.target"
-          install -Dm644 resources/default-config.kdl "$stage/share/doc/niri/default-config.kdl"
-          install -Dm644 README.md "$stage/share/doc/niri/README.md"
-          cp -r docs/wiki "$stage/share/doc/niri/wiki"
+          cp -r "$out/bin" "$out/share" "$stage/"
 
-          # Ubuntu's libdisplay-info SONAME differs from current nixpkgs.
-          # Ship the ABI that this binary was linked against.
-          display_info="$(ldconfig -p | awk '/libdisplay-info\.so\.1 / { print $NF; exit }')"
-          test -n "$display_info"
-          install -Dm755 "$display_info" "$stage/lib/libdisplay-info.so.1"
-
-          mkdir -p \
-            "$stage/share/bash-completion/completions" \
-            "$stage/share/fish/vendor_completions.d" \
-            "$stage/share/nushell/vendor/autoload" \
-            "$stage/share/zsh/site-functions"
-          target/release/niri completions bash > "$stage/share/bash-completion/completions/niri"
-          target/release/niri completions fish > "$stage/share/fish/vendor_completions.d/niri.fish"
-          target/release/niri completions nushell > "$stage/share/nushell/vendor/autoload/niri.nu"
-          target/release/niri completions zsh > "$stage/share/zsh/site-functions/_niri"
+          # Remove references to the temporary producer output. The consumer
+          # package supplies its own shell and Niri output path.
+          sed -i '1c #!/bin/sh' "$stage/bin/niri-session"
+          sed -i 's|^ExecStart=.*|ExecStart=niri --session|' \
+            "$stage/share/systemd/user/niri.service"
 
           asset="niri-${VERSION}-linux-${ARCH}.tar.gz"
-          tar -C "$stage" -czf "$asset" bin lib share
+          tar -C "$stage" -czf "$asset" bin share
           sha256sum "$asset" > "$asset.sha256"
 
       - name: Upload release archive
