@@ -3,7 +3,7 @@
   fetchurl,
   stdenv,
   ...
-}@args:
+}:
 
 let
   version = "1.92.144";
@@ -21,13 +21,8 @@ let
   };
 
   sys = stdenv.hostPlatform.system;
-  braveArgs = builtins.removeAttrs args [
-    "originalBrave"
-    "fetchurl"
-    "stdenv"
-  ];
 in
-(originalBrave.override braveArgs).overrideAttrs (old: {
+originalBrave.overrideAttrs (old: {
   inherit version;
 
   src = fetchurl {
