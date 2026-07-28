@@ -165,25 +165,6 @@ packages:
       x86_64-linux:
         pattern: '^noctalia-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?-linux-amd64\.tar\.gz$'
 
-  niri:
-    repo: divyam234/nix-pkgs
-    file: pkgs/niri/default.nix
-    tagPrefix: niri-v
-    release:
-      source: list
-      includePrereleases: true
-      sortBy: publishedAt
-      tagPattern: '^niri-v[0-9]+\.[0-9]+(?:\.[0-9]+)?$'
-    version:
-      source: tag
-    assets:
-      x86_64-linux:
-        pattern: '^niri-v[0-9]+\.[0-9]+(?:\.[0-9]+)?-linux-amd64\.tar\.gz$'
-    test:
-      command: bin/niri
-      args: [--version]
-      expectedOutput: '{version}'
-
   teldrive:
     repo: tgdrive/teldrive
     file: pkgs/teldrive/default.nix

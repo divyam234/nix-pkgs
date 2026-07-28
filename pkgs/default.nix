@@ -49,6 +49,5 @@ in
   ida-pro = pkgs.callPackage ./ida-pro { };
 }
 // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
-  niri = pkgs.callPackage ./niri { };
   noctalia = pkgs.callPackage ./noctalia { };
 }
