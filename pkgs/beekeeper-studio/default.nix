@@ -1,17 +1,17 @@
 { originalBeekeeperStudio, fetchurl, lib, stdenv, unixodbc }:
 
 let
-  version = "5.9.2";
+  version = "5.9.3";
 
   sources = {
     x86_64-linux = {
-      asset = "beekeeper-studio_5.9.2_amd64.deb";
-      hash = "sha256-O987wpgrue1yD4jgm0x0IpfbaTKNZrjhabTiwv94caA=";
+      asset = "beekeeper-studio_5.9.3_amd64.deb";
+      hash = "sha256-ngVE7hjtr/a6CBASwZA3gmvk7+WR2okQy+ywXbEUQpk=";
     };
 
     aarch64-linux = {
-      asset = "beekeeper-studio_5.9.2_arm64.deb";
-      hash = "sha256-IZc9VVo66CQjqQUKz4DNvWWAa2JArwqiVTgdLbR9uDk=";
+      asset = "beekeeper-studio_5.9.3_arm64.deb";
+      hash = "sha256-aAoputvhCHqekT+pdaZEmps4aa48gz9DDCgomJvWQSw=";
     };
   };
 
