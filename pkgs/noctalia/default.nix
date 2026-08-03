@@ -33,6 +33,7 @@
   jemalloc,
   libsecret,
   libsodium,
+  libical,
 }:
 
 let
@@ -99,6 +100,7 @@ stdenv.mkDerivation {
     jemalloc
     libsecret
     libsodium
+    libical
   ];
 
   installPhase = ''
