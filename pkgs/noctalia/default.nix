@@ -34,6 +34,8 @@
   libsecret,
   libsodium,
   libical,
+  libjxl,
+  libsndfile,
 }:
 
 let
@@ -101,6 +103,8 @@ stdenv.mkDerivation {
     libsecret
     libsodium
     libical
+    libjxl
+    libsndfile
   ];
 
   installPhase = ''

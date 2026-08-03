@@ -140,7 +140,10 @@ jobs:
             libjemalloc-dev \
             libsecret-1-dev \
             libsodium-dev \
-            libical-dev
+            libical-dev \
+            libjxl-dev \
+            libsndfile1-dev
+
 
           tmpdir="$(mktemp -d)"
           trap 'rm -rf "$tmpdir"' EXIT
