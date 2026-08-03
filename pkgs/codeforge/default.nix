@@ -3,17 +3,17 @@
 }:
 
 let
-  version = "0.6.4";
+  version = "0.6.5";
 
   sources = {
     x86_64-linux = {
-      asset = "codeforge_0.6.4_linux_amd64.tar.gz";
-      hash = "sha256-22PEzjW7PclAlR/revqNPpLcBSNQmZ4ctXvv0Yu+Xek=";
+      asset = "codeforge_0.6.5_linux_amd64.tar.gz";
+      hash = "sha256-EyC0lBH6aY5HZPnYTcRpwiW8AgMP+Siie/RMownc1ik=";
     };
 
     aarch64-linux = {
-      asset = "codeforge_0.6.4_linux_arm64.tar.gz";
-      hash = "sha256-ps5YjR9r6RWM1eJ4R+hmb9pqXH8K8PEZOWzGvBJVK28=";
+      asset = "codeforge_0.6.5_linux_arm64.tar.gz";
+      hash = "sha256-YOYpMTjtZLPfw2ZuXXixyyEd5WfZ7tXZiXygCIfVnFU=";
     };
   };
 in
