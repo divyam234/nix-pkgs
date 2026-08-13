@@ -6,17 +6,17 @@
 }:
 
 let
-  version = "1.93.134";
+  version = "1.93.136";
 
   sources = {
     x86_64-linux = {
-      asset = "brave-browser_1.93.134_amd64.deb";
-      hash = "sha256-uhdwTBLFUJ9oCQIQx0eetGoIXCN28UmJzqEjLENhIvo=";
+      asset = "brave-browser_1.93.136_amd64.deb";
+      hash = "sha256-lznlqu5DA+tBmcA4sEp117x6wIMUr592MBHiEd6mKZk=";
     };
 
     aarch64-linux = {
-      asset = "brave-browser_1.93.134_arm64.deb";
-      hash = "sha256-4BynMi0YSpa1leSGX9b4/lLrEcM+Lu+Y78EmacmidSA=";
+      asset = "brave-browser_1.93.136_arm64.deb";
+      hash = "sha256-M02+zpWert27gtP+Cdp1raFFDGj2xi053AveDHfGS+o=";
     };
   };
 
