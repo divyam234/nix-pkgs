@@ -10,13 +10,13 @@ let
   sources = {
     x86_64-linux = {
       asset = "rclone-v1.75.0-linux-amd64.tar.gz";
-      hash = "sha256-mK9Hxf4WSLUNBNPakU9+ZdkXQPV8VvJ6aozjYpowos4=";
+      hash = "sha256-iey8SKoAU383Y30Ju490mLYdbAhSwm7hmCdT3+kt/h4=";
       dir = "rclone-v${version}-linux-amd64";
     };
 
     aarch64-linux = {
       asset = "rclone-v1.75.0-linux-arm64.tar.gz";
-      hash = "sha256-OLaqJzy/wgQVVHGxc5aGRMNy7Cqvu3dT7l7l6q+dwEk=";
+      hash = "sha256-mU8DkPeQGGtLhdrLAYF/TYL40Zz50x8CekIhtKhQWmo=";
       dir = "rclone-v${version}-linux-arm64";
     };
   };
