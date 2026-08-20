@@ -129,6 +129,22 @@ packages:
       aarch64-linux:
         pattern: '^openlogi-v[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.deb$'
 
+  restic:
+    repo: restic/restic
+    file: pkgs/restic/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        pattern: '^restic_[0-9]+\.[0-9]+\.[0-9]+_linux_amd64\.bz2$'
+      aarch64-linux:
+        pattern: '^restic_[0-9]+\.[0-9]+\.[0-9]+_linux_arm64\.bz2$'
+    test:
+      command: bin/restic
+      args: [version]
+      expectedOutput: '{version}'
+
   rclone:
     repo: divyam234/nix-pkgs
     file: pkgs/rclone/default.nix

@@ -16,6 +16,8 @@ in
 
   rclone = pkgs.callPackage ./rclone { };
 
+  restic = pkgs.callPackage ./restic { };
+
   sublime = pkgs.callPackage ./sublime { };
 
   teldrive = pkgs.callPackage ./teldrive {
