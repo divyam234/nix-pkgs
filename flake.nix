@@ -35,8 +35,6 @@
           default = customPackages.opencode;
         });
 
-      nixosModules.openlogi = import ./modules/nixos/openlogi.nix;
-
-      homeManagerModules.openlogi = import ./modules/home-manager/openlogi.nix;
+      
     };
 }

@@ -46,8 +46,6 @@ in
 
   zjstatus = pkgs.callPackage ./zjstatus { };
 
-  openlogi = pkgs.callPackage ./openlogi { };
-
   ida-pro = pkgs.callPackage ./ida-pro { };
 }
 // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
