@@ -1,17 +1,17 @@
 { originalDbeaverBin, fetchurl, stdenv }:
 
 let
-  version = "26.1.5";
+  version = "26.2.0";
 
   sources = {
     x86_64-linux = {
-      asset = "dbeaver-ce-26.1.5-linux-x86_64.tar.gz";
-      hash = "sha256-DoqiAIgUxRwdhj+Pq5vOA0P1wd/g7064a7DhO7pMHvI=";
+      asset = "dbeaver-ce-26.2.0-linux-x86_64.tar.gz";
+      hash = "sha256-9QTnCnR2OqAuC2PWhCuFymRSb2gr5Fez8w4zDMEHSO0=";
     };
 
     aarch64-linux = {
-      asset = "dbeaver-ce-26.1.5-linux-aarch64.tar.gz";
-      hash = "sha256-O87LRTJ8S9FLFEO2n9gNt0vPruY0AEzrffNYm7fx1nQ=";
+      asset = "dbeaver-ce-26.2.0-linux-aarch64.tar.gz";
+      hash = "sha256-atqAOjnAcvyPHHdwZpKY6So1AXRKbh/5GXlKDe35WWM=";
     };
   };
 
