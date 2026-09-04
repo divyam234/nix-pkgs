@@ -1,65 +1,103 @@
 {
-  callPackage,
-  fetchFromGitHub,
   lib,
-  nix-update-script,
-  symlinkJoin,
+  stdenv,
+  fetchurl,
+  autoPatchelfHook,
+  makeWrapper,
+  copyDesktopItems,
+  e2fsprogs,
+  iproute2,
+  libxslt,
+  nftables,
+  procps,
+  systemdMinimal,
+  wireguard-tools,
+  openvpn,
 }:
 let
-  version = "5.1.0";
+  version = "5.3.0";
 
-  common = {
-    inherit version;
-
-    src = fetchFromGitHub {
-      owner = "NordSecurity";
-      repo = "nordvpn-linux";
-      tag = version;
-      hash = "sha256-I0PBv2EBfy8oCtYBIalUwfLESa3Od5yvl/Gj96za+60=";
+  sources = {
+    x86_64-linux = {
+      asset = "nordvpn-v${version}-linux-amd64.tar.gz";
+      hash = "sha256-Qf2VQ7jT/QSoj0iXxAktGBwIHpW2GyP1BJIwFAiq0CM=";
+      dir = "nordvpn-v${version}-linux-amd64";
     };
 
-    # rec so that changelog can reference homepage
-    meta = rec {
-      homepage = "https://github.com/NordSecurity/nordvpn-linux";
-      changelog = "${homepage}/releases/tag/${version}";
-      license = lib.licenses.gpl3Only;
-      maintainers = [ ];
-      platforms = lib.platforms.linux;
-    };
-
-    desktopItemArgs = {
-      categories = [ "Network" ];
-      genericName = "VPN Client";
-      icon = "nordvpn";
-      type = "Application";
+    aarch64-linux = {
+      asset = "nordvpn-v${version}-linux-arm64.tar.gz";
+      hash = "sha256-mcBEfYhw4g5HpkpknU76cNxriWt1FKKkwdIvlBP3Ajg=";
+      dir = "nordvpn-v${version}-linux-arm64";
     };
   };
 
-  cli = callPackage ./cli.nix common;
+  source = sources.${stdenv.hostPlatform.system} or (throw "nordvpn is not packaged for ${stdenv.hostPlatform.system}");
 in
-symlinkJoin {
+stdenv.mkDerivation {
   pname = "nordvpn";
   inherit version;
 
-  strictDeps = true;
-  __structuredAttrs = true;
-
-  paths = [ cli ];
-
-  passthru = {
-    inherit cli;
-    updateScript = nix-update-script { };
+  src = fetchurl {
+    url = "https://github.com/divyam234/nix-pkgs/releases/download/nordvpn-v${version}/${source.asset}";
+    inherit (source) hash;
   };
 
-  meta = common.meta // {
-    description = "NordVPN command-line client and daemon for Linux";
-    longDescription = ''
-      NordVPN CLI application and daemon for Linux.
-      This package currently does not support meshnet.
-      Additionally, if `networking.firewall.enable = true;`,
-      then also set `networking.firewall.checkReversePath = "loose";`.
-      The closed-source nordwhisper protocol is also not supported.
-    '';
+  sourceRoot = source.dir;
+
+  nativeBuildInputs = [
+    autoPatchelfHook
+    makeWrapper
+    copyDesktopItems
+  ];
+
+  buildInputs = [ ];
+
+  dontConfigure = true;
+  dontBuild = true;
+
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p $out/bin $out/share
+
+    # binaries from prebuilt tar
+    install -Dm755 bin/nordvpn $out/bin/nordvpn
+    install -Dm755 bin/nordvpnd $out/bin/nordvpnd
+    install -Dm755 bin/norduserd $out/bin/norduserd 2>/dev/null || true
+
+    # icons if present
+    if [ -d share/icons ]; then
+      cp -r share/icons $out/share/
+    fi
+    if [ -f assets/icon.svg ]; then
+      install -Dm444 assets/icon.svg $out/share/icons/hicolor/scalable/apps/nordvpn.svg
+    fi
+
+    runHook postInstall
+  '';
+
+  postFixup = ''
+    wrapProgram $out/bin/nordvpnd --prefix PATH : ${
+      lib.makeBinPath [
+        e2fsprogs
+        iproute2
+        libxslt
+        nftables
+        openvpn
+        procps
+        systemdMinimal
+        wireguard-tools
+      ]
+    }
+  '';
+
+  meta = {
+    description = "NordVPN command-line client and daemon for Linux (prebuilt)";
+    homepage = "https://github.com/NordSecurity/nordvpn-linux";
+    changelog = "https://github.com/NordSecurity/nordvpn-linux/releases/tag/${version}";
+    license = lib.licenses.gpl3Only;
+    maintainers = [ ];
+    platforms = lib.platforms.linux;
     mainProgram = "nordvpn";
   };
 }
