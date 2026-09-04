@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Check out rclone source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: divyam234/rclone-private
           ref: ${{ needs.discover.outputs.source-tag }}
