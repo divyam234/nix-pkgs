@@ -6,7 +6,7 @@
 }:
 
 let
-  version = "9.4-beta1";
+  version = "9.4";
 
   pythonForIDA = python313.withPackages (ps: with ps; [ rpyc ]);
 
@@ -24,7 +24,7 @@ stdenv.mkDerivation {
 
   src = fetchzip {
     url = "https://github.com/divyam234/nix-pkgs/releases/download/ida-pro-${version}/ida-pro-${version}.tar.gz";
-    hash = "sha256-NQLqA5jRa/YGWBq++u6ooO9ISX1XLbQGXUd+EiZjY6o=";
+    hash = "sha256-2NzvGWR4YY8J+6LUux4lWUMx9WwlIgRXGsfJ9luOEK0=";
   };
 
   desktopItems = [
