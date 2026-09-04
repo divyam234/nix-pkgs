@@ -66,7 +66,14 @@ jobs:
           ver = re.sub(r"^IDA(?:\s+Pro)?\s+", "", raw)
           ver = re.sub(r"\s+Beta\s+", "-beta", ver, flags=re.IGNORECASE)
           ver = re.sub(r"\s+SP\s*", "sp", ver, flags=re.IGNORECASE)
+          # Handle Hotfix and other parenthesized suffixes: "9.4 (Hotfix)" -> "9.4-hotfix"
+          ver = re.sub(r"\s*\(\s*Hotfix\s*\)\s*", "-hotfix", ver, flags=re.IGNORECASE)
+          ver = re.sub(r"\s*\(\s*([^)]+)\s*\)\s*", r"-\1", ver)
           ver = ver.replace(" ", "")
+          # Sanitize any remaining unsafe chars for shell/tag/filesystem
+          ver = re.sub(r"[()]", "", ver)
+          ver = re.sub(r"[^A-Za-z0-9._-]", "-", ver)
+          ver = re.sub(r"-+", "-", ver).strip("-")
 
           date = date_span.get_text(strip=True) if date_span else ""
 
@@ -127,10 +134,12 @@ jobs:
 
 
       - name: Extract .run installers
+        env:
+          VERSION: ${{ needs.scrape.outputs.version }}
         run: |
           set -euo pipefail
 
-          CONTENT="$PWD/content/ida-pro-${{ needs.scrape.outputs.version }}"
+          CONTENT="$PWD/content/ida-pro-${VERSION}"
           mkdir -p "$CONTENT"
 
           TORRENT_DIR="${{ steps.assets.outputs.torrent-dir }}"
@@ -158,7 +167,7 @@ jobs:
 
       - name: Create tarball
         run: |
-          VERSION=${{ needs.scrape.outputs.version }}
+          VERSION="${{ needs.scrape.outputs.version }}"
           mkdir -p _releases
           tar czf "_releases/ida-pro-${VERSION}.tar.gz" \
             -C content "ida-pro-${VERSION}"
@@ -167,7 +176,7 @@ jobs:
       - name: Get Nix hash
         id: hash
         run: |
-          VERSION=${{ needs.scrape.outputs.version }}
+          VERSION="${{ needs.scrape.outputs.version }}"
           mkdir -p /tmp/hash-extract
           tar xzf "$PWD/_releases/ida-pro-${VERSION}.tar.gz" -C /tmp/hash-extract
           HASH=$(nix hash path --mode nar --sri "/tmp/hash-extract/ida-pro-${VERSION}")
@@ -177,7 +186,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=${{ needs.scrape.outputs.version }}
+          VERSION="${{ needs.scrape.outputs.version }}"
           TAG="ida-pro-${VERSION}"
           TARBALL="_releases/ida-pro-${VERSION}.tar.gz"
 
@@ -192,8 +201,8 @@ jobs:
 
       - name: Update nix package
         run: |
-          VERSION=${{ needs.scrape.outputs.version }}
-          HASH=${{ steps.hash.outputs.hash }}
+          VERSION="${{ needs.scrape.outputs.version }}"
+          HASH="${{ steps.hash.outputs.hash }}"
 
           sed -i \
             -e "s/^\(\s*\)version = \".*\";/\1version = \"${VERSION}\";/" \
