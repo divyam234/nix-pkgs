@@ -184,6 +184,20 @@ packages:
       x86_64-linux:
         pattern: '^noctalia-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?-linux-amd64\.tar\.gz$'
 
+  noctalia-greeter:
+    repo: divyam234/nix-pkgs
+    file: pkgs/noctalia-greeter/default.nix
+    tagPrefix: noctalia-greeter-v
+    release:
+      source: list
+      includePrereleases: true
+      tagPattern: '^noctalia-greeter-v[0-9]+\.[0-9]+\.[0-9]+$'
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: noctalia-greeter-v{version}-linux-amd64.tar.gz
+
   nordvpn:
     repo: divyam234/nix-pkgs
     file: pkgs/nordvpn/default.nix

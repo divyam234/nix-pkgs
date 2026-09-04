@@ -50,4 +50,5 @@ in
 }
 // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
   noctalia = pkgs.callPackage ./noctalia { };
+  noctalia-greeter = pkgs.callPackage ./noctalia-greeter { };
 }

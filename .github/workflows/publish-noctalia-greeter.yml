@@ -1,0 +1,255 @@
+name: Publish Noctalia Greeter prerelease
+
+on:
+  schedule:
+    - cron: "35 5 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        required: false
+        type: string
+
+run-name: Publish Noctalia Greeter ${{ inputs.version || 'latest unpublished tag' }}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-noctalia-greeter
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Find an unpublished greeter tag
+    runs-on: ubuntu-latest
+    outputs:
+      source-tag: ${{ steps.select.outputs.source-tag }}
+      release-tag: ${{ steps.select.outputs.release-tag }}
+      publish: ${{ steps.select.outputs.publish }}
+    env:
+      SOURCE_REPOSITORY: noctalia-dev/noctalia-greeter
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      REQUESTED_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - id: select
+        name: Select newest unpublished tag
+        run: |
+          set -euo pipefail
+
+          semver=(npx --yes semver@7.8.5)
+
+          is_valid_tag() {
+            local tag="$1"
+            local version
+            [[ "$tag" == v* ]] || return 1
+            version="$("${semver[@]}" -- "${tag#v}")"
+            [[ "$version" == "${tag#v}" ]]
+          }
+
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            candidates=("$REQUESTED_VERSION")
+          else
+            candidates=()
+            while IFS= read -r tag; do
+              if is_valid_tag "$tag"; then
+                candidates=("$tag")
+                break
+              fi
+            done < <(
+              gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name'
+            )
+          fi
+
+          for tag in "${candidates[@]}"; do
+            if ! is_valid_tag "$tag"; then
+              echo "version must be a valid SemVer tag such as v1.3.1" >&2
+              exit 1
+            fi
+
+            gh api "repos/$SOURCE_REPOSITORY/git/ref/tags/$tag" >/dev/null
+            release_tag="noctalia-greeter-$tag"
+            if ! gh release view "$release_tag" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
+              {
+                echo "source-tag=$tag"
+                echo "release-tag=$release_tag"
+                echo "publish=true"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          echo "No unpublished greeter tag found."
+          echo "publish=false" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build Linux amd64 archive
+    needs: discover
+    if: needs.discover.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    container: debian:trixie
+
+    steps:
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            git \
+            g++ \
+            meson \
+            ninja-build \
+            pkgconf \
+            just \
+            wayland-protocols \
+            libwayland-dev \
+            libwlroots-0.20-dev \
+            libwayland-egl1-mesa-dev \
+            libegl-dev \
+            libgles-dev \
+            libfreetype-dev \
+            libfontconfig-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libharfbuzz-dev \
+            libxkbcommon-dev \
+            libglib2.0-dev \
+            libtomlplusplus-dev \
+            nlohmann-json3-dev \
+            libstb-dev \
+            libwebp-dev \
+            librsvg2-dev \
+            libinput-dev
+
+      - name: Check out greeter source
+        uses: actions/checkout@v7
+        with:
+          repository: noctalia-dev/noctalia-greeter
+          ref: ${{ needs.discover.outputs.source-tag }}
+          persist-credentials: false
+
+      - name: Configure portable CPU target
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Greeter already uses -march=native only in release buildtype, override to portable
+          if grep -q "'-march=native'" meson.build; then
+            sed -i \
+              -e "s/'-march=native'/'-march=x86-64-v3'/g" \
+              -e "s/'-mtune=native'/'-mtune=generic'/g" \
+              meson.build
+          fi
+
+      - name: Build portable archive
+        env:
+          VERSION: ${{ needs.discover.outputs.source-tag }}
+          ARCH: amd64
+        run: |
+          set -euo pipefail
+          meson setup build --prefix=/usr --buildtype=release
+          meson compile -C build
+          DESTDIR="$PWD/stage" meson install -C build
+          test -x stage/usr/bin/noctalia-greeter
+          test -x stage/usr/bin/noctalia-greeter-compositor
+          test -x stage/usr/bin/noctalia-greeter-session
+          tar -C stage/usr -czf "noctalia-greeter-${VERSION}-linux-${ARCH}.tar.gz" bin/noctalia-greeter* share/noctalia-greeter
+          sha256sum "noctalia-greeter-${VERSION}-linux-${ARCH}.tar.gz" > "noctalia-greeter-${VERSION}-linux-${ARCH}.tar.gz.sha256"
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: greeter-amd64
+          path: |
+            noctalia-greeter-${{ needs.discover.outputs.source-tag }}-linux-amd64.tar.gz
+            noctalia-greeter-${{ needs.discover.outputs.source-tag }}-linux-amd64.tar.gz.sha256
+          if-no-files-found: error
+
+  publish:
+    name: Create prerelease
+    needs:
+      - discover
+      - build
+    if: needs.discover.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      VERSION: ${{ needs.discover.outputs.source-tag }}
+      RELEASE_TAG: ${{ needs.discover.outputs.release-tag }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Download release archives
+        uses: actions/download-artifact@v8
+        with:
+          pattern: greeter-*
+          merge-multiple: true
+
+      - name: Verify release assets
+        run: |
+          set -euo pipefail
+          assets=(
+            "noctalia-greeter-${VERSION}-linux-amd64.tar.gz"
+          )
+          for asset in "${assets[@]}"; do
+            test -f "$asset"
+            test -f "$asset.sha256"
+            sha256sum --check "$asset.sha256"
+          done
+          cat "${assets[@]/%/.sha256}" > checksums.txt
+
+      - name: Create prerelease and upload assets
+        run: |
+          gh release create "$RELEASE_TAG" \
+            noctalia-greeter-"${VERSION}"-linux-amd64.tar.gz \
+            checksums.txt \
+            --repo "$RELEASE_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Noctalia Greeter $VERSION" \
+            --prerelease \
+            --latest=false
+
+  update-package:
+    name: Update Nix package
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out package repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Update and validate greeter
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          uv run --with pyyaml --with semver==3.0.4 python -B scripts/update-releases.py
+          updates.yml noctalia-greeter --check --build
+
+      - name: Commit package update
+        env:
+          TARGET_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if git diff --quiet -- pkgs/noctalia-greeter/default.nix; then
+            echo "No greeter package update to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pkgs/noctalia-greeter/default.nix
+          git commit -m "update noctalia-greeter"
+          git push origin HEAD:"$TARGET_BRANCH"
