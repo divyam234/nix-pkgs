@@ -6,6 +6,7 @@
   patchelf,
   wayland,
   wlroots_0_20,
+  libinput,
   libGL,
   libglvnd,
   freetype,
@@ -56,6 +57,7 @@ stdenv.mkDerivation {
   buildInputs = [
     wayland
     wlroots_0_20
+    libinput
     libGL
     libglvnd
     freetype
@@ -73,16 +75,18 @@ stdenv.mkDerivation {
     runHook preInstall
 
     mkdir -p $out
-    cp -r bin share $out/ 2>/dev/null || true
-    # also handle usr/bin layout if tar was created with usr prefix
-    if [ -d usr/bin ]; then
-      mkdir -p $out/bin
-      cp -r usr/bin/* $out/bin/ 2>/dev/null || true
-    fi
-    if [ -d usr/share ]; then
-      mkdir -p $out/share
-      cp -r usr/share/* $out/share/ 2>/dev/null || true
-    fi
+    for dir in bin share lib; do
+      if [ -d "$dir" ]; then
+        cp -a "$dir" $out/
+      fi
+    done
+
+    test -x $out/bin/noctalia-greeter
+    test -x $out/bin/noctalia-greeter-compositor
+    test -x $out/bin/noctalia-greeter-session
+    test -x $out/bin/noctalia-greeter-apply-appearance
+    test -x $out/bin/noctalia-greeter-print-greetd-config
+    test -d $out/share/noctalia-greeter/assets
 
     runHook postInstall
   '';

@@ -133,16 +133,18 @@ jobs:
           ref: ${{ needs.discover.outputs.source-tag }}
           persist-credentials: false
 
-      - name: Configure portable CPU target
+      - name: Remove native CPU flags
         shell: bash
         run: |
           set -euxo pipefail
-          # Greeter already uses -march=native only in release buildtype, override to portable
-          if grep -q "'-march=native'" meson.build; then
-            sed -i \
-              -e "s/'-march=native'/'-march=x86-64-v3'/g" \
-              -e "s/'-mtune=native'/'-mtune=generic'/g" \
-              meson.build
+
+          # Match upstream nix/package.nix postPatch exactly: keep the release
+          # build, but remove host-specific CPU flags for portable binaries.
+          sed -i "s/'-march=native', '-mtune=native',//" meson.build
+
+          if grep -Eq -- '-march=native|-mtune=native' meson.build; then
+            echo "Native CPU flags are still present" >&2
+            exit 1
           fi
 
       - name: Build portable archive
@@ -154,10 +156,17 @@ jobs:
           meson setup build --prefix=/usr --buildtype=release
           meson compile -C build
           DESTDIR="$PWD/stage" meson install -C build
+
           test -x stage/usr/bin/noctalia-greeter
           test -x stage/usr/bin/noctalia-greeter-compositor
           test -x stage/usr/bin/noctalia-greeter-session
-          tar -C stage/usr -czf "noctalia-greeter-${VERSION}-linux-${ARCH}.tar.gz" bin/noctalia-greeter* share/noctalia-greeter
+          test -x stage/usr/bin/noctalia-greeter-apply-appearance
+          test -x stage/usr/bin/noctalia-greeter-print-greetd-config
+          test -d stage/usr/share/noctalia-greeter/assets
+          test -f stage/usr/share/polkit-1/actions/org.noctalia.greeter.apply-appearance.policy
+          test -f stage/usr/lib/tmpfiles.d/noctalia-greeter.conf
+
+          tar -C stage/usr -czf "noctalia-greeter-${VERSION}-linux-${ARCH}.tar.gz" .
           sha256sum "noctalia-greeter-${VERSION}-linux-${ARCH}.tar.gz" > "noctalia-greeter-${VERSION}-linux-${ARCH}.tar.gz.sha256"
 
       - name: Upload release archive
