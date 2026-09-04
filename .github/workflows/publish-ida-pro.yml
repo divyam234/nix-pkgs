@@ -66,9 +66,9 @@ jobs:
           ver = re.sub(r"^IDA(?:\s+Pro)?\s+", "", raw)
           ver = re.sub(r"\s+Beta\s+", "-beta", ver, flags=re.IGNORECASE)
           ver = re.sub(r"\s+SP\s*", "sp", ver, flags=re.IGNORECASE)
-          # Handle Hotfix and other parenthesized suffixes: "9.4 (Hotfix)" -> "9.4-hotfix"
-          ver = re.sub(r"\s*\(\s*Hotfix\s*\)\s*", "-hotfix", ver, flags=re.IGNORECASE)
-          ver = re.sub(r"\s*\(\s*([^)]+)\s*\)\s*", r"-\1", ver)
+          # Strip Hotfix and any parenthesized suffix: "9.4 (Hotfix)" -> "9.4" (ignore hotfix)
+          ver = re.sub(r"\s*\(\s*Hotfix\s*\)\s*", "", ver, flags=re.IGNORECASE)
+          ver = re.sub(r"\s*\(\s*[^)]+\s*\)\s*", "", ver)
           ver = ver.replace(" ", "")
           # Sanitize any remaining unsafe chars for shell/tag/filesystem
           ver = re.sub(r"[()]", "", ver)
