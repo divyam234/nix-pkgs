@@ -27,7 +27,7 @@ let
   sources = {
     x86_64-linux = {
       asset = "noctalia-greeter-v${version}-linux-amd64.tar.gz";
-      hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      hash = "sha256-a+TOvXkaov7DF03u1Gz2dQmv/pa0qkFsfq+TBJO6Vkc=";
     };
   };
 
