@@ -88,50 +88,20 @@ jobs:
     needs: discover
     if: needs.discover.outputs.publish == 'true'
     runs-on: ubuntu-latest
-    container: debian:trixie
 
     steps:
-      - name: Install build dependencies
-        shell: bash
-        run: |
-          set -euxo pipefail
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            ca-certificates \
-            curl \
-            git \
-            g++ \
-            meson \
-            ninja-build \
-            pkgconf \
-            just \
-            wayland-protocols \
-            libwayland-dev \
-            libwlroots-0.20-dev \
-            libwayland-egl1-mesa-dev \
-            libegl-dev \
-            libgles-dev \
-            libfreetype-dev \
-            libfontconfig-dev \
-            libcairo2-dev \
-            libpango1.0-dev \
-            libharfbuzz-dev \
-            libxkbcommon-dev \
-            libglib2.0-dev \
-            libtomlplusplus-dev \
-            nlohmann-json3-dev \
-            libstb-dev \
-            libwebp-dev \
-            librsvg2-dev \
-            libinput-dev
-
       - name: Check out greeter source
         uses: actions/checkout@v7
         with:
           repository: noctalia-dev/noctalia-greeter
           ref: ${{ needs.discover.outputs.source-tag }}
           persist-credentials: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
 
       - name: Remove native CPU flags
         shell: bash
@@ -153,9 +123,15 @@ jobs:
           ARCH: amd64
         run: |
           set -euo pipefail
-          meson setup build --prefix=/usr --buildtype=release
-          meson compile -C build
-          DESTDIR="$PWD/stage" meson install -C build
+          # Use upstream's own Nix dev shell for the exact build dependency set
+          # (including wlroots 0.20 and the required stb revision), while keeping
+          # /usr as the compiled install prefix so the release archive stays relocatable.
+          nix develop --command bash -c '
+            set -euo pipefail
+            meson setup build --prefix=/usr --buildtype=release
+            meson compile -C build
+            DESTDIR="$PWD/stage" meson install -C build
+          '
 
           test -x stage/usr/bin/noctalia-greeter
           test -x stage/usr/bin/noctalia-greeter-compositor
