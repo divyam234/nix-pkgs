@@ -6,6 +6,7 @@
   makeBinaryWrapper,
   nodejs,
   alsa-lib,
+  glib,
   libdrm,
   libGL,
   libglvnd,
@@ -17,17 +18,17 @@
 }:
 
 let
-  version = "1.17.2";
+  version = "1.18.0";
 
   sources = {
     x86_64-linux = {
       asset = "zed-linux-x86_64.tar.gz";
-      hash = "sha256-NoLdBYowXSskahTWRBn89C6GoG4ndV0jtaKGIu2a74U=";
+      hash = "sha256-YO4tons3jF0Ay/xOngyYQuN3lYA8RWV1T0G+VCOJh5k=";
     };
 
     aarch64-linux = {
       asset = "zed-linux-aarch64.tar.gz";
-      hash = "sha256-T3UzKrgVWlpisM3Ec0c8+JOJWc880rAUXil1lp1+iSk=";
+      hash = "sha256-HpZtAljQ2WwG3ZIW9uHfIjxTW2xeOcdWKRK9qEgfY8E=";
     };
   };
 
@@ -35,6 +36,7 @@ let
 
   runtimeLibs = lib.makeLibraryPath [
     alsa-lib
+    glib
     libdrm
     libGL
     libglvnd
@@ -62,6 +64,7 @@ stdenvNoCC.mkDerivation {
 
   buildInputs = [
     alsa-lib
+    glib
     libdrm
     libGL
     libglvnd
