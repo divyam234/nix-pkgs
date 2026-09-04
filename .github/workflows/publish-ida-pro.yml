@@ -196,7 +196,8 @@ jobs:
             gh release create "$TAG" "$TARBALL" \
               --repo "${{ github.repository }}" \
               --title "IDA Pro ${VERSION}" \
-              --notes "IDA Pro ${VERSION} (published ${{ needs.scrape.outputs.date }}) — Nix package"
+              --notes "IDA Pro ${VERSION} (published ${{ needs.scrape.outputs.date }}) — Nix package" \
+              --prerelease --latest=false
           fi
 
       - name: Update nix package
