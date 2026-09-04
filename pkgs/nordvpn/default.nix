@@ -20,13 +20,13 @@ let
   sources = {
     x86_64-linux = {
       asset = "nordvpn-v${version}-linux-amd64.tar.gz";
-      hash = "sha256-Qf2VQ7jT/QSoj0iXxAktGBwIHpW2GyP1BJIwFAiq0CM=";
+      hash = "sha256-eMksSa1pYON33fKMkilWO17K+Ht3E0BWCxKcf9fkVL4=";
       dir = "nordvpn-v${version}-linux-amd64";
     };
 
     aarch64-linux = {
       asset = "nordvpn-v${version}-linux-arm64.tar.gz";
-      hash = "sha256-mcBEfYhw4g5HpkpknU76cNxriWt1FKKkwdIvlBP3Ajg=";
+      hash = "sha256-n3Ix48aFh8NTIs9ex7WdxuEAi0ICGhKWsLbNScylZCU=";
       dir = "nordvpn-v${version}-linux-arm64";
     };
   };
