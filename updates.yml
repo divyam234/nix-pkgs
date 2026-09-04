@@ -71,6 +71,21 @@ packages:
       aarch64-linux:
         name: zed-linux-aarch64.tar.gz
 
+  ida-pro:
+    repo: divyam234/nix-pkgs
+    file: pkgs/ida-pro/default.nix
+    tagPrefix: ida-pro-
+    release:
+      source: list
+      includePrereleases: true
+      tagPattern: '^ida-pro-.*$'
+      sortBy: publishedAt
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: ida-pro-{version}.tar.gz
+
   bun:
     repo: oven-sh/bun
     file: pkgs/bun/default.nix

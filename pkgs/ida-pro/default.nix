@@ -1,4 +1,4 @@
-{ pkgs, lib, stdenv, fetchzip, autoPatchelfHook, makeWrapper, copyDesktopItems
+{ pkgs, lib, stdenv, fetchurl, autoPatchelfHook, makeWrapper, copyDesktopItems
 , perl, cairo, dbus, fontconfig, freetype, glib, gtk3, libdrm, libGL
 , libkrb5, libsecret, libunwind, libxkbcommon, openssl
 , qt6, libice, libsm, libX11, libxcb, libXext, libXi, libXrender
@@ -7,6 +7,15 @@
 
 let
   version = "9.4";
+
+  sources = {
+    x86_64-linux = {
+      asset = "ida-pro-${version}.tar.gz";
+      hash = "sha256-Vx3R1qHCD4vBBNDPF5SEEe76G5PpcXiDqVKUITqTwGc=";
+    };
+  };
+
+  source = sources.${stdenv.hostPlatform.system} or (throw "ida-pro is not packaged for ${stdenv.hostPlatform.system}");
 
   pythonForIDA = python313.withPackages (ps: with ps; [ rpyc ]);
 
@@ -22,10 +31,12 @@ stdenv.mkDerivation {
   pname = "ida-pro";
   inherit version;
 
-  src = fetchzip {
-    url = "https://github.com/divyam234/nix-pkgs/releases/download/ida-pro-${version}/ida-pro-${version}.tar.gz";
-    hash = "sha256-2NzvGWR4YY8J+6LUux4lWUMx9WwlIgRXGsfJ9luOEK0=";
+  src = fetchurl {
+    url = "https://github.com/divyam234/nix-pkgs/releases/download/ida-pro-${version}/${source.asset}";
+    hash = source.hash;
   };
+
+  sourceRoot = "ida-pro-${version}";
 
   desktopItems = [
     (pkgs.makeDesktopItem {
@@ -51,7 +62,6 @@ stdenv.mkDerivation {
   runtimeDependencies = runtimeDependencies;
   buildInputs = runtimeDependencies;
 
-  dontUnpack = true;
   dontConfigure = true;
   dontBuild = true;
   dontWrapQtApps = true;
@@ -62,7 +72,7 @@ stdenv.mkDerivation {
     IDADIR="$out/opt/ida-pro-${version}"
     mkdir -p "$IDADIR" "$out/bin" "$out/lib"
 
-    cp -r --no-preserve=mode $src/x86_64-linux/* "$IDADIR"
+    cp -r --no-preserve=mode x86_64-linux/* "$IDADIR"
 
     rm -f "$IDADIR"/Uninstall*.desktop
 
@@ -70,13 +80,13 @@ stdenv.mkDerivation {
 
     chmod +x "$IDADIR"/ida "$IDADIR"/idat 2>/dev/null || true
 
-    if [ -d "$src/kg_patch/x64linux" ]; then
-      cp "$src/kg_patch/x64linux/libida.so" "$IDADIR/"
-      cp "$src/kg_patch/x64linux/libida32.so" "$IDADIR/" 2>/dev/null || true
+    if [ -d "kg_patch/x64linux" ]; then
+      cp "kg_patch/x64linux/libida.so" "$IDADIR/"
+      cp "kg_patch/x64linux/libida32.so" "$IDADIR/" 2>/dev/null || true
     fi
 
-    if [ -f "$src/kg_patch/idapro.hexlic" ]; then
-      cp "$src/kg_patch/idapro.hexlic" "$IDADIR/"
+    if [ -f "kg_patch/idapro.hexlic" ]; then
+      cp "kg_patch/idapro.hexlic" "$IDADIR/"
     fi
 
     for lib in "$IDADIR"/*.so "$IDADIR"/*.so.6; do
