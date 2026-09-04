@@ -3,3 +3,8 @@
 /.direnv
 __pycache__/
 *.py[cod]
+content/
+torrent/
+_releases/
+stage/
+build/

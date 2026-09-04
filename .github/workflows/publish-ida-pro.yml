@@ -211,13 +211,13 @@ jobs:
 
       - name: Commit package update
         run: |
-          if [ -z "$(git status --porcelain)" ]; then
+          if git diff --quiet -- pkgs/ida-pro/default.nix; then
             echo "No package updates to commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
+          git add pkgs/ida-pro/default.nix
           git commit -m "ida-pro: ${{ needs.scrape.outputs.version }}"
           git push origin HEAD:"${{ github.event.repository.default_branch }}"
