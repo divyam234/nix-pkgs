@@ -21,57 +21,14 @@ concurrency:
 jobs:
   discover:
     name: Find an unpublished NordVPN tag
-    runs-on: ubuntu-latest
-    outputs:
-      source-tag: ${{ steps.select.outputs.source-tag }}
-      release-tag: ${{ steps.select.outputs.release-tag }}
-      publish: ${{ steps.select.outputs.publish }}
-    env:
-      SOURCE_REPOSITORY: NordSecurity/nordvpn-linux
-      RELEASE_REPOSITORY: ${{ github.repository }}
-      REQUESTED_VERSION: ${{ inputs.version }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    steps:
-      - id: select
-        name: Select newest unpublished stable tag
-        run: |
-          set -euo pipefail
-
-          if [[ -n "$REQUESTED_VERSION" ]]; then
-            candidates=("$REQUESTED_VERSION")
-          else
-            candidates=()
-            while IFS= read -r tag; do
-              if [[ "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                candidates+=("$tag")
-              fi
-            done < <(gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name')
-            if (( ${#candidates[@]} > 0 )); then
-              mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | sort -Vr)
-            fi
-          fi
-
-          for tag in "${candidates[@]}"; do
-            if [[ ! "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "version must be an existing stable tag such as 5.1.0" >&2
-              exit 1
-            fi
-
-            gh api "repos/$SOURCE_REPOSITORY/git/ref/tags/$tag" >/dev/null
-            release_tag="nordvpn-v$tag"
-            if ! gh release view "$release_tag" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
-              {
-                echo "source-tag=$tag"
-                echo "release-tag=$release_tag"
-                echo "publish=true"
-              } >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done
-
-          echo "No unpublished NordVPN tag found."
-          echo "publish=false" >> "$GITHUB_OUTPUT"
+    uses: ./.github/workflows/find-unpublished-release.yml
+    with:
+      source_repository: NordSecurity/nordvpn-linux
+      release_prefix: nordvpn-v
+      requested_version: ${{ inputs.version }}
+      tag_pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+      version_example: 'an existing stable tag such as 5.1.0'
+      sort_version_reverse: true
 
   build:
     name: Build ${{ matrix.arch }}

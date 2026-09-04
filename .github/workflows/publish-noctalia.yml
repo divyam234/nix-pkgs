@@ -21,67 +21,14 @@ concurrency:
 jobs:
   discover:
     name: Find an unpublished Noctalia tag
-    runs-on: ubuntu-latest
-    outputs:
-      source-tag: ${{ steps.select.outputs.source-tag }}
-      release-tag: ${{ steps.select.outputs.release-tag }}
-      publish: ${{ steps.select.outputs.publish }}
-    env:
-      SOURCE_REPOSITORY: noctalia-dev/noctalia
-      RELEASE_REPOSITORY: ${{ github.repository }}
-      REQUESTED_VERSION: ${{ inputs.version }}
-      GH_TOKEN: ${{ github.token }}
-
-    steps:
-      - id: select
-        name: Select newest unpublished tag
-        run: |
-          set -euo pipefail
-
-          semver=(npx --yes semver@7.8.5)
-
-          is_valid_tag() {
-            local tag="$1"
-            local version
-            [[ "$tag" == v* ]] || return 1
-            version="$("${semver[@]}" -- "${tag#v}")"
-            [[ "$version" == "${tag#v}" ]]
-          }
-
-          if [[ -n "$REQUESTED_VERSION" ]]; then
-            candidates=("$REQUESTED_VERSION")
-          else
-            candidates=()
-            while IFS= read -r tag; do
-              if is_valid_tag "$tag"; then
-                candidates=("$tag")
-                break
-              fi
-            done < <(
-              gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --paginate --jq '.[].name'
-            )
-          fi
-
-          for tag in "${candidates[@]}"; do
-            if ! is_valid_tag "$tag"; then
-              echo "version must be a valid SemVer tag such as v5.0.0-beta.2" >&2
-              exit 1
-            fi
-
-            gh api "repos/$SOURCE_REPOSITORY/git/ref/tags/$tag" >/dev/null
-            release_tag="noctalia-$tag"
-            if ! gh release view "$release_tag" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
-              {
-                echo "source-tag=$tag"
-                echo "release-tag=$release_tag"
-                echo "publish=true"
-              } >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done
-
-          echo "No unpublished Noctalia tag found."
-          echo "publish=false" >> "$GITHUB_OUTPUT"
+    uses: ./.github/workflows/find-unpublished-release.yml
+    with:
+      source_repository: noctalia-dev/noctalia
+      release_prefix: noctalia-
+      requested_version: ${{ inputs.version }}
+      tag_pattern: '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$'
+      version_example: 'a valid SemVer tag such as v5.0.0-beta.2'
+      semver: true
 
   build:
     name: Build Linux amd64 archive

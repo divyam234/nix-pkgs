@@ -18,6 +18,7 @@
   glib,
   libwebp,
   librsvg,
+  tomlplusplus,
 }:
 
 let
@@ -69,6 +70,7 @@ stdenv.mkDerivation {
     glib
     libwebp
     librsvg
+    tomlplusplus
   ];
 
   installPhase = ''

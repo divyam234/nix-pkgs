@@ -1,0 +1,117 @@
+name: Find unpublished release
+
+on:
+  workflow_call:
+    inputs:
+      source_repository:
+        required: true
+        type: string
+      release_prefix:
+        required: true
+        type: string
+      requested_version:
+        required: false
+        type: string
+        default: ''
+      tag_pattern:
+        required: true
+        type: string
+      version_example:
+        required: true
+        type: string
+      semver:
+        required: false
+        type: boolean
+        default: false
+      sort_version_reverse:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      gh_token:
+        required: false
+    outputs:
+      source-tag:
+        value: ${{ jobs.select.outputs.source-tag }}
+      release-tag:
+        value: ${{ jobs.select.outputs.release-tag }}
+      publish:
+        value: ${{ jobs.select.outputs.publish }}
+
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    outputs:
+      source-tag: ${{ steps.select.outputs.source-tag }}
+      release-tag: ${{ steps.select.outputs.release-tag }}
+      publish: ${{ steps.select.outputs.publish }}
+    env:
+      SOURCE_REPOSITORY: ${{ inputs.source_repository }}
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      RELEASE_PREFIX: ${{ inputs.release_prefix }}
+      REQUESTED_VERSION: ${{ inputs.requested_version }}
+      TAG_PATTERN: ${{ inputs.tag_pattern }}
+      VERSION_EXAMPLE: ${{ inputs.version_example }}
+      USE_SEMVER: ${{ inputs.semver }}
+      SORT_VERSION_REVERSE: ${{ inputs.sort_version_reverse }}
+      GH_TOKEN: ${{ secrets.gh_token || github.token }}
+
+    steps:
+      - id: select
+        name: Select newest unpublished tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          is_valid_tag() {
+            local tag="$1"
+            [[ "$tag" =~ $TAG_PATTERN ]] || return 1
+
+            if [[ "$USE_SEMVER" == "true" ]]; then
+              local version="${tag#v}"
+              [[ "$tag" == v* ]] || return 1
+              [[ "$(npx --yes semver@7.8.5 -- "$version")" == "$version" ]]
+            fi
+          }
+
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            if ! is_valid_tag "$REQUESTED_VERSION"; then
+              echo "version must match $VERSION_EXAMPLE" >&2
+              exit 1
+            fi
+            candidates=("$REQUESTED_VERSION")
+          else
+            candidates=()
+            while IFS= read -r tag; do
+              if is_valid_tag "$tag"; then
+                candidates+=("$tag")
+              fi
+            done < <(
+              gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --jq '.[].name'
+            )
+
+            if [[ "$SORT_VERSION_REVERSE" == "true" && ${#candidates[@]} -gt 0 ]]; then
+              mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | sort -Vr)
+            fi
+          fi
+
+          declare -A published=()
+          while IFS= read -r release_tag; do
+            published["$release_tag"]=1
+          done < <(
+            gh api "repos/$RELEASE_REPOSITORY/releases?per_page=100" --paginate --jq '.[].tag_name'
+          )
+
+          for tag in "${candidates[@]}"; do
+            release_tag="${RELEASE_PREFIX}${tag}"
+            if [[ -z "${published[$release_tag]+x}" ]]; then
+              {
+                echo "source-tag=$tag"
+                echo "release-tag=$release_tag"
+                echo "publish=true"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          echo "publish=false" >> "$GITHUB_OUTPUT"
