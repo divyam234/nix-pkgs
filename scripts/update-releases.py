@@ -231,6 +231,8 @@ def release_has_configured_assets(release, config):
     version = release_version(release, config)
     assets_index = {asset["name"]: asset for asset in release.get("assets", [])}
     for asset_spec in asset_specs.values():
+        if isinstance(asset_spec, dict) and "url" in asset_spec:
+            continue
         try:
             resolve_asset_name(assets_index, asset_spec, version)
         except RuntimeError as error:
@@ -335,6 +337,15 @@ def prepare_update(repo_root, package_name, config):
     used_assets = set()
 
     for system, asset_spec in config["assets"].items():
+        if isinstance(asset_spec, dict) and "url" in asset_spec:
+            asset_url = asset_spec["url"].format(version=new_version)
+            asset_name = asset_url.rsplit("/", 1)[-1]
+            updates[system] = {
+                "asset": asset_name,
+                "hash": prefetch_hash(asset_url),
+                "url": asset_url,
+            }
+            continue
         asset_name = resolve_asset_name(release_assets, asset_spec, new_version)
         if asset_name in used_assets and not config.get("allowSharedAsset", False):
             raise RuntimeError(f"asset {asset_name} was selected for more than one platform")
@@ -349,9 +360,12 @@ def prepare_update(repo_root, package_name, config):
 
     updated_text = replace_top_level_field(package_text, "version", new_version)
     for system, source in updates.items():
-        current_asset = read_system_field(package_text, system, "asset")
-        if render_version_template(current_asset, new_version) != source["asset"]:
-            updated_text = replace_system_field(updated_text, system, "asset", source["asset"])
+        asset_spec = config["assets"][system]
+        is_external = isinstance(asset_spec, dict) and "url" in asset_spec
+        if not is_external:
+            current_asset = read_system_field(package_text, system, "asset")
+            if render_version_template(current_asset, new_version) != source["asset"]:
+                updated_text = replace_system_field(updated_text, system, "asset", source["asset"])
         updated_text = replace_system_field(updated_text, system, "hash", source["hash"])
 
     download_tag_field = config.get("downloadTagField")
@@ -425,10 +439,19 @@ def verify_update(update):
         return problems
 
     for system, source in update.sources.items():
-        current_asset = read_system_field(current_text, system, "asset")
-        current_hash = read_system_field(current_text, system, "hash")
-        if render_version_template(current_asset, update.new_version) != source["asset"]:
-            problems.append(f"{system} asset is {current_asset}, expected {source['asset']}")
+        is_external = "url" in source
+        if not is_external:
+            try:
+                current_asset = read_system_field(current_text, system, "asset")
+            except RuntimeError:
+                current_asset = None
+            if current_asset is not None and render_version_template(current_asset, update.new_version) != source["asset"]:
+                problems.append(f"{system} asset is {current_asset}, expected {source['asset']}")
+        try:
+            current_hash = read_system_field(current_text, system, "hash")
+        except RuntimeError as error:
+            problems.append(str(error))
+            continue
         if current_hash != source["hash"]:
             problems.append(f"{system} hash does not match the release asset")
     return problems

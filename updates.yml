@@ -229,3 +229,19 @@ packages:
       command: bin/teldrive
       args: [--version]
       expectedOutput: '{version}'
+
+  tailscale:
+    repo: tailscale/tailscale
+    file: pkgs/tailscale/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        url: 'https://pkgs.tailscale.com/stable/tailscale_{version}_amd64.tgz'
+      aarch64-linux:
+        url: 'https://pkgs.tailscale.com/stable/tailscale_{version}_arm64.tgz'
+    test:
+      command: bin/tailscale
+      args: [--version]
+      expectedOutput: '{version}'

@@ -47,6 +47,8 @@ in
   zjstatus = pkgs.callPackage ./zjstatus { };
 
   ida-pro = pkgs.callPackage ./ida-pro { };
+
+  tailscale = pkgs.callPackage ./tailscale { };
 }
 // prev.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
   noctalia = pkgs.callPackage ./noctalia { };
