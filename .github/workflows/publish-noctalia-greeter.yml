@@ -26,7 +26,7 @@ jobs:
       source_repository: noctalia-dev/noctalia-greeter
       release_prefix: noctalia-greeter-
       requested_version: ${{ inputs.version }}
-      tag_pattern: '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$'
+      tag_pattern: '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
       version_example: 'a valid SemVer tag such as v1.3.1'
       semver: true
       sort_version_reverse: true

@@ -26,7 +26,7 @@ jobs:
       source_repository: noctalia-dev/noctalia
       release_prefix: noctalia-
       requested_version: ${{ inputs.version }}
-      tag_pattern: '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$'
+      tag_pattern: '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
       version_example: 'a valid SemVer tag such as v5.0.0-beta.2'
       semver: true
       sort_version_reverse: true
