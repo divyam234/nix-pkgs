@@ -39,12 +39,12 @@
 }:
 
 let
-  version = "5.0.0-beta.10";
+  version = "5.0.1";
 
   sources = {
     x86_64-linux = {
       asset = "noctalia-v${version}-linux-amd64.tar.gz";
-      hash = "sha256-MUjGaf7gZyxK89pyFa/FLx6iCZP41wGO6EC/C4C2QwQ=";
+      hash = "sha256-3di3vHHb5sgA7INQYwWpei5/nRZ1iDsyxTRHY70lN4k=";
     };
   };
 
