@@ -63,56 +63,86 @@ jobs:
         run: |
           set -euo pipefail
 
-          is_valid_tag() {
+          matches_pattern() {
             local tag="$1"
-            [[ "$tag" =~ $TAG_PATTERN ]] || return 1
-
-            if [[ "$USE_SEMVER" == "true" ]]; then
-              local version="${tag#v}"
-              [[ "$tag" == v* ]] || return 1
-              [[ "$(npx --yes semver@7.8.5 -- "$version")" == "$version" ]]
-            fi
+            [[ "$tag" =~ $TAG_PATTERN ]]
           }
 
           if [[ -n "$REQUESTED_VERSION" ]]; then
-            if ! is_valid_tag "$REQUESTED_VERSION"; then
+            if ! matches_pattern "$REQUESTED_VERSION"; then
               echo "version must match $VERSION_EXAMPLE" >&2
               exit 1
             fi
-            candidates=("$REQUESTED_VERSION")
+            if [[ "$USE_SEMVER" == "true" ]]; then
+              version="${REQUESTED_VERSION#v}"
+              [[ "$REQUESTED_VERSION" == v* ]] || {
+                echo "version must match $VERSION_EXAMPLE" >&2
+                exit 1
+              }
+              [[ "$(npx --yes semver@7.8.5 -- "$version")" == "$version" ]] || {
+                echo "version must match $VERSION_EXAMPLE" >&2
+                exit 1
+              }
+            fi
+            tag="$REQUESTED_VERSION"
           else
             candidates=()
-            while IFS= read -r tag; do
-              if is_valid_tag "$tag"; then
-                candidates+=("$tag")
+            while IFS= read -r candidate; do
+              if matches_pattern "$candidate"; then
+                candidates+=("$candidate")
               fi
             done < <(
               gh api "repos/$SOURCE_REPOSITORY/tags?per_page=100" --jq '.[].name'
             )
 
-            if [[ "$SORT_VERSION_REVERSE" == "true" && ${#candidates[@]} -gt 0 ]]; then
+            if [[ ${#candidates[@]} -eq 0 ]]; then
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [[ "$USE_SEMVER" == "true" ]]; then
+              versions=()
+              for candidate in "${candidates[@]}"; do
+                [[ "$candidate" == v* ]] || continue
+                versions+=("${candidate#v}")
+              done
+
+              if [[ ${#versions[@]} -eq 0 ]]; then
+                echo "publish=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+
+              mapfile -t valid_versions < <(npx --yes semver@7.8.5 -- "${versions[@]}")
+              declare -A valid_semver=()
+              for version in "${valid_versions[@]}"; do
+                valid_semver["$version"]=1
+              done
+
+              filtered=()
+              for candidate in "${candidates[@]}"; do
+                version="${candidate#v}"
+                if [[ -n "${valid_semver[$version]+x}" ]]; then
+                  filtered+=("$candidate")
+                fi
+              done
+              candidates=("${filtered[@]}")
+            fi
+
+            if [[ ${#candidates[@]} -eq 0 ]]; then
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [[ "$SORT_VERSION_REVERSE" == "true" ]]; then
               mapfile -t candidates < <(printf '%s\n' "${candidates[@]}" | sort -Vr)
             fi
+
+            # Automatic runs consider only the newest valid source tag.
+            tag="${candidates[0]}"
           fi
 
-          declare -A published=()
-          while IFS= read -r release_tag; do
-            published["$release_tag"]=1
-          done < <(
-            gh api "repos/$RELEASE_REPOSITORY/releases?per_page=100" --paginate --jq '.[].tag_name'
-          )
-
-          if [[ ${#candidates[@]} -eq 0 ]]; then
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Automatic runs only consider the newest valid source tag. Do not
-          # backfill older unpublished versions after the newest one is already
-          # published. An explicit requested version remains publishable.
-          tag="${candidates[0]}"
           release_tag="${RELEASE_PREFIX}${tag}"
-          if [[ -n "${published[$release_tag]+x}" ]]; then
+          if gh release view "$release_tag" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
