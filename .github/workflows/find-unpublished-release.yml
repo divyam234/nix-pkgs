@@ -102,16 +102,23 @@ jobs:
             gh api "repos/$RELEASE_REPOSITORY/releases?per_page=100" --paginate --jq '.[].tag_name'
           )
 
-          for tag in "${candidates[@]}"; do
-            release_tag="${RELEASE_PREFIX}${tag}"
-            if [[ -z "${published[$release_tag]+x}" ]]; then
-              {
-                echo "source-tag=$tag"
-                echo "release-tag=$release_tag"
-                echo "publish=true"
-              } >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done
+          if [[ ${#candidates[@]} -eq 0 ]]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-          echo "publish=false" >> "$GITHUB_OUTPUT"
+          # Automatic runs only consider the newest valid source tag. Do not
+          # backfill older unpublished versions after the newest one is already
+          # published. An explicit requested version remains publishable.
+          tag="${candidates[0]}"
+          release_tag="${RELEASE_PREFIX}${tag}"
+          if [[ -n "${published[$release_tag]+x}" ]]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "source-tag=$tag"
+            echo "release-tag=$release_tag"
+            echo "publish=true"
+          } >> "$GITHUB_OUTPUT"
