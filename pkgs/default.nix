@@ -10,6 +10,9 @@ in
     inherit githubReleaseBinary;
   };
 
+
+  gost = pkgs.callPackage ./gost { };
+
   hydra = pkgs.callPackage ./hydra {
     inherit githubReleaseBinary;
   };
