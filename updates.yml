@@ -1,4 +1,24 @@
 packages:
+  aria2:
+    repo: divyam234/nix-pkgs
+    file: pkgs/aria2/default.nix
+    tagPrefix: aria2-v
+    release:
+      source: list
+      includePrereleases: true
+      tagPattern: '^aria2-v[0-9]+\.[0-9]+\.[0-9]+$'
+      sortBy: publishedAt
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: aria2-static-linux-x86_64.tar.gz
+      aarch64-linux:
+        name: aria2-static-linux-arm64.tar.gz
+    test:
+      command: bin/aria2c
+      args: [--version]
+      expectedOutput: 'aria2 version'
   brave:
     repo: brave/brave-browser
     file: pkgs/brave/default.nix

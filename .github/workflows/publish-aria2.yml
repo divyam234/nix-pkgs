@@ -1,0 +1,244 @@
+name: Publish aria2 release
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "aria2 version, for example 1.37.0"
+        required: false
+        type: string
+
+run-name: Publish aria2 ${{ inputs.version || 'latest release' }}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-aria2
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Find unpublished aria2 release
+    runs-on: ubuntu-latest
+    outputs:
+      source-tag: ${{ steps.select.outputs.source-tag }}
+      version: ${{ steps.select.outputs.version }}
+      release-tag: ${{ steps.select.outputs.release-tag }}
+      publish: ${{ steps.select.outputs.publish }}
+    env:
+      REQUESTED_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - id: select
+        name: Select release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            version="${REQUESTED_VERSION#release-}"
+            version="${version#v}"
+            source_tag="release-${version}"
+            gh api "repos/aria2/aria2/git/ref/tags/${source_tag}" >/dev/null
+          else
+            source_tag="$(gh api repos/aria2/aria2/releases/latest --jq .tag_name)"
+            [[ "$source_tag" == release-* ]] || {
+              echo "Unexpected aria2 release tag: $source_tag" >&2
+              exit 1
+            }
+            version="${source_tag#release-}"
+          fi
+
+          release_tag="aria2-v${version}"
+          if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "source-tag=$source_tag"
+            echo "version=$version"
+            echo "release-tag=$release_tag"
+            echo "publish=true"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: discover
+    if: needs.discover.outputs.publish == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-latest
+            asset: aria2-static-linux-x86_64.tar.gz
+          - arch: arm64
+            os: ubuntu-24.04-arm
+            asset: aria2-static-linux-arm64.tar.gz
+    runs-on: ${{ matrix.os }}
+    env:
+      VERSION: ${{ needs.discover.outputs.version }}
+      SOURCE_TAG: ${{ needs.discover.outputs.source-tag }}
+      ASSET: ${{ matrix.asset }}
+
+    steps:
+      - name: Check out package repository
+        uses: actions/checkout@v7
+        with:
+          path: package
+
+      - name: Check out aria2 source
+        uses: actions/checkout@v7
+        with:
+          repository: aria2/aria2
+          ref: ${{ env.SOURCE_TAG }}
+          path: source
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Build patched static aria2c
+        shell: bash
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2016
+          nix build --impure --out-link result --expr '
+            let
+              workspace = builtins.getEnv "GITHUB_WORKSPACE";
+              flake = builtins.getFlake "path:${workspace}/package";
+              pkgs = import flake.inputs.nixpkgs { system = builtins.currentSystem; };
+              patchNames = [
+                "0001-options-unlock-connection-per-server-limit.patch"
+                "0002-download-retry-on-slow-speed-and-reset.patch"
+                "0003-option-add-option-to-retry-on-http-4xx.patch"
+                "0004-option-add-option-to-disable-want-digest-header.patch"
+                "0005-add-option-to-enable-mimalloc.patch"
+              ];
+              localPatches = map (name: builtins.path {
+                path = "${workspace}/package/pkgs/aria2/patches/${name}";
+                inherit name;
+              }) patchNames;
+            in
+            pkgs.pkgsStatic.aria2.overrideAttrs (old: {
+              version = builtins.getEnv "VERSION";
+              src = builtins.path {
+                path = "${workspace}/source";
+                name = "aria2-${builtins.getEnv "VERSION"}-source";
+              };
+              patches = (old.patches or [ ]) ++ localPatches;
+            })
+          '
+
+          ./result/bin/aria2c --version | grep -F "aria2 version ${VERSION}"
+          file ./result/bin/aria2c
+
+          mkdir -p release
+          install -Dm755 ./result/bin/aria2c release/aria2c
+          tar -C release -czf "$ASSET" aria2c
+          sha256sum "$ASSET" > "$ASSET.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: aria2-${{ matrix.arch }}
+          path: |
+            ${{ matrix.asset }}
+            ${{ matrix.asset }}.sha256
+          if-no-files-found: error
+
+  publish:
+    name: Create release
+    needs: [discover, build]
+    if: needs.discover.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.discover.outputs.version }}
+      RELEASE_TAG: ${{ needs.discover.outputs.release-tag }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: aria2-*
+          merge-multiple: true
+
+      - name: Verify release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          assets=(
+            aria2-static-linux-x86_64.tar.gz
+            aria2-static-linux-arm64.tar.gz
+          )
+          for asset in "${assets[@]}"; do
+            test -f "$asset"
+            test -f "$asset.sha256"
+            sha256sum --check "$asset.sha256"
+          done
+          cat "${assets[@]/%/.sha256}" > checksums.txt
+
+      - name: Publish release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" \
+            aria2-static-linux-x86_64.tar.gz \
+            aria2-static-linux-arm64.tar.gz \
+            checksums.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "aria2 $VERSION" \
+            --notes "Static aria2c binaries built from aria2/aria2 release-${VERSION} with the vendored patch set." \
+            --latest=false
+
+  update-package:
+    name: Update Nix package
+    needs: [discover, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out package repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Update and validate aria2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          uv run --with pyyaml --with semver==3.0.4 python -B scripts/update-releases.py
+          updates.yml aria2 --check --build --smoke-test
+
+      - name: Commit package update
+        env:
+          TARGET_BRANCH: ${{ github.event.repository.default_branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pkgs/aria2/default.nix; then
+            echo "No aria2 package update to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pkgs/aria2/default.nix
+          git commit -m "aria2: ${{ needs.discover.outputs.version }}"
+          git push origin HEAD:"$TARGET_BRANCH"

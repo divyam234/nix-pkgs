@@ -6,6 +6,10 @@ in
 {
   bun = pkgs.callPackage ./bun { };
 
+  aria2 = pkgs.callPackage ./aria2 {
+    inherit githubReleaseBinary;
+  };
+
   codeforge = pkgs.callPackage ./codeforge {
     inherit githubReleaseBinary;
   };
