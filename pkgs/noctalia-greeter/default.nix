@@ -22,12 +22,12 @@
 }:
 
 let
-  version = "1.3.1";
+  version = "1.5.0";
 
   sources = {
     x86_64-linux = {
       asset = "noctalia-greeter-v${version}-linux-amd64.tar.gz";
-      hash = "sha256-a+TOvXkaov7DF03u1Gz2dQmv/pa0qkFsfq+TBJO6Vkc=";
+      hash = "sha256-Qcdf7ZRgNY5VcycfIycaOcnCL3oKSvZwz8oXiDAeipw=";
     };
   };
 
