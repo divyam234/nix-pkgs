@@ -1,4 +1,21 @@
 packages:
+  aria2:
+    repo: antman666/Aria2-Pro-Core
+    file: pkgs/aria2/default.nix
+    tagPrefix: ''
+    release:
+      source: list
+      includePrereleases: true
+      sortBy: publishedAt
+      tagPattern: '^ci-[0-9]{8}-[0-9]{6}-UTC$'
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: aria2-static-linux-x86_64.tar.gz
+      aarch64-linux:
+        name: aria2-static-linux-arm64.tar.gz
+
   brave:
     repo: brave/brave-browser
     file: pkgs/brave/default.nix
