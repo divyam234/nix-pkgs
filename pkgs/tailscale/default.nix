@@ -13,17 +13,17 @@
 }:
 
 let
-  version = "1.102.3";
+  version = "1.102.4";
 
   sources = {
     x86_64-linux = {
       arch = "amd64";
-      hash = "sha256-Nt3ZtRvlf/wpkM92Mjz6E2Q7+7G4qWn2GD+hZHQc3vU=";
+      hash = "sha256-UHSN8QReYLW2lfGfTFaw2jbAGZSLRA+0VrZYSlDw2Lk=";
     };
 
     aarch64-linux = {
       arch = "arm64";
-      hash = "sha256-oPobFUr4xh+GKiJZ9Vn3OW2WwCJfSoY+riMz4VRrviU=";
+      hash = "sha256-ndHmpZKgFLuuoBAxZ//ima3tpLoU4HjOnCiVNk9sTD8=";
     };
   };
 
