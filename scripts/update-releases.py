@@ -256,6 +256,15 @@ def release_version(release, config):
             raise RuntimeError("could not find YYYY-MM-DD date in release name")
         return f"{prefix}{match.group(0)}"
 
+    if source == "release-name":
+        pattern = version_cfg.get("pattern")
+        if not pattern:
+            raise RuntimeError("release-name version source requires a pattern")
+        match = re.search(pattern, release.get("name", ""))
+        if not match:
+            raise RuntimeError(f"release name did not match version pattern: {pattern}")
+        return match.group(1)
+
     raise RuntimeError(f"unknown version source: {source}")
 
 

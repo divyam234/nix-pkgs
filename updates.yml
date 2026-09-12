@@ -9,7 +9,9 @@ packages:
       sortBy: publishedAt
       tagPattern: '^ci-[0-9]{8}-[0-9]{6}-UTC$'
     version:
-      source: tag
+      source: release-name
+      pattern: '^Aria2 ([0-9]+\.[0-9]+\.[0-9]+)\b'
+    downloadTagField: releaseTag
     assets:
       x86_64-linux:
         name: aria2-static-linux-x86_64.tar.gz
