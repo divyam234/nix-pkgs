@@ -5,7 +5,7 @@
 }:
 
 let
-  version = "ci-20260602-100737-UTC";
+  releaseTag = "ci-20260602-100737-UTC";
 
   sources = {
     x86_64-linux = {
@@ -22,11 +22,11 @@ let
   source = sources.${stdenvNoCC.hostPlatform.system} or (throw "aria2 is not packaged for ${stdenvNoCC.hostPlatform.system}");
 in
 stdenvNoCC.mkDerivation {
-  pname = "aria2-pro-core";
-  inherit version;
+  pname = "aria2";
+  version = "1.37.0";
 
   src = fetchurl {
-    url = "https://github.com/antman666/Aria2-Pro-Core/releases/download/${version}/${source.asset}";
+    url = "https://github.com/antman666/Aria2-Pro-Core/releases/download/${releaseTag}/${source.asset}";
     inherit (source) hash;
   };
 
