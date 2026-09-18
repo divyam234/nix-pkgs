@@ -3,6 +3,10 @@
   stdenv,
   fetchurl,
   bzip2,
+  makeBinaryWrapper,
+  installShellFiles,
+  openssh,
+  rclone,
 }:
 
 let
@@ -31,7 +35,11 @@ stdenv.mkDerivation {
     inherit (source) hash;
   };
 
-  nativeBuildInputs = [ bzip2 ];
+  nativeBuildInputs = [
+    bzip2
+    makeBinaryWrapper
+    installShellFiles
+  ];
 
   dontConfigure = true;
   dontBuild = true;
@@ -49,9 +57,29 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
+  postInstall = ''
+    wrapProgram $out/bin/restic \
+      --prefix PATH : "${
+        lib.makeBinPath [
+          openssh
+          rclone
+        ]
+      }"
+  ''
+  + lib.optionalString (stdenv.hostPlatform == stdenv.buildPlatform) ''
+    $out/bin/restic generate \
+      --bash-completion restic.bash \
+      --fish-completion restic.fish \
+      --zsh-completion restic.zsh \
+      --man .
+    installShellCompletion restic.{bash,fish,zsh}
+    installManPage *.1
+  '';
+
   meta = {
-    description = "Fast, secure, efficient backup program";
-    homepage = "https://github.com/restic/restic";
+    description = "Backup program that is fast, efficient and secure";
+    homepage = "https://restic.net";
+    changelog = "https://github.com/restic/restic/blob/v${version}/CHANGELOG.md";
     license = lib.licenses.bsd2;
     mainProgram = "restic";
     platforms = builtins.attrNames sources;
