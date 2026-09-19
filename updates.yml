@@ -30,18 +30,6 @@ packages:
       aarch64-linux:
         pattern: '^brave-browser_[0-9]+\.[0-9]+\.[0-9]+_arm64\.deb$'
 
-  beekeeper-studio:
-    repo: beekeeper-studio/beekeeper-studio
-    file: pkgs/beekeeper-studio/default.nix
-    tagPrefix: v
-    version:
-      source: tag
-    assets:
-      x86_64-linux:
-        pattern: '^beekeeper-studio_[0-9]+\.[0-9]+\.[0-9]+_amd64\.deb$'
-      aarch64-linux:
-        pattern: '^beekeeper-studio_[0-9]+\.[0-9]+\.[0-9]+_arm64\.deb$'
-
   dbeaver-bin:
     repo: dbeaver/dbeaver
     file: pkgs/dbeaver-bin/default.nix
@@ -186,36 +174,6 @@ packages:
       command: bin/rclone
       args: [version]
       expectedOutput: '{version}'
-
-  noctalia:
-    repo: divyam234/nix-pkgs
-    file: pkgs/noctalia/default.nix
-    tagPrefix: noctalia-v
-    release:
-      source: list
-      includePrereleases: true
-      sortBy: publishedAt
-      tagPattern: '^noctalia-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$'
-    version:
-      source: tag
-      requireSemver: true
-    assets:
-      x86_64-linux:
-        pattern: '^noctalia-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?-linux-amd64\.tar\.gz$'
-
-  noctalia-greeter:
-    repo: divyam234/nix-pkgs
-    file: pkgs/noctalia-greeter/default.nix
-    tagPrefix: noctalia-greeter-v
-    release:
-      source: list
-      includePrereleases: true
-      tagPattern: '^noctalia-greeter-v[0-9]+\.[0-9]+\.[0-9]+$'
-    version:
-      source: tag
-    assets:
-      x86_64-linux:
-        name: noctalia-greeter-v{version}-linux-amd64.tar.gz
 
   nordvpn:
     repo: divyam234/nix-pkgs
