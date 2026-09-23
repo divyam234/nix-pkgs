@@ -39,8 +39,6 @@ in
 
   brave = pkgs.callPackage ./brave { originalBrave = prev.brave; };
 
-  dbeaver-bin = pkgs.callPackage ./dbeaver-bin { originalDbeaverBin = prev.dbeaver-bin; };
-
   foliate = pkgs.callPackage ./foliate { };
 
   zed-editor = pkgs.callPackage ./zed-editor { };
