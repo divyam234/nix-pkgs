@@ -67,6 +67,18 @@ def run_gh_releases(repo):
     return run_json(["gh", "api", f"repos/{repo}/releases?per_page=20"])
 
 
+def run_gh_release_assets(repo, release_id):
+    return run_json(["gh", "api", f"repos/{repo}/releases/{release_id}/assets?per_page=100"])
+
+
+def load_release_assets(release, config):
+    if not config.get("assets") or release.get("assets"):
+        return release
+    release = dict(release)
+    release["assets"] = run_gh_release_assets(config["repo"], release["id"])
+    return release
+
+
 def run_gh_latest_release(repo):
     return run_json(["gh", "api", f"repos/{repo}/releases/latest"])
 
@@ -293,6 +305,7 @@ def select_release(releases, config):
             continue
         if config.get("version", {}).get("requireSemver") and not parse_semver(release_version(release, config)):
             continue
+        release = load_release_assets(release, config)
         if not release_has_configured_assets(release, config):
             continue
         candidates.append(release)
