@@ -5,18 +5,18 @@
 }:
 
 let
-  version = "1.75.1";
+  version = "1.75.2";
 
   sources = {
     x86_64-linux = {
-      asset = "rclone-v1.75.1-linux-amd64.tar.gz";
-      hash = "sha256-N1I05wDutdox4bhMDCYLVDyK9VcPxRRZwnOAde+TODc=";
+      asset = "rclone-v1.75.2-linux-amd64.tar.gz";
+      hash = "sha256-eq+goCmL6JwDwUkdDlO95McvpMZ98tmyhV7LhoS9x+c=";
       dir = "rclone-v${version}-linux-amd64";
     };
 
     aarch64-linux = {
-      asset = "rclone-v1.75.1-linux-arm64.tar.gz";
-      hash = "sha256-HA2wPFj0kJKuzMikOHRhQB5tn6Z1Sf8zOJPREDPcCtM=";
+      asset = "rclone-v1.75.2-linux-arm64.tar.gz";
+      hash = "sha256-KYiFQJm25LGSnfM55ectv3zyJAvFnJMftoFs4EFf4ek=";
       dir = "rclone-v${version}-linux-arm64";
     };
   };
