@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -97,6 +98,19 @@ def run_gh_selected_releases(config):
 
 def run_gh_commit(repo, ref):
     return run_json(["gh", "api", f"repos/{repo}/commits/{ref}"])
+
+
+def run_npm_latest(package):
+    url = f"https://registry.npmjs.org/{package}/latest"
+    request = urllib.request.Request(url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.load(response)
+    except Exception as error:
+        raise RuntimeError(f"could not fetch npm metadata for {package}: {error}") from error
+    if not isinstance(data, dict) or "version" not in data:
+        raise RuntimeError(f"npm metadata for {package} has no version field")
+    return data
 
 
 def prefetch_hash(url):
@@ -334,9 +348,63 @@ def select_release(releases, config):
     return max(candidates, key=lambda release: release.get("published_at") or release.get("created_at") or "")
 
 
+def prepare_npm_update(repo_root, package_name, config):
+    package = config.get("package")
+    if not package:
+        raise RuntimeError("npm source requires a `package` field")
+    if not config.get("assets"):
+        raise RuntimeError("npm source requires an `assets` mapping")
+
+    package_file = repo_root / config["file"]
+    package_text = package_file.read_text()
+    old_version = current_version(package_text)
+
+    new_version = run_npm_latest(package)["version"]
+    tag = f"{package}@{new_version}"
+
+    old_semver = parse_semver(old_version)
+    new_semver = parse_semver(new_version)
+    if old_semver and new_semver and new_semver < old_semver:
+        raise RuntimeError(
+            f"refusing to downgrade {package_name} from {old_version} to {new_version}"
+        )
+
+    updates = {}
+    for system, asset_spec in config["assets"].items():
+        if not isinstance(asset_spec, dict) or "url" not in asset_spec:
+            raise RuntimeError(
+                f"npm source only supports direct `url` assets ({system})"
+            )
+        asset_url = asset_spec["url"].format(version=new_version)
+        asset_name = asset_url.rsplit("/", 1)[-1]
+        updates[system] = {
+            "asset": asset_name,
+            "hash": prefetch_hash(asset_url),
+            "url": asset_url,
+        }
+
+    updated_text = replace_top_level_field(package_text, "version", new_version)
+    for system, source in updates.items():
+        updated_text = replace_system_field(updated_text, system, "hash", source["hash"])
+
+    return PackageUpdate(
+        name=package_name,
+        file=package_file,
+        old_version=old_version,
+        new_version=new_version,
+        tag=tag,
+        sources=updates,
+        changed=updated_text != package_text,
+        text=updated_text,
+    )
+
+
 def prepare_update(repo_root, package_name, config):
     if config.get("source") == "github-head":
         return prepare_github_head_update(repo_root, package_name, config)
+
+    if config.get("source") == "npm":
+        return prepare_npm_update(repo_root, package_name, config)
 
     package_file = repo_root / config["file"]
     package_text = package_file.read_text()

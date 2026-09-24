@@ -1,32 +1,52 @@
 {
   lib,
+  stdenv,
+  fetchurl,
   autoPatchelfHook,
   gcc-unwrapped,
-  githubReleaseBinary,
   makeBinaryWrapper,
   ripgrep,
 }:
 
 let
-  version = "1.18.32";
+  version = "2.0.16";
 
   sources = {
     x86_64-linux = {
       asset = "opencode-linux-x64.tar.gz";
-      hash = "sha256-MEbgQE/cYPuAMH56R4JLoHR3NkF4pNCbqoVISW3W1Ds=";
+      hash = "sha256-K5zaM6elOH68XTfaR4uny5BSSnaXQa/aTETObNLCgWM=";
     };
 
     aarch64-linux = {
       asset = "opencode-linux-arm64.tar.gz";
-      hash = "sha256-VoRht9TYwZhlyX6aEQLmEwScYDnQH+dyFU3oc8GGWEA=";
+      hash = "sha256-TVn3CfuGesBLI7imOY06fdBeeWmUrv4Hy5lQcYZetKY=";
     };
   };
+
+  source = sources.${stdenv.hostPlatform.system} or (throw "opencode is not packaged for ${stdenv.hostPlatform.system}");
 in
-githubReleaseBinary {
-  inherit version sources;
+stdenv.mkDerivation {
   pname = "opencode";
-  owner = "anomalyco";
-  repo = "opencode";
+  inherit version;
+
+  src = fetchurl {
+    url = "https://opencode.ai/files/bin/${version}/${source.asset}";
+    inherit (source) hash;
+  };
+
+  dontConfigure = true;
+  dontBuild = true;
+  dontStrip = true;
+
+  # files.bin tarballs contain a single flat `opencode` binary (no
+  # directory), which trips the generic unpacker's directory check.
+  unpackPhase = ''
+    runHook preUnpack
+
+    tar -xzf "$src"
+
+    runHook postUnpack
+  '';
 
   nativeBuildInputs = [
     autoPatchelfHook
@@ -37,9 +57,15 @@ githubReleaseBinary {
     gcc-unwrapped.lib
   ];
 
-  postInstall = ''
+  installPhase = ''
+    runHook preInstall
+
+    install -Dm755 opencode "$out/bin/opencode"
+
     wrapProgram "$out/bin/opencode" \
       --prefix PATH : ${lib.makeBinPath [ ripgrep ]}
+
+    runHook postInstall
   '';
 
   passthru.runtimeInputs = [
@@ -48,8 +74,10 @@ githubReleaseBinary {
 
   meta = {
     description = "AI coding agent, built for the terminal";
-    homepage = "https://github.com/anomalyco/opencode";
+    homepage = "https://opencode.ai";
     license = lib.licenses.mit;
     maintainers = [ ];
+    mainProgram = "opencode";
+    platforms = builtins.attrNames sources;
   };
 }

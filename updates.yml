@@ -112,16 +112,14 @@ packages:
         name: hydra_Linux_arm64.tar.gz
 
   opencode:
-    repo: anomalyco/opencode
+    source: npm
+    package: '@opencode/cli'
     file: pkgs/opencode/default.nix
-    tagPrefix: v
-    version:
-      source: tag
     assets:
       x86_64-linux:
-        name: opencode-linux-x64.tar.gz
+        url: 'https://opencode.ai/files/bin/{version}/opencode-linux-x64.tar.gz'
       aarch64-linux:
-        name: opencode-linux-arm64.tar.gz
+        url: 'https://opencode.ai/files/bin/{version}/opencode-linux-arm64.tar.gz'
     test:
       command: bin/opencode
       args: [--version]

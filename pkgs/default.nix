@@ -29,9 +29,7 @@ in
     inherit githubReleaseBinary;
   };
 
-  opencode = pkgs.callPackage ./opencode {
-    inherit githubReleaseBinary;
-  };
+  opencode = pkgs.callPackage ./opencode { };
 
   mcontrolcenter = pkgs.callPackage ./mcontrolcenter { };
 
