@@ -17,6 +17,29 @@ Replace `rclone` with any package below.
 `foliate`, `hydra`, `mcontrolcenter`, `nordvpn`, `opencode`,
 `rclone`, `restic`, `sublime`, `teldrive`, `zed-editor`, `zjstatus`.
 
+
+## Rclone Nix schema
+
+The flake exports `nixosModules.rclone` and `lib.rclone`. The schema is generated from the packaged rclone binary using `options/info`, `config/providers`, and `help flags`, and is regenerated automatically when the rclone package updater changes versions.
+
+```nix
+{
+  imports = [ inputs.customPkgs.nixosModules.rclone ];
+  nixpkgs.overlays = [ inputs.customPkgs.overlays.default ];
+
+  programs.rclone = {
+    enable = true;
+    flags = {
+      checkers = 16;
+      transfers = 8;
+      vfs-cache-mode = "full";
+    };
+  };
+}
+```
+
+Raw schema metadata is available as `inputs.customPkgs.lib.rclone.schema`, including all generated flags, providers, and option blocks.
+
 ## Update
 
 ```sh

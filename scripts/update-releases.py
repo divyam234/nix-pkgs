@@ -566,6 +566,29 @@ def run_smoke_test(package_name, config, version):
     return output
 
 
+
+def regenerate_schema(package_name, config):
+    schema = config.get("generatedSchema")
+    if not schema:
+        return None
+
+    script = REPO_ROOT / schema["script"]
+    output = REPO_ROOT / schema["output"]
+    executable = schema.get("executable", f"bin/{package_name}")
+    with tempfile.TemporaryDirectory(prefix=f"{package_name}-schema-") as temp_dir:
+        result_path = Path(temp_dir) / "result"
+        run_command(["nix", "build", f".#{package_name}", "-o", str(result_path)])
+        run_command([
+            sys.executable,
+            str(script),
+            "--rclone",
+            str(result_path / executable),
+            "--output",
+            str(output),
+        ])
+    return output
+
+
 def prepare_named_update(repo_root, package_configs, name):
     try:
         return prepare_update(repo_root, name, package_configs[name])
@@ -655,6 +678,13 @@ def main():
                 update.file.write_text(update.text)
 
     changed = [update for update in updates if update.changed]
+
+
+    if not args.dry_run:
+        for update in changed:
+            generated = regenerate_schema(update.name, package_configs[update.name])
+            if generated is not None:
+                validation.append(f"Regenerated schema: `{generated.relative_to(repo_root)}`")
 
     if args.check and not args.dry_run:
         run_command(["nix", "flake", "check"])

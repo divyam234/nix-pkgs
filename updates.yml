@@ -161,6 +161,11 @@ packages:
       args: [version]
       expectedOutput: '{version}'
 
+    generatedSchema:
+      script: scripts/generate-rclone-schema.py
+      executable: bin/rclone
+      output: modules/rclone/generated-schema.json
+
   nordvpn:
     repo: divyam234/nix-pkgs
     file: pkgs/nordvpn/default.nix

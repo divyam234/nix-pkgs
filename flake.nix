@@ -17,6 +17,11 @@
     {
       overlays.default = final: prev: import ./pkgs { pkgs = final; inherit prev; };
 
+
+      nixosModules.rclone = import ./modules/rclone.nix;
+
+      lib.rclone = import ./lib/rclone-schema.nix { lib = nixpkgs.lib; };
+
       packages = forAllSystems (system:
         let
           prev = import nixpkgs { inherit system; };
@@ -35,6 +40,5 @@
           default = customPackages.opencode;
         });
 
-      
     };
 }
