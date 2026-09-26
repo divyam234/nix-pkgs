@@ -237,11 +237,11 @@ jobs:
           echo "Torrent dir: $TORRENT_DIR"
           ls -la "$TORRENT_DIR"
 
-          shopt -s nullglob
-          installers=("$TORRENT_DIR"/ida-pro_*_x64linux.run)
-          keygens=("$TORRENT_DIR"/../kg_patch/keygen.js "$TORRENT_DIR"/kg_patch/keygen.js)
+          mapfile -t installers < <(find torrent -type f -name 'ida-pro_*_x64linux.run')
+          mapfile -t keygens < <(find torrent -type f -name keygen.js)
           if [ "${#installers[@]}" -ne 1 ] || [ "${#keygens[@]}" -ne 1 ]; then
-            echo "Expected one x86_64 installer and keygen" >&2
+            echo "Expected one x86_64 installer and keygen; found ${#installers[@]} installers and ${#keygens[@]} keygens" >&2
+            find torrent -maxdepth 4 -type f -printf '%p\n' >&2
             exit 1
           fi
           KEYGEN="$(realpath "${keygens[0]}")"
