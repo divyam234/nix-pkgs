@@ -48,6 +48,21 @@ def nix_safe(value):
     return value
 
 
+
+def enum_values(option: dict) -> list[str] | None:
+    examples = option.get("Examples") or []
+    if option.get("Exclusive") and examples:
+        values = [str(example["Value"]) for example in examples if "Value" in example]
+        if values and len(values) == len(examples):
+            return values
+
+    raw_type = str(option.get("Type") or "")
+    if "|" in raw_type and re.fullmatch(r"[^|\\s]+(?:\\|[^|\\s]+)+", raw_type):
+        return raw_type.split("|")
+
+    return None
+
+
 def normalize_option(option: dict, *, cli_name: str, source: str, group: str | None = None, backend: str | None = None) -> dict:
     out = {
         "name": option.get("Name", cli_name),
@@ -69,6 +84,9 @@ def normalize_option(option: dict, *, cli_name: str, source: str, group: str | N
         out["defaultStr"] = option["DefaultStr"]
     if option.get("Examples"):
         out["examples"] = option["Examples"]
+    enum = enum_values(option)
+    if enum:
+        out["enum"] = enum
     return out
 
 
@@ -133,9 +151,12 @@ def main() -> int:
         name = match.group("name")
         raw_type = (match.group("type") or "").strip()
         help_text = match.group("help").strip()
+        help_enum = raw_type.split("|") if "|" in raw_type and re.fullmatch(r"[^|\\s]+(?:\\|[^|\\s]+)+", raw_type) else None
         if name in flags:
             flags[name]["help"] = flags[name].get("help") or help_text
             flags[name]["helpType"] = raw_type or None
+            if help_enum and "enum" not in flags[name]:
+                flags[name]["enum"] = help_enum
             continue
         flags[name] = {
             "name": name,
@@ -147,6 +168,8 @@ def main() -> int:
             "advanced": False,
             "source": "help flags",
         }
+        if help_enum:
+            flags[name]["enum"] = help_enum
 
     schema = {
         "version": version_match.group(1),

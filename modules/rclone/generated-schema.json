@@ -457,6 +457,11 @@
       "cliName": "azureblob-delete-snapshots",
       "default": "",
       "defaultStr": "",
+      "enum": [
+        "",
+        "include",
+        "only"
+      ],
       "examples": [
         {
           "Help": "By default, the delete operation fails if a blob has snapshots",
@@ -2871,6 +2876,11 @@
       "cliName": "color",
       "default": 0,
       "defaultStr": "AUTO",
+      "enum": [
+        "AUTO",
+        "NEVER",
+        "ALWAYS"
+      ],
       "examples": [
         {
           "Help": "",
@@ -3309,6 +3319,11 @@
       "cliName": "cutoff-mode",
       "default": 0,
       "defaultStr": "HARD",
+      "enum": [
+        "HARD",
+        "SOFT",
+        "CAUTIOUS"
+      ],
       "examples": [
         {
           "Help": "",
@@ -9538,6 +9553,17 @@
       "cliName": "log-level",
       "default": 5,
       "defaultStr": "NOTICE",
+      "enum": [
+        "EMERGENCY",
+        "ALERT",
+        "CRITICAL",
+        "ERROR",
+        "WARNING",
+        "NOTICE",
+        "INFO",
+        "DEBUG",
+        "OFF"
+      ],
       "examples": [
         {
           "Help": "",
@@ -10963,6 +10989,11 @@
       "cliName": "nfs-cache-type",
       "default": 0,
       "defaultStr": "memory",
+      "enum": [
+        "memory",
+        "disk",
+        "symlink"
+      ],
       "examples": [
         {
           "Help": "",
@@ -20676,6 +20707,17 @@
       "cliName": "stats-log-level",
       "default": 6,
       "defaultStr": "INFO",
+      "enum": [
+        "EMERGENCY",
+        "ALERT",
+        "CRITICAL",
+        "ERROR",
+        "WARNING",
+        "NOTICE",
+        "INFO",
+        "DEBUG",
+        "OFF"
+      ],
       "examples": [
         {
           "Help": "",
@@ -22350,6 +22392,12 @@
       "cliName": "vfs-cache-mode",
       "default": 0,
       "defaultStr": "off",
+      "enum": [
+        "off",
+        "minimal",
+        "writes",
+        "full"
+      ],
       "examples": [
         {
           "Help": "",
@@ -22846,6 +22894,17 @@
       "cliName": "windows-event-log-level",
       "default": 8,
       "defaultStr": "OFF",
+      "enum": [
+        "EMERGENCY",
+        "ALERT",
+        "CRITICAL",
+        "ERROR",
+        "WARNING",
+        "NOTICE",
+        "INFO",
+        "DEBUG",
+        "OFF"
+      ],
       "examples": [
         {
           "Help": "",
@@ -29988,6 +30047,11 @@
           "cliName": "azureblob-delete-snapshots",
           "default": "",
           "defaultStr": "",
+          "enum": [
+            "",
+            "include",
+            "only"
+          ],
           "examples": [
             {
               "Help": "By default, the delete operation fails if a blob has snapshots",

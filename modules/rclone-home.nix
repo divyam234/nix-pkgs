@@ -3,6 +3,7 @@
 let
   common = import ./rclone-common.nix { inherit lib; };
   inherit (common) schema settingsType settingsEnvironment;
+
   cfg = config.programs.rclone;
   serviceCfg = config.services.rclone;
 
@@ -23,26 +24,13 @@ let
     environment = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
-      description = "Additional environment variables for this rclone instance.";
+      description = "Additional environment variables for this rclone user service.";
     };
-
 
     environmentFile = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
-      description = "Optional EnvironmentFile for secrets or instance-specific rclone variables.";
-    };
-
-    user = lib.mkOption {
-      type = lib.types.str;
-      default = "root";
-      description = "User account used to run the rclone service.";
-    };
-
-    group = lib.mkOption {
-      type = lib.types.str;
-      default = "root";
-      description = "Group used to run the rclone service.";
+      description = "Optional systemd EnvironmentFile for runtime secrets.";
     };
 
     extraArgs = lib.mkOption {
@@ -64,8 +52,8 @@ let
 
       mountPoint = lib.mkOption {
         type = lib.types.str;
-        example = "/mnt/media";
-        description = "Local mount point.";
+        example = "%h/mnt/media";
+        description = "User mount point.";
       };
     };
   });
@@ -106,7 +94,7 @@ let
       arguments = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
-        example = [ "/srv/data" "backup:data" ];
+        example = [ "%h/Documents" "backup:documents" ];
         description = "Positional arguments passed after the rclone subcommand.";
       };
 
@@ -114,7 +102,7 @@ let
         type = lib.types.nullOr lib.types.str;
         default = null;
         example = "daily";
-        description = "Optional systemd OnCalendar schedule. Null creates only the service.";
+        description = "Optional systemd OnCalendar schedule.";
       };
 
       persistent = lib.mkOption {
@@ -132,85 +120,92 @@ let
 
   quoteArgs = args: lib.concatMapStringsSep " " lib.escapeShellArg args;
 
+  envList = env:
+    lib.mapAttrsToList (name: value: "${name}=${value}") env;
+
+  environmentFiles = instance:
+    lib.optional (instance.environmentFile != null) instance.environmentFile;
+
+
   mountEnvironment = instance:
     {
-      PATH = "/run/wrappers/bin:${lib.makeBinPath [ pkgs.fuse3 pkgs.coreutils ]}";
+      PATH = "/run/wrappers/bin:/run/current-system/sw/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${lib.makeBinPath [ pkgs.fuse3 pkgs.coreutils ]}";
     }
     // instanceEnvironment instance;
 
   mountServices = lib.mapAttrs'
     (name: instance:
       lib.nameValuePair "rclone-mount-${name}" {
-        description = "rclone mount ${name}";
-        wantedBy = [ "multi-user.target" ];
-        wants = [ "network-online.target" ];
-        after = [ "network-online.target" ];
-        environment = mountEnvironment instance;
-        serviceConfig = {
+        Unit = {
+          Description = "rclone mount ${name}";
+          After = [ "network-online.target" ];
+          Wants = [ "network-online.target" ];
+        };
+        Service = {
           Type = "simple";
-          User = instance.user;
-          Group = instance.group;
-          ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o ${lib.escapeShellArg instance.user} -g ${lib.escapeShellArg instance.group} -- ${lib.escapeShellArg instance.mountPoint}";
-          EnvironmentFile = lib.optional (instance.environmentFile != null) instance.environmentFile;
+          Environment = envList (mountEnvironment instance);
+          EnvironmentFile = environmentFiles instance;
+          ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p -- ${lib.escapeShellArg instance.mountPoint}";
           ExecStart = "${cfg.package}/bin/rclone mount ${lib.escapeShellArg instance.remote} ${lib.escapeShellArg instance.mountPoint} ${quoteArgs instance.extraArgs}";
           Restart = "on-failure";
-          RestartSec = "5s";
+          RestartSec = 5;
         };
+        Install.WantedBy = [ "default.target" ];
       })
     enabledMounts;
 
   serveServices = lib.mapAttrs'
     (name: instance:
       lib.nameValuePair "rclone-serve-${name}" {
-        description = "rclone serve ${instance.protocol} (${name})";
-        wantedBy = [ "multi-user.target" ];
-        wants = [ "network-online.target" ];
-        after = [ "network-online.target" ];
-        environment = instanceEnvironment instance;
-        serviceConfig = {
+        Unit = {
+          Description = "rclone serve ${instance.protocol} (${name})";
+          After = [ "network-online.target" ];
+          Wants = [ "network-online.target" ];
+        };
+        Service = {
           Type = "simple";
-          User = instance.user;
-          Group = instance.group;
-          EnvironmentFile = lib.optional (instance.environmentFile != null) instance.environmentFile;
+          Environment = envList (instanceEnvironment instance);
+          EnvironmentFile = environmentFiles instance;
           ExecStart = "${cfg.package}/bin/rclone serve ${lib.escapeShellArg instance.protocol} ${lib.escapeShellArg instance.remote} ${quoteArgs instance.extraArgs}";
           Restart = "on-failure";
-          RestartSec = "5s";
+          RestartSec = 5;
         };
+        Install.WantedBy = [ "default.target" ];
       })
     enabledServe;
 
   rcdServices = lib.mapAttrs'
     (name: instance:
       lib.nameValuePair "rclone-rcd-${name}" {
-        description = "rclone remote control daemon (${name})";
-        wantedBy = [ "multi-user.target" ];
-        wants = [ "network-online.target" ];
-        after = [ "network-online.target" ];
-        environment = instanceEnvironment instance;
-        serviceConfig = {
+        Unit = {
+          Description = "rclone remote control daemon (${name})";
+          After = [ "network-online.target" ];
+          Wants = [ "network-online.target" ];
+        };
+        Service = {
           Type = "simple";
-          User = instance.user;
-          Group = instance.group;
-          EnvironmentFile = lib.optional (instance.environmentFile != null) instance.environmentFile;
+          Environment = envList (instanceEnvironment instance);
+          EnvironmentFile = environmentFiles instance;
           ExecStart = "${cfg.package}/bin/rclone rcd ${quoteArgs instance.extraArgs}";
           Restart = "on-failure";
-          RestartSec = "5s";
+          RestartSec = 5;
         };
+        Install.WantedBy = [ "default.target" ];
       })
     enabledRcd;
 
   jobServices = lib.mapAttrs'
     (name: instance:
       lib.nameValuePair "rclone-job-${name}" {
-        description = "rclone job ${name}";
-        wants = [ "network-online.target" ];
-        after = [ "network-online.target" ];
-        environment = instanceEnvironment instance;
-        serviceConfig = {
+        Unit = {
+          Description = "rclone job ${name}";
+          After = [ "network-online.target" ];
+          Wants = [ "network-online.target" ];
+        };
+        Service = {
           Type = "oneshot";
-          User = instance.user;
-          Group = instance.group;
-          EnvironmentFile = lib.optional (instance.environmentFile != null) instance.environmentFile;
+          Environment = envList (instanceEnvironment instance);
+          EnvironmentFile = environmentFiles instance;
           ExecStart = "${cfg.package}/bin/rclone ${lib.escapeShellArg instance.command} ${quoteArgs (instance.arguments ++ instance.extraArgs)}";
         };
       })
@@ -219,12 +214,13 @@ let
   jobTimers = lib.mapAttrs'
     (name: instance:
       lib.nameValuePair "rclone-job-${name}" {
-        wantedBy = [ "timers.target" ];
-        timerConfig = {
+        Unit.Description = "Schedule rclone job ${name}";
+        Timer = {
           OnCalendar = instance.onCalendar;
           Persistent = instance.persistent;
           Unit = "rclone-job-${name}.service";
         };
+        Install.WantedBy = [ "timers.target" ];
       })
     (lib.filterAttrs (_: value: value.onCalendar != null) enabledJobs);
 in
@@ -232,42 +228,25 @@ in
 
   options = {
     programs.rclone = {
-      enable = lib.mkEnableOption "rclone";
-
-      package = lib.mkOption {
-        type = lib.types.package;
-        default = pkgs.rclone;
-        defaultText = lib.literalExpression "pkgs.rclone";
-        description = "rclone package to install and use for generated services.";
-      };
 
       settings = lib.mkOption {
         type = settingsType;
         default = { };
-        description = ''
-          Typed rclone settings generated from the packaged rclone binary.
-          Values are exported as RCLONE_* environment variables, so explicit
-          command-line flags can still override them per invocation.
-        '';
+        description = "Typed rclone settings exported as RCLONE_* session variables.";
       };
 
       environment = lib.mkOption {
         type = lib.types.attrsOf lib.types.str;
         default = { };
-        example = {
-          RCLONE_CONFIG_MEDIA_TYPE = "drive";
-        };
-        description = ''
-          Additional global rclone environment variables, including
-          RCLONE_CONFIG_<REMOTE>_* remote configuration.
-        '';
+        example.RCLONE_CONFIG_MEDIA_TYPE = "drive";
+        description = "Additional global rclone environment variables.";
       };
 
       schema = lib.mkOption {
         type = lib.types.attrs;
         readOnly = true;
         default = schema;
-        description = "Complete generated rclone schema, including flags and backend providers.";
+        description = "Complete generated rclone schema.";
       };
     };
 
@@ -275,33 +254,32 @@ in
       mounts = lib.mkOption {
         type = lib.types.attrsOf mountType;
         default = { };
-        description = "Declarative rclone mount services.";
+        description = "Declarative user rclone mount services.";
       };
 
       serve = lib.mkOption {
         type = lib.types.attrsOf serveType;
         default = { };
-        description = "Declarative rclone serve services.";
+        description = "Declarative user rclone serve services.";
       };
 
       rcd = lib.mkOption {
         type = lib.types.attrsOf rcdType;
         default = { };
-        description = "Declarative rclone remote-control daemon services.";
+        description = "Declarative user rclone RC daemon services.";
       };
 
       jobs = lib.mkOption {
         type = lib.types.attrsOf jobType;
         default = { };
-        description = "Declarative one-shot or scheduled rclone commands.";
+        description = "Declarative one-shot or scheduled user rclone jobs.";
       };
     };
   };
 
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
-      environment.systemPackages = [ cfg.package ];
-      environment.variables = globalEnvironment;
+      home.sessionVariables = globalEnvironment;
     })
 
     {
@@ -317,6 +295,17 @@ in
         }
         {
           assertion =
+            pkgs.stdenv.hostPlatform.isLinux
+            || (
+              enabledMounts == { }
+              && enabledServe == { }
+              && enabledRcd == { }
+              && enabledJobs == { }
+            );
+          message = "services.rclone in this module currently supports Linux/systemd user services only";
+        }
+        {
+          assertion =
             lib.all
               (name: builtins.match "^[A-Za-z0-9_.-]+$" name != null)
               (
@@ -329,8 +318,8 @@ in
         }
       ];
 
-      systemd.services = mountServices // serveServices // rcdServices // jobServices;
-      systemd.timers = jobTimers;
+      systemd.user.services = mountServices // serveServices // rcdServices // jobServices;
+      systemd.user.timers = jobTimers;
     }
   ];
 }

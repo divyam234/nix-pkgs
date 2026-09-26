@@ -18,30 +18,9 @@ Replace `rclone` with any package below.
 `rclone`, `restic`, `sublime`, `teldrive`, `zed-editor`, `zjstatus`.
 
 
-## Rclone Nix schema
+## Rclone modules
 
-The flake exports `nixosModules.rclone` and `lib.rclone`. The schema is generated from the packaged rclone binary using `options/info`, `config/providers`, and `help flags`, and is regenerated automatically when the rclone package updater changes versions.
-
-```nix
-{
-  imports = [ inputs.customPkgs.nixosModules.rclone ];
-  nixpkgs.overlays = [ inputs.customPkgs.overlays.default ];
-
-  programs.rclone = {
-    enable = true;
-    flags = {
-      checkers = 16;
-      transfers = 8;
-      vfs-cache-mode = "full";
-    };
-  };
-}
-```
-
-Raw schema metadata is available as `inputs.customPkgs.lib.rclone.schema`, including all generated flags, providers, and option blocks.
-
-
-Configured values are exported as `RCLONE_*` environment variables instead of wrapping the binary, so explicit CLI flags still take precedence. Remote-specific variables can be supplied with `programs.rclone.environment`.
+NixOS and Home Manager rclone module documentation is in [modules/rclone/README.md](modules/rclone/README.md).
 
 ## Update
 
