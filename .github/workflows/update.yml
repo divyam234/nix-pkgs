@@ -40,6 +40,9 @@ jobs:
           uv run --with pyyaml --with semver==3.0.4 python -B scripts/update-releases.py
           updates.yml --check --build --smoke-test
 
+      - name: Update and validate Sublime
+        run: nix shell nixpkgs#radare2 -c uv run --with r2pipe python -B pkgs/sublime/update.py
+
       - name: Commit package updates
         env:
           TARGET_BRANCH: ${{ github.ref_name }}
