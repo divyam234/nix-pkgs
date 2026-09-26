@@ -111,7 +111,6 @@ let
             ${lib.concatMapStrings (p: ''
               echo '${p.offset}: ${p.patched}' | xxd -r - sublime_text   # ${p.name}
             '') patchEntry.patches}
-            echo '{"disable_plugin_host_3.3": true}' > Packages/Preferences.sublime-setting
             runHook postBuild
             # Generate dummy License.sublime_license so parsing succeeds
             cat > License.sublime_license << 'LICEOF'
@@ -122,8 +121,6 @@ let
       dummy-license-key-for-sublime-text-4
       ------ END LICENSE ------
       LICEOF
-
-            echo '{"disable_plugin_host_3.3": true}' > Packages/Preferences.sublime-settings
 
             runHook postBuild
     '';
@@ -188,9 +185,6 @@ stdenv.mkDerivation (_finalAttrs: {
       mkdir -p "$out/share/icons/hicolor/$size/apps"
       ln -s ${binaryPackage}/Icon/$size/* "$out/share/icons/hicolor/$size/apps"
     done
-
-    mkdir -p "$out/share/sublime_text/Packages"
-    cp ${binaryPackage}/Packages/Preferences.sublime-settings "$out/share/sublime_text/Packages/"
 
     # Provide dummy license file alongside the binary
     cp ${binaryPackage}/License.sublime_license "$out/share/sublime_text/"
