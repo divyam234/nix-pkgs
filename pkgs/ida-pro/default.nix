@@ -10,7 +10,11 @@ let
 
   sources = {
     x86_64-linux = {
-      asset = "ida-pro-${version}.tar.gz";
+      asset = "ida-pro-${version}-x86_64-linux.tar.gz";
+      hash = "sha256-Vx3R1qHCD4vBBNDPF5SEEe76G5PpcXiDqVKUITqTwGc=";
+    };
+    aarch64-linux = {
+      asset = "ida-pro-${version}-aarch64-linux.tar.gz";
       hash = "sha256-Vx3R1qHCD4vBBNDPF5SEEe76G5PpcXiDqVKUITqTwGc=";
     };
   };
@@ -72,22 +76,14 @@ stdenv.mkDerivation {
     IDADIR="$out/opt/ida-pro-${version}"
     mkdir -p "$IDADIR" "$out/bin" "$out/lib"
 
-    cp -r --no-preserve=mode x86_64-linux/* "$IDADIR"
+    cp -r --no-preserve=mode ./* "$IDADIR"
+    test -f "$IDADIR/idapro.hexlic"
 
     rm -f "$IDADIR"/Uninstall*.desktop
 
     install -Dm644 "$IDADIR/appico.png" "$out/share/pixmaps/ida.png"
 
     chmod +x "$IDADIR"/ida "$IDADIR"/idat 2>/dev/null || true
-
-    if [ -d "kg_patch/x64linux" ]; then
-      cp "kg_patch/x64linux/libida.so" "$IDADIR/"
-      cp "kg_patch/x64linux/libida32.so" "$IDADIR/" 2>/dev/null || true
-    fi
-
-    if [ -f "kg_patch/idapro.hexlic" ]; then
-      cp "kg_patch/idapro.hexlic" "$IDADIR/"
-    fi
 
     for lib in "$IDADIR"/*.so "$IDADIR"/*.so.6; do
       [ -f "$lib" ] && ln -s "../opt/ida-pro-${version}/$(basename "$lib")" "$out/lib/$(basename "$lib")"
@@ -118,6 +114,6 @@ stdenv.mkDerivation {
     homepage = "https://hex-rays.com/ida-pro/";
     maintainers = [ ];
     mainProgram = "ida";
-    platforms = [ "x86_64-linux" ];
+    platforms = [ "x86_64-linux" "aarch64-linux" ];
   };
 }

@@ -93,9 +93,56 @@ jobs:
               f.write("publish=false\n" if ver == current else "publish=true\n")
           PYEOF
 
+  extract-arm:
+    name: Extract Linux ARM64 installer
+    needs: scrape
+    if: needs.scrape.outputs.publish == 'true'
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Download torrent
+        env:
+          MAGNET: ${{ inputs.magnet || needs.scrape.outputs.magnet }}
+        run: |
+          mkdir -p torrent
+          aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
+            --dir torrent "$MAGNET"
+
+      - name: Extract and patch ARM64 installer
+        env:
+          VERSION: ${{ needs.scrape.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          installers=(torrent/*/setup/ida-pro_*_armlinux.run torrent/*/ida-pro_*_armlinux.run torrent/ida-pro_*_armlinux.run)
+          keygens=(torrent/*/kg_patch/keygen.js torrent/kg_patch/keygen.js)
+          if [ "${#installers[@]}" -ne 1 ] || [ "${#keygens[@]}" -ne 1 ]; then
+            echo "Expected one ARM installer and keygen" >&2
+            exit 1
+          fi
+          CONTENT="$PWD/content/ida-pro-${VERSION}"
+          mkdir -p "$CONTENT"
+          KEYGEN="$PWD/${keygens[0]}"
+          chmod +x "${installers[0]}"
+          "${installers[0]}" --mode unattended --unattendedmodeui none \
+            --prefix "$CONTENT"
+          (cd "$CONTENT" && node "$KEYGEN")
+          for file in ida idat libida.so libida32.so idapro.hexlic; do
+            test -f "$CONTENT/$file"
+          done
+
+          tar czf "ida-pro-${VERSION}-aarch64-linux.tar.gz" -C content "ida-pro-${VERSION}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ida-pro-aarch64-linux
+          path: ida-pro-*-aarch64-linux.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
   prepare:
     name: Download, repack, and publish
-    needs: scrape
+    needs: [scrape, extract-arm]
     if: needs.scrape.outputs.publish == 'true'
     runs-on: ubuntu-latest
 
@@ -133,7 +180,7 @@ jobs:
           echo "torrent-dir=$TORRENT_DIR" >> "$GITHUB_OUTPUT"
 
 
-      - name: Extract .run installers
+      - name: Extract and patch x86_64 installer
         env:
           VERSION: ${{ needs.scrape.outputs.version }}
         run: |
@@ -147,38 +194,38 @@ jobs:
           ls -la "$TORRENT_DIR"
 
           shopt -s nullglob
-          for f in "$TORRENT_DIR"/ida-pro_*_x64linux.run; do
-            subdir="x86_64-linux"
-            mkdir -p "$CONTENT/$subdir"
-            cp "$f" /tmp/ida-installer
-            chmod +x /tmp/ida-installer
-            /tmp/ida-installer --mode unattended --unattendedmodeui none \
-              --prefix "$CONTENT/$subdir"
+          installers=("$TORRENT_DIR"/ida-pro_*_x64linux.run)
+          keygens=("$TORRENT_DIR"/../kg_patch/keygen.js "$TORRENT_DIR"/kg_patch/keygen.js)
+          if [ "${#installers[@]}" -ne 1 ] || [ "${#keygens[@]}" -ne 1 ]; then
+            echo "Expected one x86_64 installer and keygen" >&2
+            exit 1
+          fi
+          KEYGEN="$(realpath "${keygens[0]}")"
+          chmod +x "${installers[0]}"
+          "${installers[0]}" --mode unattended --unattendedmodeui none \
+            --prefix "$CONTENT"
+          (cd "$CONTENT" && node "$KEYGEN")
+          for file in ida idat libida.so libida32.so idapro.hexlic; do
+            test -f "$CONTENT/$file"
           done
 
-          for dir in kg_patch; do
-            src=""
-            [ -d "$TORRENT_DIR/../$dir" ] && src="$TORRENT_DIR/../$dir"
-            [ -d "$TORRENT_DIR/$dir" ] && src="$TORRENT_DIR/$dir"
-            [ -n "$src" ] && cp -r "$src" "$CONTENT/"
-          done
-
-          rm -rf "$CONTENT/kg_patch/x64win" "$CONTENT/kg_patch/README" 2>/dev/null || true
-
-      - name: Create tarball
-        run: |
-          VERSION="${{ needs.scrape.outputs.version }}"
           mkdir -p _releases
-          tar czf "_releases/ida-pro-${VERSION}.tar.gz" \
+          tar czf "_releases/ida-pro-${VERSION}-x86_64-linux.tar.gz" \
             -C content "ida-pro-${VERSION}"
-          ls -lh "_releases/ida-pro-${VERSION}.tar.gz"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ida-pro-aarch64-linux
+          path: _releases
 
       - name: Get Nix hash
         id: hash
         run: |
           VERSION="${{ needs.scrape.outputs.version }}"
-          HASH=$(nix hash file --sri "_releases/ida-pro-${VERSION}.tar.gz")
-          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          for arch in x86_64-linux aarch64-linux; do
+            HASH=$(nix hash file --sri "_releases/ida-pro-${VERSION}-${arch}.tar.gz")
+            echo "${arch}=$HASH" >> "$GITHUB_OUTPUT"
+          done
 
       - name: Create GitHub release
         env:
@@ -186,12 +233,12 @@ jobs:
         run: |
           VERSION="${{ needs.scrape.outputs.version }}"
           TAG="ida-pro-${VERSION}"
-          TARBALL="_releases/ida-pro-${VERSION}.tar.gz"
+          TARBALLS=("_releases/ida-pro-${VERSION}-x86_64-linux.tar.gz" "_releases/ida-pro-${VERSION}-aarch64-linux.tar.gz")
 
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$TARBALL" --repo "${{ github.repository }}" --clobber
+            gh release upload "$TAG" "${TARBALLS[@]}" --repo "${{ github.repository }}" --clobber
           else
-            gh release create "$TAG" "$TARBALL" \
+            gh release create "$TAG" "${TARBALLS[@]}" \
               --repo "${{ github.repository }}" \
               --title "IDA Pro ${VERSION}" \
               --notes "IDA Pro ${VERSION} (published ${{ needs.scrape.outputs.date }}) — Nix package" \
@@ -201,11 +248,13 @@ jobs:
       - name: Update nix package
         run: |
           VERSION="${{ needs.scrape.outputs.version }}"
-          HASH="${{ steps.hash.outputs.hash }}"
+          X86_HASH="${{ steps.hash.outputs['x86_64-linux'] }}"
+          ARM_HASH="${{ steps.hash.outputs['aarch64-linux'] }}"
 
           sed -i \
             -e "s/^\(\s*\)version = \".*\";/\1version = \"${VERSION}\";/" \
-            -e "s/^\(\s*\)hash = \".*\";/\1hash = \"${HASH}\";/" \
+            -e "/^    x86_64-linux = {/,/^    };/s|hash = \".*\";|hash = \"${X86_HASH}\";|" \
+            -e "/^    aarch64-linux = {/,/^    };/s|hash = \".*\";|hash = \"${ARM_HASH}\";|" \
             pkgs/ida-pro/default.nix
 
       - name: Commit package update
