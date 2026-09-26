@@ -2,7 +2,7 @@
 , perl, cairo, dbus, fontconfig, freetype, glib, gtk3, libdrm, libGL
 , libkrb5, libsecret, libunwind, libxkbcommon, libinput, openssl
 , qt6, libice, libsm, libX11, libxcb, libXext, libXi, libXrender
-, zlib, curl, python313
+, zlib, curl, python314
 }:
 
 let
@@ -21,7 +21,7 @@ let
 
   source = sources.${stdenv.hostPlatform.system} or (throw "ida-pro is not packaged for ${stdenv.hostPlatform.system}");
 
-  pythonForIDA = python313.withPackages (ps: with ps; [ rpyc ]);
+  pythonForIDA = python314.withPackages (ps: with ps; [ rpyc ]);
 
   runtimeDependencies = [
     cairo dbus fontconfig freetype glib gtk3 libdrm libGL
@@ -89,7 +89,7 @@ stdenv.mkDerivation {
       [ -f "$lib" ] && ln -s "../opt/ida-pro-${version}/$(basename "$lib")" "$out/lib/$(basename "$lib")"
     done
 
-    patchelf --add-needed libpython3.13.so "$out/lib/libida.so" 2>/dev/null || true
+    patchelf --add-needed libpython3.14.so "$out/lib/libida.so" 2>/dev/null || true
     patchelf --add-needed libcrypto.so "$out/lib/libida.so" 2>/dev/null || true
     patchelf --add-needed libsecret-1.so.0 "$out/lib/libida.so" 2>/dev/null || true
 
