@@ -41,9 +41,11 @@ jobs:
       - uses: astral-sh/setup-uv@v7
 
       - id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           uv run --with beautifulsoup4 python3 << 'PYEOF'
-          import os, re, sys, urllib.request
+          import json, os, re, subprocess, sys, urllib.request
           from bs4 import BeautifulSoup
 
           req = urllib.request.Request(
@@ -65,8 +67,7 @@ jobs:
           raw = ver_span.get_text(strip=True) if ver_span else ""
           ver = re.sub(r"^IDA(?:\s+Pro)?\s+", "", raw)
           ver = re.sub(r"\s+Beta\s+", "-beta", ver, flags=re.IGNORECASE)
-          ver = re.sub(r"\s+SP\s*", "sp", ver, flags=re.IGNORECASE)
-          # Strip Hotfix and any parenthesized suffix: "9.4 (Hotfix)" -> "9.4" (ignore hotfix)
+          ver = re.sub(r"\s+SP\s*\d+", "", ver, flags=re.IGNORECASE)
           ver = re.sub(r"\s*\(\s*Hotfix\s*\)\s*", "", ver, flags=re.IGNORECASE)
           ver = re.sub(r"\s*\(\s*[^)]+\s*\)\s*", "", ver)
           ver = ver.replace(" ", "")
@@ -86,11 +87,30 @@ jobs:
               if m:
                   current = m.group(1)
 
+          publish = ver != current
+          if not publish:
+              release = subprocess.run(
+                  ["gh", "release", "view", f"ida-pro-{ver}",
+                   "--repo", os.environ["GITHUB_REPOSITORY"], "--json", "body,assets"],
+                  capture_output=True, text=True,
+              )
+              if release.returncode:
+                  publish = True
+              else:
+                  data = json.loads(release.stdout)
+                  assets = {asset["name"] for asset in data["assets"]}
+                  expected = {f"ida-pro-{ver}-{arch}.tar.gz" for arch in ("x86_64-linux", "aarch64-linux")}
+                  publish = (
+                      f"(published {date})" not in data["body"]
+                      or not expected <= assets
+                      or f"ida-pro-{ver}.tar.gz" in assets
+                  )
+
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"version={ver}\n")
               f.write(f"date={date}\n")
               f.write(f"magnet={magnet}\n")
-              f.write("publish=false\n" if ver == current else "publish=true\n")
+              f.write(f"publish={str(publish).lower()}\n")
           PYEOF
 
   extract-arm:
@@ -237,6 +257,12 @@ jobs:
 
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" "${TARBALLS[@]}" --repo "${{ github.repository }}" --clobber
+            gh release edit "$TAG" --repo "${{ github.repository }}" \
+              --title "IDA Pro ${VERSION}" \
+              --notes "IDA Pro ${VERSION} (published ${{ needs.scrape.outputs.date }}) — Nix package"
+            if gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | grep -Fxq "ida-pro-${VERSION}.tar.gz"; then
+              gh release delete-asset "$TAG" "ida-pro-${VERSION}.tar.gz" --repo "${{ github.repository }}" --yes
+            fi
           else
             gh release create "$TAG" "${TARBALLS[@]}" \
               --repo "${{ github.repository }}" \
