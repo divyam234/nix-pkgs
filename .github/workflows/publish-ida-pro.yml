@@ -117,11 +117,20 @@ jobs:
               f.write(f"publish={str(publish).lower()}\n")
           PYEOF
 
-  extract-arm:
-    name: Extract Linux ARM64 installer
+  build:
+    name: Build ${{ matrix.arch }} archive
     needs: scrape
     if: needs.scrape.outputs.publish == 'true'
-    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64-linux
+            runner: ubuntu-24.04-arm
+            installer: armlinux
+          - arch: x86_64-linux
+            runner: ubuntu-latest
+            installer: x64linux
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Download torrent
@@ -139,18 +148,29 @@ jobs:
           curl --fail --location --retry 3 \
             --user-agent 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' \
             --output /tmp/ida-pro.torrent "$TORRENT"
+          mapfile -t selected < <(
+            aria2c --show-files /tmp/ida-pro.torrent |
+              awk -F'|' '$2 ~ /ida-pro_.*_${{ matrix.installer }}\.run$/ || $2 ~ /kg_patch\/keygen\.js$/ {gsub(/[^0-9]/,"",$1); print $1}'
+          )
+          if [ "${#selected[@]}" -ne 2 ]; then
+            echo "Expected installer and keygen in torrent metadata" >&2
+            exit 1
+          fi
+          FILES=$(IFS=,; echo "${selected[*]}")
           aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
-            --dir torrent /tmp/ida-pro.torrent
+            --select-file="$FILES" --dir torrent /tmp/ida-pro.torrent
 
-      - name: Extract and patch ARM64 installer
+      - name: Extract and patch installer
         env:
           VERSION: ${{ needs.scrape.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+          INSTALLER: ${{ matrix.installer }}
         run: |
           set -euo pipefail
-          mapfile -t installers < <(find torrent -type f -name 'ida-pro_*_armlinux.run')
+          mapfile -t installers < <(find torrent -type f -name "ida-pro_*_${INSTALLER}.run")
           mapfile -t keygens < <(find torrent -type f -name keygen.js)
           if [ "${#installers[@]}" -ne 1 ] || [ "${#keygens[@]}" -ne 1 ]; then
-            echo "Expected one ARM installer and keygen; found ${#installers[@]} installers and ${#keygens[@]} keygens" >&2
+            echo "Expected one $ARCH installer and keygen; found ${#installers[@]} installers and ${#keygens[@]} keygens" >&2
             find torrent -maxdepth 4 -type f -printf '%p\n' >&2
             exit 1
           fi
@@ -165,18 +185,18 @@ jobs:
             test -f "$CONTENT/$file"
           done
 
-          tar czf "ida-pro-${VERSION}-aarch64-linux.tar.gz" -C content "ida-pro-${VERSION}"
+          tar czf "ida-pro-${VERSION}-${ARCH}.tar.gz" -C content "ida-pro-${VERSION}"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ida-pro-aarch64-linux
-          path: ida-pro-*-aarch64-linux.tar.gz
+          name: ida-pro-${{ matrix.arch }}
+          path: ida-pro-*-${{ matrix.arch }}.tar.gz
           if-no-files-found: error
           retention-days: 1
 
-  prepare:
-    name: Download, repack, and publish
-    needs: [scrape, extract-arm]
+  publish:
+    name: Publish Linux archives
+    needs: [scrape, build]
     if: needs.scrape.outputs.publish == 'true'
     runs-on: ubuntu-latest
 
@@ -190,76 +210,10 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Download torrent
-        env:
-          MAGNET: ${{ inputs.magnet }}
-          TORRENT: ${{ needs.scrape.outputs.torrent }}
-        run: |
-          set -euo pipefail
-          mkdir -p torrent
-          if [ -n "$MAGNET" ]; then
-            aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
-              --dir torrent "$MAGNET"
-            exit 0
-          fi
-          curl --fail --location --retry 3 \
-            --user-agent 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' \
-            --output /tmp/ida-pro.torrent "$TORRENT"
-          aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
-            --dir torrent /tmp/ida-pro.torrent
-
-      - name: Find assets
-        id: assets
-        run: |
-          set -euo pipefail
-
-          shopt -s nullglob
-          entries=(torrent/*/)
-          TORRENT_DIR="${entries[0]:-torrent}"
-
-          if [ -d "$TORRENT_DIR/setup" ]; then
-            TORRENT_DIR="$TORRENT_DIR/setup"
-          fi
-
-          echo "torrent-dir=$TORRENT_DIR" >> "$GITHUB_OUTPUT"
-
-
-      - name: Extract and patch x86_64 installer
-        env:
-          VERSION: ${{ needs.scrape.outputs.version }}
-        run: |
-          set -euo pipefail
-
-          CONTENT="$PWD/content/ida-pro-${VERSION}"
-          mkdir -p "$CONTENT"
-
-          TORRENT_DIR="${{ steps.assets.outputs.torrent-dir }}"
-          echo "Torrent dir: $TORRENT_DIR"
-          ls -la "$TORRENT_DIR"
-
-          mapfile -t installers < <(find torrent -type f -name 'ida-pro_*_x64linux.run')
-          mapfile -t keygens < <(find torrent -type f -name keygen.js)
-          if [ "${#installers[@]}" -ne 1 ] || [ "${#keygens[@]}" -ne 1 ]; then
-            echo "Expected one x86_64 installer and keygen; found ${#installers[@]} installers and ${#keygens[@]} keygens" >&2
-            find torrent -maxdepth 4 -type f -printf '%p\n' >&2
-            exit 1
-          fi
-          KEYGEN="$(realpath "${keygens[0]}")"
-          chmod +x "${installers[0]}"
-          "${installers[0]}" --mode unattended --unattendedmodeui none \
-            --prefix "$CONTENT"
-          (cd "$CONTENT" && node "$KEYGEN")
-          for file in ida idat libida.so libida32.so idapro.hexlic; do
-            test -f "$CONTENT/$file"
-          done
-
-          mkdir -p _releases
-          tar czf "_releases/ida-pro-${VERSION}-x86_64-linux.tar.gz" \
-            -C content "ida-pro-${VERSION}"
-
       - uses: actions/download-artifact@v4
         with:
-          name: ida-pro-aarch64-linux
+          pattern: ida-pro-*
+          merge-multiple: true
           path: _releases
 
       - name: Get Nix hash
