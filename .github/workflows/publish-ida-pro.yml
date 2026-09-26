@@ -31,6 +31,7 @@ jobs:
       version: ${{ steps.detect.outputs.version }}
       date: ${{ steps.detect.outputs.date }}
       magnet: ${{ steps.detect.outputs.magnet }}
+      torrent: ${{ steps.detect.outputs.torrent }}
       publish: ${{ steps.detect.outputs.publish }}
 
     steps:
@@ -45,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           uv run --with beautifulsoup4 python3 << 'PYEOF'
-          import json, os, re, subprocess, sys, urllib.request
+          import json, os, re, subprocess, sys, urllib.parse, urllib.request
           from bs4 import BeautifulSoup
 
           req = urllib.request.Request(
@@ -80,6 +81,8 @@ jobs:
 
           magnet_link = details.find("a", href=lambda h: h and h.startswith("magnet:"))
           magnet = magnet_link["href"] if magnet_link else ""
+          torrent_link = details.find("a", href=lambda h: h and h.endswith(".torrent"))
+          torrent = urllib.parse.urljoin("https://hexrays.su/", torrent_link["href"]) if torrent_link else ""
 
           current = ""
           with open("pkgs/ida-pro/default.nix") as f:
@@ -110,6 +113,7 @@ jobs:
               f.write(f"version={ver}\n")
               f.write(f"date={date}\n")
               f.write(f"magnet={magnet}\n")
+              f.write(f"torrent={torrent}\n")
               f.write(f"publish={str(publish).lower()}\n")
           PYEOF
 
@@ -122,22 +126,32 @@ jobs:
     steps:
       - name: Download torrent
         env:
-          MAGNET: ${{ inputs.magnet || needs.scrape.outputs.magnet }}
+          MAGNET: ${{ inputs.magnet }}
+          TORRENT: ${{ needs.scrape.outputs.torrent }}
         run: |
+          set -euo pipefail
           mkdir -p torrent
+          if [ -n "$MAGNET" ]; then
+            aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
+              --dir torrent "$MAGNET"
+            exit 0
+          fi
+          curl --fail --location --retry 3 \
+            --user-agent 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' \
+            --output /tmp/ida-pro.torrent "$TORRENT"
           aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
-            --dir torrent "$MAGNET"
+            --dir torrent /tmp/ida-pro.torrent
 
       - name: Extract and patch ARM64 installer
         env:
           VERSION: ${{ needs.scrape.outputs.version }}
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          installers=(torrent/*/setup/ida-pro_*_armlinux.run torrent/*/ida-pro_*_armlinux.run torrent/ida-pro_*_armlinux.run)
-          keygens=(torrent/*/kg_patch/keygen.js torrent/kg_patch/keygen.js)
+          mapfile -t installers < <(find torrent -type f -name 'ida-pro_*_armlinux.run')
+          mapfile -t keygens < <(find torrent -type f -name keygen.js)
           if [ "${#installers[@]}" -ne 1 ] || [ "${#keygens[@]}" -ne 1 ]; then
-            echo "Expected one ARM installer and keygen" >&2
+            echo "Expected one ARM installer and keygen; found ${#installers[@]} installers and ${#keygens[@]} keygens" >&2
+            find torrent -maxdepth 4 -type f -printf '%p\n' >&2
             exit 1
           fi
           CONTENT="$PWD/content/ida-pro-${VERSION}"
@@ -178,11 +192,21 @@ jobs:
 
       - name: Download torrent
         env:
-          MAGNET: ${{ inputs.magnet || needs.scrape.outputs.magnet }}
+          MAGNET: ${{ inputs.magnet }}
+          TORRENT: ${{ needs.scrape.outputs.torrent }}
         run: |
+          set -euo pipefail
           mkdir -p torrent
+          if [ -n "$MAGNET" ]; then
+            aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
+              --dir torrent "$MAGNET"
+            exit 0
+          fi
+          curl --fail --location --retry 3 \
+            --user-agent 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' \
+            --output /tmp/ida-pro.torrent "$TORRENT"
           aria2c --seed-time=0 --max-connection-per-server=16 --split=16 \
-            --dir torrent "$MAGNET"
+            --dir torrent /tmp/ida-pro.torrent
 
       - name: Find assets
         id: assets
