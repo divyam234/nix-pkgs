@@ -40,6 +40,9 @@ The flake exports `nixosModules.rclone` and `lib.rclone`. The schema is generate
 
 Raw schema metadata is available as `inputs.customPkgs.lib.rclone.schema`, including all generated flags, providers, and option blocks.
 
+
+Configured values are exported as `RCLONE_*` environment variables instead of wrapping the binary, so explicit CLI flags still take precedence. Remote-specific variables can be supplied with `programs.rclone.environment`.
+
 ## Update
 
 ```sh

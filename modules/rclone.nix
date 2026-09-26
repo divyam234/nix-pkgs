@@ -21,26 +21,20 @@ let
     })
     schema.flags;
 
-  renderFlag = name: value:
-    if value == null then [ ]
-    else if builtins.isBool value then
-      [ "--${name}=${if value then "true" else "false"}" ]
+  envName = name:
+    "RCLONE_" + lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name);
+
+  envValue = value:
+    if builtins.isBool value then
+      if value then "true" else "false"
     else if builtins.isList value then
-      map (item: "--${name}=${toString item}") value
+      lib.concatStringsSep "," (map toString value)
     else
-      [ "--${name}=${toString value}" ];
+      toString value;
 
-  configuredFlags = lib.concatLists (lib.mapAttrsToList renderFlag cfg.flags) ++ cfg.extraFlags;
-
-  wrappedRclone = pkgs.symlinkJoin {
-    name = "rclone-configured-${cfg.package.version}";
-    paths = [ cfg.package ];
-    nativeBuildInputs = [ pkgs.makeWrapper ];
-    postBuild = ''
-      wrapProgram "$out/bin/rclone" \
-        ${lib.concatMapStringsSep " " (arg: "--add-flags ${lib.escapeShellArg arg}") configuredFlags}
-    '';
-  };
+  generatedEnvironment = lib.mapAttrs'
+    (name: value: lib.nameValuePair (envName name) (envValue value))
+    (lib.filterAttrs (_: value: value != null) cfg.flags);
 in
 {
   options.programs.rclone = {
@@ -50,20 +44,30 @@ in
       type = lib.types.package;
       default = pkgs.rclone;
       defaultText = lib.literalExpression "pkgs.rclone";
-      description = "rclone package to install and wrap.";
+      description = "rclone package to install.";
     };
 
     flags = lib.mkOption {
       type = lib.types.submodule { options = flagOptions; };
       default = { };
-      description = "Typed rclone flags generated from the packaged rclone binary.";
+      description = ''
+        Typed rclone options generated from the packaged rclone binary.
+        Values are exported as RCLONE_* environment variables, so explicit
+        command-line flags can still override them per invocation.
+      '';
     };
 
-    extraFlags = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [ ];
-      example = [ "--future-flag=value" ];
-      description = "Additional raw flags for forward compatibility.";
+    environment = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      default = { };
+      example = {
+        RCLONE_CONFIG_MEDIA_TYPE = "drive";
+      };
+      description = ''
+        Additional rclone environment variables. These are merged over the
+        generated RCLONE_* variables and can be used for remote-specific
+        RCLONE_CONFIG_<REMOTE>_* settings or forward-compatible options.
+      '';
     };
 
     schema = lib.mkOption {
@@ -75,6 +79,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ wrappedRclone ];
+    environment.systemPackages = [ cfg.package ];
+    environment.variables = generatedEnvironment // cfg.environment;
   };
 }
