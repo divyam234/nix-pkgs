@@ -186,6 +186,8 @@ stdenv.mkDerivation (_finalAttrs: {
       ln -s ${binaryPackage}/Icon/$size/* "$out/share/icons/hicolor/$size/apps"
     done
 
+    mkdir -p "$out/share/sublime_text"
+
     # Provide dummy license file alongside the binary
     cp ${binaryPackage}/License.sublime_license "$out/share/sublime_text/"
   '';
