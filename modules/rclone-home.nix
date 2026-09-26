@@ -118,6 +118,17 @@ let
   enabledRcd = lib.filterAttrs (_: value: value.enable) serviceCfg.rcd;
   enabledJobs = lib.filterAttrs (_: value: value.enable) serviceCfg.jobs;
 
+
+  mountUsesAllowOther = instance:
+    (cfg.settings."allow-other" or null) == true
+    || (instance.settings."allow-other" or null) == true
+    || lib.any
+      (arg: arg == "--allow-other" || lib.hasPrefix "--allow-other=" arg)
+      instance.extraArgs;
+
+  fuseAllowOtherRequired =
+    lib.any mountUsesAllowOther (builtins.attrValues enabledMounts);
+
   quoteArgs = args: lib.concatMapStringsSep " " lib.escapeShellArg args;
 
   envList = env:
@@ -280,6 +291,10 @@ in
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
       home.sessionVariables = globalEnvironment;
+      warnings = lib.optional fuseAllowOtherRequired ''
+        rclone mount uses --allow-other. Home Manager cannot modify /etc/fuse.conf;
+        enable user_allow_other on the host (on NixOS: programs.fuse.userAllowOther = true).
+      '';
     })
 
     {

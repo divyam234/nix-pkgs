@@ -76,6 +76,7 @@
                     enable = true;
                     remote = "media:";
                     mountPoint = "/mnt/media";
+                    settings.allow-other = true;
                   };
 
                   jobs.backup = {
@@ -126,12 +127,14 @@
             nixosMount = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.ExecStart;
             nixosVfsMode = nixosTest.config.systemd.services."rclone-mount-media".environment.RCLONE_VFS_CACHE_MODE;
             nixosTimer = nixosTest.config.systemd.timers."rclone-job-backup".timerConfig.OnCalendar;
+            nixosFuseAllowOther = if nixosTest.config.programs.fuse.userAllowOther then "true" else "false";
             homeMount = builtins.head homeTest.config.systemd.user.services."rclone-mount-media".Service.ExecStart;
             homeTimer = homeTest.config.systemd.user.timers."rclone-job-backup".Timer.OnCalendar;
           } ''
             test "$nixosVfsMode" = "full"
             test "$nixosTimer" = "daily"
             test "$homeTimer" = "daily"
+            test "$nixosFuseAllowOther" = "true"
             case "$nixosMount" in
               *"rclone mount media: /mnt/media"*) ;;
               *) exit 1 ;;

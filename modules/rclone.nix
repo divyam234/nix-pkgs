@@ -130,6 +130,17 @@ let
   enabledRcd = lib.filterAttrs (_: value: value.enable) serviceCfg.rcd;
   enabledJobs = lib.filterAttrs (_: value: value.enable) serviceCfg.jobs;
 
+
+  mountUsesAllowOther = instance:
+    (cfg.settings."allow-other" or null) == true
+    || (instance.settings."allow-other" or null) == true
+    || lib.any
+      (arg: arg == "--allow-other" || lib.hasPrefix "--allow-other=" arg)
+      instance.extraArgs;
+
+  fuseAllowOtherRequired =
+    lib.any mountUsesAllowOther (builtins.attrValues enabledMounts);
+
   quoteArgs = args: lib.concatMapStringsSep " " lib.escapeShellArg args;
 
   mountEnvironment = instance:
@@ -302,6 +313,7 @@ in
     (lib.mkIf cfg.enable {
       environment.systemPackages = [ cfg.package ];
       environment.variables = globalEnvironment;
+      programs.fuse.userAllowOther = lib.mkIf fuseAllowOtherRequired true;
     })
 
     {

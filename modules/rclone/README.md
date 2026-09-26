@@ -53,6 +53,7 @@ The exported modules default `programs.rclone.package` to this flake's rclone pa
 
       settings = {
         vfs-cache-max-size = "1Ti";
+        allow-other = true;
       };
 
       environmentFile = "/run/secrets/rclone-media.env";
@@ -102,6 +103,8 @@ rclone-job-backup.timer
 ```
 
 Every service inherits `programs.rclone.settings` and `programs.rclone.environment`, then applies its own `settings` and `environment` overrides.
+
+On NixOS, if any enabled rclone mount sets `settings.allow-other = true`, the module automatically enables `programs.fuse.userAllowOther`, which writes `user_allow_other` to `/etc/fuse.conf`.
 
 ## Home Manager
 
@@ -173,6 +176,7 @@ Home Manager already includes its own `programs.rclone` module for remote defini
 
 Home Manager services are emitted as `systemd --user` units and currently support Linux only. The existing Home Manager remote/config generation remains in use; this module only extends it.
 
+If a Home Manager mount uses `allow-other`, Home Manager cannot change the host `/etc/fuse.conf`; the module emits a warning. On NixOS, enable `programs.fuse.userAllowOther = true` at the system level.
 ## Schema access
 
 Raw schema metadata is available at:
