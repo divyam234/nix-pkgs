@@ -1,6 +1,6 @@
 { pkgs, lib, stdenv, fetchurl, autoPatchelfHook, makeWrapper, copyDesktopItems
 , perl, cairo, dbus, fontconfig, freetype, glib, gtk3, libdrm, libGL
-, libkrb5, libsecret, libunwind, libxkbcommon, openssl
+, libkrb5, libsecret, libunwind, libxkbcommon, libinput, openssl
 , qt6, libice, libsm, libX11, libxcb, libXext, libXi, libXrender
 , zlib, curl, python313
 }:
@@ -25,7 +25,7 @@ let
 
   runtimeDependencies = [
     cairo dbus fontconfig freetype glib gtk3 libdrm libGL
-    libkrb5 libsecret libunwind libxkbcommon openssl.out
+    libkrb5 libsecret libunwind libxkbcommon libinput openssl.out
     qt6.qtbase qt6.qtwayland
     stdenv.cc libice libsm libX11 libxcb libXext libXi libXrender
     zlib curl.out pythonForIDA
