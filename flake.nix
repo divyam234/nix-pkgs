@@ -79,6 +79,20 @@
                     settings.allow-other = true;
                   };
 
+                  serve.webdav = {
+                    enable = true;
+                    protocol = "webdav";
+                    remote = "media:";
+                  };
+
+                  serve.ftp = {
+                    enable = true;
+                    protocol = "ftp";
+                    remote = "media:";
+                  };
+
+                  rcd.main.enable = true;
+
                   jobs.backup = {
                     enable = true;
                     command = "sync";
@@ -111,6 +125,20 @@
                     mountPoint = "%h/mnt/media";
                   };
 
+                  serve.webdav = {
+                    enable = true;
+                    protocol = "webdav";
+                    remote = "media:";
+                  };
+
+                  serve.ftp = {
+                    enable = true;
+                    protocol = "ftp";
+                    remote = "media:";
+                  };
+
+                  rcd.main.enable = true;
+
                   jobs.backup = {
                     enable = true;
                     command = "sync";
@@ -128,13 +156,33 @@
             nixosVfsMode = nixosTest.config.systemd.services."rclone-mount-media".environment.RCLONE_VFS_CACHE_MODE;
             nixosTimer = nixosTest.config.systemd.timers."rclone-job-backup".timerConfig.OnCalendar;
             nixosFuseAllowOther = if nixosTest.config.programs.fuse.userAllowOther then "true" else "false";
+            nixosMountType = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.Type;
+            nixosMountSuccess = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.SuccessExitStatus;
+            nixosWebdavType = nixosTest.config.systemd.services."rclone-serve-webdav".serviceConfig.Type;
+            nixosFtpType = nixosTest.config.systemd.services."rclone-serve-ftp".serviceConfig.Type;
+            nixosRcdSuccess = nixosTest.config.systemd.services."rclone-rcd-main".serviceConfig.SuccessExitStatus;
             homeMount = builtins.head homeTest.config.systemd.user.services."rclone-mount-media".Service.ExecStart;
             homeTimer = homeTest.config.systemd.user.timers."rclone-job-backup".Timer.OnCalendar;
+            homeMountType = homeTest.config.systemd.user.services."rclone-mount-media".Service.Type;
+            homeMountSuccess = homeTest.config.systemd.user.services."rclone-mount-media".Service.SuccessExitStatus;
+            homeWebdavType = homeTest.config.systemd.user.services."rclone-serve-webdav".Service.Type;
+            homeFtpType = homeTest.config.systemd.user.services."rclone-serve-ftp".Service.Type;
+            homeRcdSuccess = homeTest.config.systemd.user.services."rclone-rcd-main".Service.SuccessExitStatus;
           } ''
             test "$nixosVfsMode" = "full"
             test "$nixosTimer" = "daily"
             test "$homeTimer" = "daily"
             test "$nixosFuseAllowOther" = "true"
+            test "$nixosMountType" = "notify"
+            test "$nixosMountSuccess" = "143"
+            test "$nixosWebdavType" = "notify"
+            test "$nixosFtpType" = "simple"
+            test "$nixosRcdSuccess" = "143"
+            test "$homeMountType" = "notify"
+            test "$homeMountSuccess" = "143"
+            test "$homeWebdavType" = "notify"
+            test "$homeFtpType" = "simple"
+            test "$homeRcdSuccess" = "143"
             case "$nixosMount" in
               *"rclone mount media: /mnt/media"*) ;;
               *) exit 1 ;;

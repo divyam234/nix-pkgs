@@ -7,6 +7,8 @@ let
   cfg = config.programs.rclone;
   serviceCfg = config.services.rclone;
 
+  serveProtocolNotifies = [ "dlna" "http" "restic" "webdav" ];
+
   globalEnvironment = settingsEnvironment cfg.settings // cfg.environment;
 
   instanceEnvironment = instance:
@@ -153,11 +155,12 @@ let
           Wants = [ "network-online.target" ];
         };
         Service = {
-          Type = "simple";
+          Type = "notify";
           Environment = envList (mountEnvironment instance);
           EnvironmentFile = environmentFiles instance;
           ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p -- ${lib.escapeShellArg instance.mountPoint}";
           ExecStart = "${cfg.package}/bin/rclone mount ${lib.escapeShellArg instance.remote} ${lib.escapeShellArg instance.mountPoint} ${quoteArgs instance.extraArgs}";
+          SuccessExitStatus = "143";
           Restart = "on-failure";
           RestartSec = 5;
         };
@@ -174,10 +177,11 @@ let
           Wants = [ "network-online.target" ];
         };
         Service = {
-          Type = "simple";
+          Type = if lib.elem instance.protocol serveProtocolNotifies then "notify" else "simple";
           Environment = envList (instanceEnvironment instance);
           EnvironmentFile = environmentFiles instance;
           ExecStart = "${cfg.package}/bin/rclone serve ${lib.escapeShellArg instance.protocol} ${lib.escapeShellArg instance.remote} ${quoteArgs instance.extraArgs}";
+          SuccessExitStatus = "143";
           Restart = "on-failure";
           RestartSec = 5;
         };
@@ -198,6 +202,7 @@ let
           Environment = envList (instanceEnvironment instance);
           EnvironmentFile = environmentFiles instance;
           ExecStart = "${cfg.package}/bin/rclone rcd ${quoteArgs instance.extraArgs}";
+          SuccessExitStatus = "143";
           Restart = "on-failure";
           RestartSec = 5;
         };

@@ -6,6 +6,8 @@ let
   cfg = config.programs.rclone;
   serviceCfg = config.services.rclone;
 
+  serveProtocolNotifies = [ "dlna" "http" "restic" "webdav" ];
+
   globalEnvironment = settingsEnvironment cfg.settings // cfg.environment;
 
   instanceEnvironment = instance:
@@ -158,12 +160,13 @@ let
         after = [ "network-online.target" ];
         environment = mountEnvironment instance;
         serviceConfig = {
-          Type = "simple";
+          Type = "notify";
           User = instance.user;
           Group = instance.group;
           ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o ${lib.escapeShellArg instance.user} -g ${lib.escapeShellArg instance.group} -- ${lib.escapeShellArg instance.mountPoint}";
           EnvironmentFile = lib.optional (instance.environmentFile != null) instance.environmentFile;
           ExecStart = "${cfg.package}/bin/rclone mount ${lib.escapeShellArg instance.remote} ${lib.escapeShellArg instance.mountPoint} ${quoteArgs instance.extraArgs}";
+          SuccessExitStatus = "143";
           Restart = "on-failure";
           RestartSec = "5s";
         };
@@ -179,11 +182,12 @@ let
         after = [ "network-online.target" ];
         environment = instanceEnvironment instance;
         serviceConfig = {
-          Type = "simple";
+          Type = if lib.elem instance.protocol serveProtocolNotifies then "notify" else "simple";
           User = instance.user;
           Group = instance.group;
           EnvironmentFile = lib.optional (instance.environmentFile != null) instance.environmentFile;
           ExecStart = "${cfg.package}/bin/rclone serve ${lib.escapeShellArg instance.protocol} ${lib.escapeShellArg instance.remote} ${quoteArgs instance.extraArgs}";
+          SuccessExitStatus = "143";
           Restart = "on-failure";
           RestartSec = "5s";
         };
@@ -204,6 +208,7 @@ let
           Group = instance.group;
           EnvironmentFile = lib.optional (instance.environmentFile != null) instance.environmentFile;
           ExecStart = "${cfg.package}/bin/rclone rcd ${quoteArgs instance.extraArgs}";
+          SuccessExitStatus = "143";
           Restart = "on-failure";
           RestartSec = "5s";
         };
