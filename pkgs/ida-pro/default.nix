@@ -11,11 +11,11 @@ let
   sources = {
     x86_64-linux = {
       asset = "ida-pro-${version}-x86_64-linux.tar.gz";
-      hash = "sha256-Vx3R1qHCD4vBBNDPF5SEEe76G5PpcXiDqVKUITqTwGc=";
+      hash = "sha256-XJrPur8Ig8tALcgxOFGjE8DqR5+GeFu5WruQiRTGkBg=";
     };
     aarch64-linux = {
       asset = "ida-pro-${version}-aarch64-linux.tar.gz";
-      hash = "sha256-Vx3R1qHCD4vBBNDPF5SEEe76G5PpcXiDqVKUITqTwGc=";
+      hash = "sha256-/lWMdt8aoPDlzdGRJ5UGEpZQ9C4pQH7qNLPdbkxl3yc=";
     };
   };
 
