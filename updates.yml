@@ -79,7 +79,9 @@ packages:
       source: tag
     assets:
       x86_64-linux:
-        name: ida-pro-{version}.tar.gz
+        name: ida-pro-{version}-x86_64-linux.tar.gz
+      aarch64-linux:
+        name: ida-pro-{version}-aarch64-linux.tar.gz
 
   bun:
     repo: oven-sh/bun
