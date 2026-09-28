@@ -120,6 +120,17 @@ let
   enabledRcd = lib.filterAttrs (_: value: value.enable) serviceCfg.rcd;
   enabledJobs = lib.filterAttrs (_: value: value.enable) serviceCfg.jobs;
 
+  effectiveCacheDir = instance:
+    lib.findFirst (v: v != null) null [
+      (instance.environment.RCLONE_CACHE_DIR or null)
+      instance.settings."cache-dir"
+      (cfg.environment.RCLONE_CACHE_DIR or null)
+      cfg.settings."cache-dir"
+    ];
+
+  cacheMountsFor = instance:
+    let dir = effectiveCacheDir instance;
+    in lib.optional (dir != null && (lib.hasPrefix "/" dir || lib.hasPrefix "%" dir)) dir;
 
   mountUsesAllowOther = instance:
     (cfg.settings."allow-other" or null) == true
@@ -153,6 +164,7 @@ let
           Description = "rclone mount ${name}";
           After = [ "network-online.target" ];
           Wants = [ "network-online.target" ];
+          RequiresMountsFor = cacheMountsFor instance;
         };
         Service = {
           Type = "notify";
@@ -175,6 +187,7 @@ let
           Description = "rclone serve ${instance.protocol} (${name})";
           After = [ "network-online.target" ];
           Wants = [ "network-online.target" ];
+          RequiresMountsFor = cacheMountsFor instance;
         };
         Service = {
           Type = if lib.elem instance.protocol serveProtocolNotifies then "notify" else "simple";

@@ -83,6 +83,7 @@
                     enable = true;
                     protocol = "webdav";
                     remote = "media:";
+                    settings."cache-dir" = "/mnt/rclone-cache";
                   };
 
                   serve.ftp = {
@@ -159,6 +160,8 @@
             nixosMountType = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.Type;
             nixosMountSuccess = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.SuccessExitStatus;
             nixosWebdavType = nixosTest.config.systemd.services."rclone-serve-webdav".serviceConfig.Type;
+            nixosWebdavCacheDir = nixosTest.config.systemd.services."rclone-serve-webdav".environment.RCLONE_CACHE_DIR;
+            nixosWebdavMounts = nixosTest.config.systemd.services."rclone-serve-webdav".unitConfig.RequiresMountsFor;
             nixosFtpType = nixosTest.config.systemd.services."rclone-serve-ftp".serviceConfig.Type;
             nixosRcdSuccess = nixosTest.config.systemd.services."rclone-rcd-main".serviceConfig.SuccessExitStatus;
             homeMount = builtins.head homeTest.config.systemd.user.services."rclone-mount-media".Service.ExecStart;
@@ -176,6 +179,8 @@
             test "$nixosMountType" = "notify"
             test "$nixosMountSuccess" = "143"
             test "$nixosWebdavType" = "notify"
+            test "$nixosWebdavCacheDir" = "/mnt/rclone-cache"
+            test "$nixosWebdavMounts" = "/mnt/rclone-cache"
             test "$nixosFtpType" = "simple"
             test "$nixosRcdSuccess" = "143"
             test "$homeMountType" = "notify"

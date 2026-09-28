@@ -127,6 +127,18 @@ let
     };
   });
 
+  effectiveCacheDir = instance:
+    lib.findFirst (v: v != null) null [
+      (instance.environment.RCLONE_CACHE_DIR or null)
+      instance.settings."cache-dir"
+      (cfg.environment.RCLONE_CACHE_DIR or null)
+      cfg.settings."cache-dir"
+    ];
+
+  cacheMountsFor = instance:
+    let dir = effectiveCacheDir instance;
+    in lib.optional (dir != null && (lib.hasPrefix "/" dir || lib.hasPrefix "%" dir)) dir;
+
   enabledMounts = lib.filterAttrs (_: value: value.enable) serviceCfg.mounts;
   enabledServe = lib.filterAttrs (_: value: value.enable) serviceCfg.serve;
   enabledRcd = lib.filterAttrs (_: value: value.enable) serviceCfg.rcd;
@@ -158,6 +170,7 @@ let
         wantedBy = [ "multi-user.target" ];
         wants = [ "network-online.target" ];
         after = [ "network-online.target" ];
+        unitConfig.RequiresMountsFor = cacheMountsFor instance;
         environment = mountEnvironment instance;
         serviceConfig = {
           Type = "notify";
@@ -180,6 +193,7 @@ let
         wantedBy = [ "multi-user.target" ];
         wants = [ "network-online.target" ];
         after = [ "network-online.target" ];
+        unitConfig.RequiresMountsFor = cacheMountsFor instance;
         environment = instanceEnvironment instance;
         serviceConfig = {
           Type = if lib.elem instance.protocol serveProtocolNotifies then "notify" else "simple";

@@ -66,6 +66,7 @@ The exported modules default `programs.rclone.package` to this flake's rclone pa
 
       settings = {
         webdav-addr = "127.0.0.1:8080";
+        cache-dir = "/mnt/media/rclone-cache";
       };
     };
 
@@ -103,6 +104,11 @@ rclone-job-backup.timer
 ```
 
 Every service inherits `programs.rclone.settings` and `programs.rclone.environment`, then applies its own `settings` and `environment` overrides.
+
+Rclone creates the directory configured by the `cache-dir` setting itself. The
+modules only add `RequiresMountsFor` for the effective `cache-dir` (or
+`RCLONE_CACHE_DIR`) on mount and serve units, so a backing filesystem is
+mounted before the service starts.
 
 On NixOS, if any enabled rclone mount sets `settings.allow-other = true`, the module automatically enables `programs.fuse.userAllowOther`, which writes `user_allow_other` to `/etc/fuse.conf`.
 
