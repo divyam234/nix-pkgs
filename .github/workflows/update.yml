@@ -2,7 +2,8 @@ name: Update Packages
 
 on:
   schedule:
-    - cron: "0 6 * * *"
+    # 22:30 UTC is 04:00 IST the following day.
+    - cron: "30 22 * * *"
   workflow_dispatch:
 
 permissions:
@@ -47,13 +48,29 @@ jobs:
         env:
           TARGET_BRANCH: ${{ github.ref_name }}
         run: |
+          git add .
           if [ -z "$(git status --porcelain)" ]; then
             echo "No package updates to commit."
             exit 0
           fi
 
+          if [ "$(git diff --cached --name-only)" = "flake.lock" ] && python - <<'PY'
+          import json
+          import subprocess
+
+          with open("flake.lock") as lockfile:
+              current = json.load(lockfile)
+          previous = json.loads(subprocess.check_output(["git", "show", "HEAD:flake.lock"]))
+          current["nodes"].pop("nixpkgs", None)
+          previous["nodes"].pop("nixpkgs", None)
+          raise SystemExit(0 if current == previous else 1)
+          PY
+          then
+            echo "Only nixpkgs changed in flake.lock; skipping commit."
+            exit 0
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
           git commit -m "update packages"
           git push origin HEAD:"$TARGET_BRANCH"
