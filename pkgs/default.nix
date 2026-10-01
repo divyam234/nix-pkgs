@@ -44,6 +44,4 @@ in
   zjstatus = pkgs.callPackage ./zjstatus { };
 
   ida-pro = pkgs.callPackage ./ida-pro { };
-
-  tailscale = pkgs.callPackage ./tailscale { };
 }
