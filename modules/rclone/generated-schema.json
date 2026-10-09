@@ -504,7 +504,7 @@
       "cliName": "azureblob-directory-markers",
       "default": false,
       "defaultStr": "false",
-      "help": "Upload an empty object with a trailing slash when a new directory is created\n\nEmpty folders are unsupported for bucket based remotes, this option\ncreates an empty object ending with \"/\", to persist the folder.\n\nThis object also has the metadata \"hdi_isfolder = true\" to conform to\nthe Microsoft standard.\n ",
+      "help": "Upload an empty object with a trailing slash when a new directory is created\n\nEmpty folders are unsupported for bucket based remotes, this option\ncreates an empty object ending with \"/\", to persist the folder.\n\nThis object also has the metadata \"hdi_isfolder = true\" to conform to\nthe Microsoft standard.\n\nThis is not needed on storage accounts with a hierarchical namespace\n(see the hns option) as these always support empty directories.\n ",
       "helpType": null,
       "name": "directory_markers",
       "required": false,
@@ -582,6 +582,23 @@
       "source": "config/providers",
       "type": "bool"
     },
+    "azureblob-hns": {
+      "advanced": true,
+      "backend": "azureblob",
+      "cliName": "azureblob-hns",
+      "default": {
+        "Valid": false,
+        "Value": false
+      },
+      "defaultStr": "unset",
+      "help": "Set if the storage account has a hierarchical namespace.\n\nStorage accounts with hierarchical namespace enabled (Azure Data Lake\nStorage Gen2) have real directories which can be empty.\n\nIf this is unset then rclone will read it from the storage account\nand save it in the config file.\n",
+      "helpType": "Tristate",
+      "name": "hns",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "Tristate"
+    },
     "azureblob-key": {
       "advanced": false,
       "backend": "azureblob",
@@ -616,7 +633,8 @@
       "cliName": "azureblob-list-parallelism",
       "default": 0,
       "defaultStr": "0",
-      "help": "Number of parallel shards to list a directory with.\n\nEXPERIMENTAL. If set greater than 1, the blob name keyspace of each\ndirectory is split into this many ranges which are listed concurrently\nusing the Arrow startFrom/endBefore range parameters. This can\ndramatically speed up listing containers with millions of objects, for\nboth recursive (ListR) and single directory listings.\n\nThis has no effect unless \"use_arrow_list\" is also set, as Arrow is the\nonly listing path that supports server-side name ranges. The default of\n0 (or 1) lists sequentially.",
+      "help": "Number of parallel shards to list a directory with.\n\nIf set greater than 1, the blob name keyspace of each directory is\nsplit into ranges which are listed concurrently using the Arrow\nstartFrom/endBefore range parameters. This can dramatically speed up\nlisting containers with millions of objects, for both recursive\n(ListR) and single directory listings. Speed keeps improving up to a\nparallelism of around 30.\n\nThis has no effect unless \"use_arrow_list\" is also set, as Arrow is the\nonly listing path that supports server-side name ranges. If the\naccount does not support range listing (e.g. it has a hierarchical\nnamespace) the listing falls back to sequential. The default of 0 (or\n1) lists sequentially.",
+      "helpType": "int",
       "name": "list_parallelism",
       "required": false,
       "sensitive": false,
@@ -837,7 +855,8 @@
       "cliName": "azureblob-use-arrow-list",
       "default": false,
       "defaultStr": "false",
-      "help": "Use the experimental Apache Arrow listing format.\n\nIf set, directory listings are fetched using the ListBlobs Apache\nArrow response format instead of XML. This can be faster for very\nlarge containers.\n\nThis is EXPERIMENTAL and requires the \"Blob Listing with Apache Arrow\"\npreview feature to be enabled on the storage account. It is NOT\nsupported on accounts with a hierarchical namespace (ADLS Gen2) -\nthose return a 409 error. If the feature is not enabled the server\nreturns XML and the listing transparently falls back to the normal XML\npath (logged at debug level).\n\nNot supported with connection_string auth - falls back to normal\nlisting.",
+      "help": "Use the Apache Arrow listing format.\n\nIf set, directory listings are fetched using the ListBlobs Apache\nArrow response format instead of XML. Arrow responses are smaller and\nmuch cheaper to parse, making listings of large containers several\ntimes faster. Combine with \"list_parallelism\" for the biggest gains.\n\n\"Blob Listing with Apache Arrow\" is in public preview at Microsoft and\nis only supported on flat namespace accounts. On accounts with a\nhierarchical namespace (ADLS Gen2), or where the feature is otherwise\nunavailable, the server returns XML and the listing transparently\nfalls back to the normal XML path (logged at debug level).",
+      "helpType": null,
       "name": "use_arrow_list",
       "required": false,
       "sensitive": false,
@@ -2040,8 +2059,8 @@
       "advanced": true,
       "backend": "cache",
       "cliName": "cache-chunk-path",
-      "default": "/home/bhunter/.cache/rclone/cache-backend",
-      "defaultStr": "/home/bhunter/.cache/rclone/cache-backend",
+      "default": "/home/runner/.cache/rclone/cache-backend",
+      "defaultStr": "/home/runner/.cache/rclone/cache-backend",
       "help": "Directory to cache chunk files.\n\nPath to where partial file data (chunks) are stored locally. The remote\nname is appended to the final path.\n\nThis config follows the \"--cache-db-path\". If you specify a custom\nlocation for \"--cache-db-path\" and don't specify one for \"--cache-chunk-path\"\nthen \"--cache-chunk-path\" will use the same path as \"--cache-db-path\".",
       "helpType": "string",
       "name": "chunk_path",
@@ -2110,8 +2129,8 @@
       "advanced": true,
       "backend": "cache",
       "cliName": "cache-db-path",
-      "default": "/home/bhunter/.cache/rclone/cache-backend",
-      "defaultStr": "/home/bhunter/.cache/rclone/cache-backend",
+      "default": "/home/runner/.cache/rclone/cache-backend",
+      "defaultStr": "/home/runner/.cache/rclone/cache-backend",
       "help": "Directory to store file structure metadata DB.\n\nThe remote name is used as the DB file name.",
       "helpType": "string",
       "name": "db_path",
@@ -2165,7 +2184,7 @@
     "cache-dir": {
       "advanced": false,
       "cliName": "cache-dir",
-      "help": "Directory rclone will use for caching (default \"/home/bhunter/.cache/rclone\")",
+      "help": "Directory rclone will use for caching (default \"/home/runner/.cache/rclone\")",
       "name": "cache-dir",
       "required": false,
       "sensitive": false,
@@ -3029,7 +3048,7 @@
     "config": {
       "advanced": false,
       "cliName": "config",
-      "help": "Config file or postgres:// connection URL (default \"/home/bhunter/.config/rclone/rclone.conf\")",
+      "help": "Config file or postgres:// connection URL (default \"/home/runner/.config/rclone/rclone.conf\")",
       "name": "config",
       "required": false,
       "sensitive": false,
@@ -3668,6 +3687,90 @@
       "help": "DOI provider.\n\nThe DOI provider can be set when rclone does not automatically recognize a supported DOI provider.",
       "helpType": "string",
       "name": "provider",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "dosya-api-key": {
+      "advanced": false,
+      "backend": "dosya",
+      "cliName": "dosya-api-key",
+      "default": "",
+      "defaultStr": "",
+      "help": "Your API Key, get it from https://dosya.dev/profile under \"API keys\".",
+      "helpType": "string",
+      "name": "api_key",
+      "required": true,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "dosya-api-url": {
+      "advanced": true,
+      "backend": "dosya",
+      "cliName": "dosya-api-url",
+      "default": "https://api.dosya.dev",
+      "defaultStr": "https://api.dosya.dev",
+      "help": "API base URL.",
+      "helpType": "string",
+      "name": "api_url",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "dosya-description": {
+      "advanced": true,
+      "backend": "dosya",
+      "cliName": "dosya-description",
+      "default": "",
+      "defaultStr": "",
+      "help": "Description of the remote.",
+      "helpType": "string",
+      "name": "description",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "dosya-encoding": {
+      "advanced": true,
+      "backend": "dosya",
+      "cliName": "dosya-encoding",
+      "default": 52666398,
+      "defaultStr": "Slash,LtGt,DoubleQuote,SingleQuote,BackSlash,Del,Ctl,LeftSpace,RightSpace,InvalidUtf8,Dot",
+      "help": "The encoding for the backend.\n\nSee the [encoding section in the overview](/overview/#encoding) for more info.",
+      "helpType": "Encoding",
+      "name": "encoding",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "Encoding"
+    },
+    "dosya-upload-concurrency": {
+      "advanced": true,
+      "backend": "dosya",
+      "cliName": "dosya-upload-concurrency",
+      "default": 4,
+      "defaultStr": "4",
+      "help": "Concurrency for multipart uploads.\n\nThis is the number of parts of the same file that are uploaded\nconcurrently. The first part is always uploaded on its own, because\nthe server creates the upload when it receives it.\n\nEach part in flight is held in memory, so memory use grows with\nthis value times the part size the server chooses.\n\nIf you are uploading large files over high-speed links and these\nuploads do not fully utilize your bandwidth, then increasing this\nmay help to speed up the transfers.",
+      "helpType": "int",
+      "name": "upload_concurrency",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "int"
+    },
+    "dosya-workspace-id": {
+      "advanced": false,
+      "backend": "dosya",
+      "cliName": "dosya-workspace-id",
+      "default": "",
+      "defaultStr": "",
+      "help": "Your workspace ID.\n\nLeave this blank to use the one workspace the API key can reach, which\nis what a key restricted to a single workspace does. If the key can\nreach several, rclone will refuse and list their IDs for you to choose\nfrom.",
+      "helpType": "string",
+      "name": "workspace_id",
       "required": false,
       "sensitive": false,
       "source": "config/providers",
@@ -6141,8 +6244,8 @@
       "advanced": false,
       "backend": "ftp",
       "cliName": "ftp-user",
-      "default": "bhunter",
-      "defaultStr": "bhunter",
+      "default": "runner",
+      "defaultStr": "runner",
       "help": "FTP username.",
       "helpType": "string",
       "name": "user",
@@ -6768,8 +6871,8 @@
     "gid": {
       "advanced": false,
       "cliName": "gid",
-      "default": 100,
-      "defaultStr": "100",
+      "default": 1001,
+      "defaultStr": "1001",
       "group": "vfs",
       "help": "Override the gid field set by the filesystem (not supported on Windows)",
       "name": "gid",
@@ -11508,7 +11611,7 @@
       "cliName": "onedrive-delta",
       "default": false,
       "defaultStr": "false",
-      "help": "If set rclone will use delta listing to implement recursive listings.\n\nIf this flag is set the onedrive backend will advertise `ListR`\nsupport for recursive listings.\n\nSetting this flag speeds up these things greatly:\n\n    rclone lsf -R onedrive:\n    rclone size onedrive:\n    rclone rc vfs/refresh recursive=true\n\n**However** the delta listing API **only** works at the root of the\ndrive. If you use it not at the root then it recurses from the root\nand discards all the data that is not under the directory you asked\nfor. So it will be correct but may not be very efficient.\n\nThis is why this flag is not set as the default.\n\nAs a rule of thumb if nearly all of your data is under rclone's root\ndirectory (the `root/directory` in `onedrive:root/directory`) then\nusing this flag will be a big performance win. If your data is\nmostly not under the root then using this flag will be a big\nperformance loss.\n\nIt is recommended if you are mounting your onedrive at the root\n(or near the root when using crypt) and using rclone `rc vfs/refresh`.\n",
+      "help": "If set rclone will use delta listing to implement recursive listings.\n\nIf this flag is set the onedrive backend will advertise `ListR`\nsupport for recursive listings.\n\nSetting this flag speeds up these things greatly:\n\n    rclone lsf -R onedrive:\n    rclone size onedrive:\n    rclone rc vfs/refresh recursive=true\n\nRclone asks for the delta listing of the directory being listed. If\nthe drive only supports delta listings at the root of the drive (as\nsome older OneDrive for Business and SharePoint drives do) then\nrclone lists from the root and discards all the data that is not\nunder the directory you asked for. So it will be correct but may not\nbe very efficient.\n",
       "helpType": null,
       "name": "delta",
       "required": false,
@@ -14345,32 +14448,32 @@
       "examples": [
         {
           "Help": "Owner gets FULL_CONTROL.\nNo one else has access rights (default).",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,US3,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,US3,Wasabi,Zata,ZeroServices,Other",
           "Value": "private"
         },
         {
           "Help": "Owner gets FULL_CONTROL.\nThe AllUsers group gets READ access.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,US3,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,US3,Wasabi,Zata,ZeroServices,Other",
           "Value": "public-read"
         },
         {
           "Help": "Owner gets FULL_CONTROL.\nThe AllUsers group gets READ and WRITE access.\nGranting this on a bucket is generally not recommended.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
           "Value": "public-read-write"
         },
         {
           "Help": "Owner gets FULL_CONTROL.\nThe AuthenticatedUsers group gets READ access.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
           "Value": "authenticated-read"
         },
         {
           "Help": "Object owner gets FULL_CONTROL.\nBucket owner gets READ access.\nIf you specify this canned ACL when creating a bucket, Amazon S3 ignores it.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
           "Value": "bucket-owner-read"
         },
         {
           "Help": "Both the object owner and the bucket owner get FULL_CONTROL over the object.\nIf you specify this canned ACL when creating a bucket, Amazon S3 ignores it.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
           "Value": "bucket-owner-full-control"
         },
         {
@@ -16015,6 +16118,16 @@
           "Value": "nz.s3.rackcorp.com"
         },
         {
+          "Help": "Aachen-1, Germany",
+          "Provider": "RelAix",
+          "Value": "s3-gw1.relaix.net"
+        },
+        {
+          "Help": "Aachen-2, Germany",
+          "Provider": "RelAix",
+          "Value": "s3-gw2.relaix.net"
+        },
+        {
           "Help": "Amsterdam Endpoint",
           "Provider": "Scaleway",
           "Value": "s3.nl-ams.scw.cloud"
@@ -17584,6 +17697,10 @@
         {
           "Help": "Rclone S3 Server",
           "Value": "Rclone"
+        },
+        {
+          "Help": "RelAix.Storage",
+          "Value": "RelAix"
         },
         {
           "Help": "Scaleway Object Storage",
@@ -20010,8 +20127,8 @@
       "advanced": false,
       "backend": "sftp",
       "cliName": "sftp-user",
-      "default": "bhunter",
-      "defaultStr": "bhunter",
+      "default": "runner",
+      "defaultStr": "runner",
       "help": "SSH username.",
       "helpType": "string",
       "name": "user",
@@ -21888,7 +22005,7 @@
     "temp-dir": {
       "advanced": false,
       "cliName": "temp-dir",
-      "help": "Directory rclone will use for temporary files (default \"/tmp\")",
+      "help": "Directory rclone will use for temporary files (default \"/home/runner/work/_temp\")",
       "name": "temp-dir",
       "required": false,
       "sensitive": false,
@@ -21995,8 +22112,8 @@
     "uid": {
       "advanced": false,
       "cliName": "uid",
-      "default": 1000,
-      "defaultStr": "1000",
+      "default": 1001,
+      "defaultStr": "1001",
       "group": "vfs",
       "help": "Override the uid field set by the filesystem (not supported on Windows)",
       "name": "uid",
@@ -29334,8 +29451,8 @@
       },
       {
         "Advanced": false,
-        "Default": 1000,
-        "DefaultStr": "1000",
+        "Default": 1001,
+        "DefaultStr": "1001",
         "Exclusive": false,
         "FieldName": "UID",
         "Groups": "VFS",
@@ -29348,12 +29465,12 @@
         "Sensitive": false,
         "Type": "uint32",
         "Value": null,
-        "ValueStr": "1000"
+        "ValueStr": "1001"
       },
       {
         "Advanced": false,
-        "Default": 100,
-        "DefaultStr": "100",
+        "Default": 1001,
+        "DefaultStr": "1001",
         "Exclusive": false,
         "FieldName": "GID",
         "Groups": "VFS",
@@ -29366,7 +29483,7 @@
         "Sensitive": false,
         "Type": "uint32",
         "Value": null,
-        "ValueStr": "100"
+        "ValueStr": "1001"
       },
       {
         "Advanced": false,
@@ -30094,7 +30211,7 @@
           "cliName": "azureblob-directory-markers",
           "default": false,
           "defaultStr": "false",
-          "help": "Upload an empty object with a trailing slash when a new directory is created\n\nEmpty folders are unsupported for bucket based remotes, this option\ncreates an empty object ending with \"/\", to persist the folder.\n\nThis object also has the metadata \"hdi_isfolder = true\" to conform to\nthe Microsoft standard.\n ",
+          "help": "Upload an empty object with a trailing slash when a new directory is created\n\nEmpty folders are unsupported for bucket based remotes, this option\ncreates an empty object ending with \"/\", to persist the folder.\n\nThis object also has the metadata \"hdi_isfolder = true\" to conform to\nthe Microsoft standard.\n\nThis is not needed on storage accounts with a hierarchical namespace\n(see the hns option) as these always support empty directories.\n ",
           "helpType": null,
           "name": "directory_markers",
           "required": false,
@@ -30172,6 +30289,23 @@
           "source": "config/providers",
           "type": "bool"
         },
+        "hns": {
+          "advanced": true,
+          "backend": "azureblob",
+          "cliName": "azureblob-hns",
+          "default": {
+            "Valid": false,
+            "Value": false
+          },
+          "defaultStr": "unset",
+          "help": "Set if the storage account has a hierarchical namespace.\n\nStorage accounts with hierarchical namespace enabled (Azure Data Lake\nStorage Gen2) have real directories which can be empty.\n\nIf this is unset then rclone will read it from the storage account\nand save it in the config file.\n",
+          "helpType": "Tristate",
+          "name": "hns",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "Tristate"
+        },
         "key": {
           "advanced": false,
           "backend": "azureblob",
@@ -30206,7 +30340,8 @@
           "cliName": "azureblob-list-parallelism",
           "default": 0,
           "defaultStr": "0",
-          "help": "Number of parallel shards to list a directory with.\n\nEXPERIMENTAL. If set greater than 1, the blob name keyspace of each\ndirectory is split into this many ranges which are listed concurrently\nusing the Arrow startFrom/endBefore range parameters. This can\ndramatically speed up listing containers with millions of objects, for\nboth recursive (ListR) and single directory listings.\n\nThis has no effect unless \"use_arrow_list\" is also set, as Arrow is the\nonly listing path that supports server-side name ranges. The default of\n0 (or 1) lists sequentially.",
+          "help": "Number of parallel shards to list a directory with.\n\nIf set greater than 1, the blob name keyspace of each directory is\nsplit into ranges which are listed concurrently using the Arrow\nstartFrom/endBefore range parameters. This can dramatically speed up\nlisting containers with millions of objects, for both recursive\n(ListR) and single directory listings. Speed keeps improving up to a\nparallelism of around 30.\n\nThis has no effect unless \"use_arrow_list\" is also set, as Arrow is the\nonly listing path that supports server-side name ranges. If the\naccount does not support range listing (e.g. it has a hierarchical\nnamespace) the listing falls back to sequential. The default of 0 (or\n1) lists sequentially.",
+          "helpType": "int",
           "name": "list_parallelism",
           "required": false,
           "sensitive": false,
@@ -30427,7 +30562,8 @@
           "cliName": "azureblob-use-arrow-list",
           "default": false,
           "defaultStr": "false",
-          "help": "Use the experimental Apache Arrow listing format.\n\nIf set, directory listings are fetched using the ListBlobs Apache\nArrow response format instead of XML. This can be faster for very\nlarge containers.\n\nThis is EXPERIMENTAL and requires the \"Blob Listing with Apache Arrow\"\npreview feature to be enabled on the storage account. It is NOT\nsupported on accounts with a hierarchical namespace (ADLS Gen2) -\nthose return a 409 error. If the feature is not enabled the server\nreturns XML and the listing transparently falls back to the normal XML\npath (logged at debug level).\n\nNot supported with connection_string auth - falls back to normal\nlisting.",
+          "help": "Use the Apache Arrow listing format.\n\nIf set, directory listings are fetched using the ListBlobs Apache\nArrow response format instead of XML. Arrow responses are smaller and\nmuch cheaper to parse, making listings of large containers several\ntimes faster. Combine with \"list_parallelism\" for the biggest gains.\n\n\"Blob Listing with Apache Arrow\" is in public preview at Microsoft and\nis only supported on flat namespace accounts. On accounts with a\nhierarchical namespace (ADLS Gen2), or where the feature is otherwise\nunavailable, the server returns XML and the listing transparently\nfalls back to the normal XML path (logged at debug level).",
+          "helpType": null,
           "name": "use_arrow_list",
           "required": false,
           "sensitive": false,
@@ -31569,8 +31705,8 @@
           "advanced": true,
           "backend": "cache",
           "cliName": "cache-chunk-path",
-          "default": "/home/bhunter/.cache/rclone/cache-backend",
-          "defaultStr": "/home/bhunter/.cache/rclone/cache-backend",
+          "default": "/home/runner/.cache/rclone/cache-backend",
+          "defaultStr": "/home/runner/.cache/rclone/cache-backend",
           "help": "Directory to cache chunk files.\n\nPath to where partial file data (chunks) are stored locally. The remote\nname is appended to the final path.\n\nThis config follows the \"--cache-db-path\". If you specify a custom\nlocation for \"--cache-db-path\" and don't specify one for \"--cache-chunk-path\"\nthen \"--cache-chunk-path\" will use the same path as \"--cache-db-path\".",
           "helpType": "string",
           "name": "chunk_path",
@@ -31639,8 +31775,8 @@
           "advanced": true,
           "backend": "cache",
           "cliName": "cache-db-path",
-          "default": "/home/bhunter/.cache/rclone/cache-backend",
-          "defaultStr": "/home/bhunter/.cache/rclone/cache-backend",
+          "default": "/home/runner/.cache/rclone/cache-backend",
+          "defaultStr": "/home/runner/.cache/rclone/cache-backend",
           "help": "Directory to store file structure metadata DB.\n\nThe remote name is used as the DB file name.",
           "helpType": "string",
           "name": "db_path",
@@ -32729,6 +32865,98 @@
         }
       },
       "prefix": "doi"
+    },
+    "dosya": {
+      "aliases": [],
+      "description": "dosya.dev",
+      "name": "dosya",
+      "options": {
+        "api_key": {
+          "advanced": false,
+          "backend": "dosya",
+          "cliName": "dosya-api-key",
+          "default": "",
+          "defaultStr": "",
+          "help": "Your API Key, get it from https://dosya.dev/profile under \"API keys\".",
+          "helpType": "string",
+          "name": "api_key",
+          "required": true,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "api_url": {
+          "advanced": true,
+          "backend": "dosya",
+          "cliName": "dosya-api-url",
+          "default": "https://api.dosya.dev",
+          "defaultStr": "https://api.dosya.dev",
+          "help": "API base URL.",
+          "helpType": "string",
+          "name": "api_url",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "description": {
+          "advanced": true,
+          "backend": "dosya",
+          "cliName": "dosya-description",
+          "default": "",
+          "defaultStr": "",
+          "help": "Description of the remote.",
+          "helpType": "string",
+          "name": "description",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "encoding": {
+          "advanced": true,
+          "backend": "dosya",
+          "cliName": "dosya-encoding",
+          "default": 52666398,
+          "defaultStr": "Slash,LtGt,DoubleQuote,SingleQuote,BackSlash,Del,Ctl,LeftSpace,RightSpace,InvalidUtf8,Dot",
+          "help": "The encoding for the backend.\n\nSee the [encoding section in the overview](/overview/#encoding) for more info.",
+          "helpType": "Encoding",
+          "name": "encoding",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "Encoding"
+        },
+        "upload_concurrency": {
+          "advanced": true,
+          "backend": "dosya",
+          "cliName": "dosya-upload-concurrency",
+          "default": 4,
+          "defaultStr": "4",
+          "help": "Concurrency for multipart uploads.\n\nThis is the number of parts of the same file that are uploaded\nconcurrently. The first part is always uploaded on its own, because\nthe server creates the upload when it receives it.\n\nEach part in flight is held in memory, so memory use grows with\nthis value times the part size the server chooses.\n\nIf you are uploading large files over high-speed links and these\nuploads do not fully utilize your bandwidth, then increasing this\nmay help to speed up the transfers.",
+          "helpType": "int",
+          "name": "upload_concurrency",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "int"
+        },
+        "workspace_id": {
+          "advanced": false,
+          "backend": "dosya",
+          "cliName": "dosya-workspace-id",
+          "default": "",
+          "defaultStr": "",
+          "help": "Your workspace ID.\n\nLeave this blank to use the one workspace the API key can reach, which\nis what a key restricted to a single workspace does. If the key can\nreach several, rclone will refuse and list their IDs for you to choose\nfrom.",
+          "helpType": "string",
+          "name": "workspace_id",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        }
+      },
+      "prefix": "dosya"
     },
     "drime": {
       "aliases": [],
@@ -34974,8 +35202,8 @@
           "advanced": false,
           "backend": "ftp",
           "cliName": "ftp-user",
-          "default": "bhunter",
-          "defaultStr": "bhunter",
+          "default": "runner",
+          "defaultStr": "runner",
           "help": "FTP username.",
           "helpType": "string",
           "name": "user",
@@ -38928,7 +39156,7 @@
           "cliName": "onedrive-delta",
           "default": false,
           "defaultStr": "false",
-          "help": "If set rclone will use delta listing to implement recursive listings.\n\nIf this flag is set the onedrive backend will advertise `ListR`\nsupport for recursive listings.\n\nSetting this flag speeds up these things greatly:\n\n    rclone lsf -R onedrive:\n    rclone size onedrive:\n    rclone rc vfs/refresh recursive=true\n\n**However** the delta listing API **only** works at the root of the\ndrive. If you use it not at the root then it recurses from the root\nand discards all the data that is not under the directory you asked\nfor. So it will be correct but may not be very efficient.\n\nThis is why this flag is not set as the default.\n\nAs a rule of thumb if nearly all of your data is under rclone's root\ndirectory (the `root/directory` in `onedrive:root/directory`) then\nusing this flag will be a big performance win. If your data is\nmostly not under the root then using this flag will be a big\nperformance loss.\n\nIt is recommended if you are mounting your onedrive at the root\n(or near the root when using crypt) and using rclone `rc vfs/refresh`.\n",
+          "help": "If set rclone will use delta listing to implement recursive listings.\n\nIf this flag is set the onedrive backend will advertise `ListR`\nsupport for recursive listings.\n\nSetting this flag speeds up these things greatly:\n\n    rclone lsf -R onedrive:\n    rclone size onedrive:\n    rclone rc vfs/refresh recursive=true\n\nRclone asks for the delta listing of the directory being listed. If\nthe drive only supports delta listings at the root of the drive (as\nsome older OneDrive for Business and SharePoint drives do) then\nrclone lists from the root and discards all the data that is not\nunder the directory you asked for. So it will be correct but may not\nbe very efficient.\n",
           "helpType": null,
           "name": "delta",
           "required": false,
@@ -41157,7 +41385,7 @@
     },
     "s3": {
       "aliases": [],
-      "description": "Amazon S3 Compliant Storage Providers including AWS, Alibaba, ArvanCloud, BizflyCloud, Ceph, ChinaMobile, Cloudflare, Cubbit, DigitalOcean, Dreamhost, Exaba, Fastly, FileLu, FlashBlade, GCS, HCP, Hetzner, HuaweiOBS, IBMCOS, IDrive, ImpossibleCloud, Intercolo, IONOS, Leviia, Liara, Linode, LyveCloud, Magalu, Mega, Minio, Netease, Outscale, OVHcloud, Petabox, Qiniu, Rabata, RackCorp, Rclone, Scaleway, Scality, SeaweedFS, Selectel, Servercore, SpectraLogic, Storj, Synology, TencentCOS, US3, Wasabi, Zadara, Zata, ZeroServices, Other",
+      "description": "Amazon S3 Compliant Storage Providers including AWS, Alibaba, ArvanCloud, BizflyCloud, Ceph, ChinaMobile, Cloudflare, Cubbit, DigitalOcean, Dreamhost, Exaba, Fastly, FileLu, FlashBlade, GCS, HCP, Hetzner, HuaweiOBS, IBMCOS, IDrive, ImpossibleCloud, Intercolo, IONOS, Leviia, Liara, Linode, LyveCloud, Magalu, Mega, Minio, Netease, Outscale, OVHcloud, Petabox, Qiniu, Rabata, RackCorp, Rclone, RelAix, Scaleway, Scality, SeaweedFS, Selectel, Servercore, SpectraLogic, Storj, Synology, TencentCOS, US3, Wasabi, Zadara, Zata, ZeroServices, Other",
       "name": "s3",
       "options": {
         "access_key_id": {
@@ -41183,32 +41411,32 @@
           "examples": [
             {
               "Help": "Owner gets FULL_CONTROL.\nNo one else has access rights (default).",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,US3,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,US3,Wasabi,Zata,ZeroServices,Other",
               "Value": "private"
             },
             {
               "Help": "Owner gets FULL_CONTROL.\nThe AllUsers group gets READ access.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,US3,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,US3,Wasabi,Zata,ZeroServices,Other",
               "Value": "public-read"
             },
             {
               "Help": "Owner gets FULL_CONTROL.\nThe AllUsers group gets READ and WRITE access.\nGranting this on a bucket is generally not recommended.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
               "Value": "public-read-write"
             },
             {
               "Help": "Owner gets FULL_CONTROL.\nThe AuthenticatedUsers group gets READ access.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
               "Value": "authenticated-read"
             },
             {
               "Help": "Object owner gets FULL_CONTROL.\nBucket owner gets READ access.\nIf you specify this canned ACL when creating a bucket, Amazon S3 ignores it.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
               "Value": "bucket-owner-read"
             },
             {
               "Help": "Both the object owner and the bucket owner get FULL_CONTROL over the object.\nIf you specify this canned ACL when creating a bucket, Amazon S3 ignores it.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
               "Value": "bucket-owner-full-control"
             },
             {
@@ -42853,6 +43081,16 @@
               "Value": "nz.s3.rackcorp.com"
             },
             {
+              "Help": "Aachen-1, Germany",
+              "Provider": "RelAix",
+              "Value": "s3-gw1.relaix.net"
+            },
+            {
+              "Help": "Aachen-2, Germany",
+              "Provider": "RelAix",
+              "Value": "s3-gw2.relaix.net"
+            },
+            {
               "Help": "Amsterdam Endpoint",
               "Provider": "Scaleway",
               "Value": "s3.nl-ams.scw.cloud"
@@ -44422,6 +44660,10 @@
             {
               "Help": "Rclone S3 Server",
               "Value": "Rclone"
+            },
+            {
+              "Help": "RelAix.Storage",
+              "Value": "RelAix"
             },
             {
               "Help": "Scaleway Object Storage",
@@ -46811,8 +47053,8 @@
           "advanced": false,
           "backend": "sftp",
           "cliName": "sftp-user",
-          "default": "bhunter",
-          "defaultStr": "bhunter",
+          "default": "runner",
+          "defaultStr": "runner",
           "help": "SSH username.",
           "helpType": "string",
           "name": "user",
