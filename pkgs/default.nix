@@ -25,10 +25,6 @@ in
 
   sublime = pkgs.callPackage ./sublime { };
 
-  teldrive = pkgs.callPackage ./teldrive {
-    inherit githubReleaseBinary;
-  };
-
   opencode = pkgs.callPackage ./opencode { };
 
   mcontrolcenter = pkgs.callPackage ./mcontrolcenter { };

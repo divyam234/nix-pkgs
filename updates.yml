@@ -183,19 +183,3 @@ packages:
         name: nordvpn-v{version}-linux-amd64.tar.gz
       aarch64-linux:
         name: nordvpn-v{version}-linux-arm64.tar.gz
-
-  teldrive:
-    repo: tgdrive/teldrive
-    file: pkgs/teldrive/default.nix
-    tagPrefix: ''
-    version:
-      source: tag
-    assets:
-      x86_64-linux:
-        pattern: '^teldrive-[0-9]+\.[0-9]+\.[0-9]+-linux-amd64\.tar\.gz$'
-      aarch64-linux:
-        pattern: '^teldrive-[0-9]+\.[0-9]+\.[0-9]+-linux-arm64\.tar\.gz$'
-    test:
-      command: bin/teldrive
-      args: [--version]
-      expectedOutput: '{version}'
