@@ -183,3 +183,18 @@ packages:
         name: nordvpn-v{version}-linux-amd64.tar.gz
       aarch64-linux:
         name: nordvpn-v{version}-linux-arm64.tar.gz
+  spoofdpi:
+    repo: xvzc/SpoofDPI
+    file: pkgs/spoofdpi/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: spoofdpi_{version}_linux_x86_64.tar.gz
+      aarch64-linux:
+        name: spoofdpi_{version}_linux_arm64.tar.gz
+    test:
+      command: bin/spoofdpi
+      args: [-v]
+      expectedOutput: '{version}'

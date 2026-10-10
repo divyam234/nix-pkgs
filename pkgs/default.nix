@@ -25,6 +25,10 @@ in
 
   sublime = pkgs.callPackage ./sublime { };
 
+  spoofdpi = pkgs.callPackage ./spoofdpi {
+    inherit githubReleaseBinary;
+  };
+
   opencode = pkgs.callPackage ./opencode { };
 
   mcontrolcenter = pkgs.callPackage ./mcontrolcenter { };
