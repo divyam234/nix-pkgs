@@ -6,16 +6,16 @@
 }:
 
 let
-  version = "9.4";
+  version = "9.5-beta1";
 
   sources = {
     x86_64-linux = {
       asset = "ida-pro-${version}-x86_64-linux.tar.gz";
-      hash = "sha256-XJrPur8Ig8tALcgxOFGjE8DqR5+GeFu5WruQiRTGkBg=";
+      hash = "sha256-I3exDDr9Ft9LWRN2oHj4vVhlGfOpW+8kFFSVrBfJAyc=";
     };
     aarch64-linux = {
       asset = "ida-pro-${version}-aarch64-linux.tar.gz";
-      hash = "sha256-/lWMdt8aoPDlzdGRJ5UGEpZQ9C4pQH7qNLPdbkxl3yc=";
+      hash = "sha256-+D6CiVDirolfI3KCliZ3A0TSedmqCK8SoVu9BumOte8=";
     };
   };
 
