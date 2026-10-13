@@ -89,6 +89,22 @@ packages:
         name: zed-linux-aarch64.tar.gz
 
 
+  pdfcraft:
+    repo: storytold/pdfcraft
+    file: pkgs/pdfcraft/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: pdfcraft-{version}-linux-x86_64.tar.gz
+      aarch64-linux:
+        name: pdfcraft-{version}-linux-aarch64.tar.gz
+    test:
+      command: bin/pdfcraft-cli
+      args: [--version]
+      expectedOutput: '{version}'
+
   probe:
     repo: crizant/probe
     file: pkgs/probe/default.nix

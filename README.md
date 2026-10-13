@@ -14,7 +14,7 @@ Replace `rclone` with any package below.
 ## Packages
 
 `aria2`, `brave`, `bun`, `codeforge`, `disktree`,
-`fluxdown`, `foliate`, `hydra`, `mcontrolcenter`, `nordvpn`, `opencode`, `probe`,
+`fluxdown`, `foliate`, `hydra`, `mcontrolcenter`, `nordvpn`, `opencode`, `pdfcraft`, `probe`,
 `rclone`, `restic`, `sublime`, `tusk`, `zed-editor`, `zjstatus`.
 
 

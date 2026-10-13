@@ -32,6 +32,8 @@ in
 
   opencode = pkgs.callPackage ./opencode { };
 
+  pdfcraft = pkgs.callPackage ./pdfcraft { };
+
   probe = pkgs.callPackage ./probe {
     inherit gpuiApp;
   };
