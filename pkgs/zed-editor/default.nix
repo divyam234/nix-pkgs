@@ -18,17 +18,17 @@
 }:
 
 let
-  version = "1.23.2";
+  version = "1.23.3";
 
   sources = {
     x86_64-linux = {
       asset = "zed-linux-x86_64.tar.gz";
-      hash = "sha256-yr3dWvKyahljPqOfXd4HDiqtIEu4Fb+nTLZQc//V/zk=";
+      hash = "sha256-9xkSlClWmbtayBCkxQ+CkK09AZHD5QYRT7FKcjaSGmE=";
     };
 
     aarch64-linux = {
       asset = "zed-linux-aarch64.tar.gz";
-      hash = "sha256-iC3C3AujFs1e+99WbrkaRzvUYto6jChPOlvMlrHpp8w=";
+      hash = "sha256-IkMbvRXhsY7kKXk5WyQtMmF41KX21mCP9ftFIMU1ock=";
     };
   };
 
