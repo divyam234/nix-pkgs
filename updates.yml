@@ -46,6 +46,18 @@ packages:
       args: [--version]
       expectedOutput: '{version}'
 
+  disktree:
+    repo: tobi/disktree
+    file: pkgs/disktree/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: disktree-{version}-x86_64-linux.tar.gz
+      aarch64-linux:
+        name: disktree-{version}-aarch64-linux.tar.gz
+
   foliate:
     source: github-head
     repo: johnfactotum/foliate
@@ -53,6 +65,16 @@ packages:
     fetchSubmodules: true
     version:
       base: 3.3.0
+
+  fluxdown:
+    repo: zerx-lab/FluxDown
+    file: pkgs/fluxdown/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: FluxDown-{version}-linux-x64.tar.gz
 
   zed-editor:
     repo: zed-industries/zed
@@ -65,6 +87,17 @@ packages:
         name: zed-linux-x86_64.tar.gz
       aarch64-linux:
         name: zed-linux-aarch64.tar.gz
+
+
+  probe:
+    repo: crizant/probe
+    file: pkgs/probe/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: probe-desktop-{version}-linux-x64.tar.gz
 
   ida-pro:
     repo: divyam234/nix-pkgs
@@ -183,18 +216,3 @@ packages:
         name: nordvpn-v{version}-linux-amd64.tar.gz
       aarch64-linux:
         name: nordvpn-v{version}-linux-arm64.tar.gz
-  spoofdpi:
-    repo: xvzc/SpoofDPI
-    file: pkgs/spoofdpi/default.nix
-    tagPrefix: v
-    version:
-      source: tag
-    assets:
-      x86_64-linux:
-        name: spoofdpi_{version}_linux_x86_64.tar.gz
-      aarch64-linux:
-        name: spoofdpi_{version}_linux_arm64.tar.gz
-    test:
-      command: bin/spoofdpi
-      args: [-v]
-      expectedOutput: '{version}'

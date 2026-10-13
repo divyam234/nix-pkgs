@@ -2,19 +2,9 @@
   lib,
   stdenvNoCC,
   fetchurl,
-  autoPatchelfHook,
-  makeBinaryWrapper,
+  gpuiApp,
   nodejs,
   alsa-lib,
-  glib,
-  libdrm,
-  libGL,
-  libglvnd,
-  libxkbcommon,
-  stdenv,
-  vulkan-loader,
-  wayland,
-  xkeyboard_config,
 }:
 
 let
@@ -34,19 +24,8 @@ let
 
   source = sources.${stdenvNoCC.hostPlatform.system} or (throw "zed-editor is not packaged for ${stdenvNoCC.hostPlatform.system}");
 
-  runtimeLibs = lib.makeLibraryPath [
-    alsa-lib
-    glib
-    libdrm
-    libGL
-    libglvnd
-    libxkbcommon
-    stdenv.cc.cc.lib
-    vulkan-loader
-    wayland
-  ];
 in
-stdenvNoCC.mkDerivation {
+gpuiApp {
   pname = "zed-editor";
   inherit version;
 
@@ -57,22 +36,9 @@ stdenvNoCC.mkDerivation {
 
   sourceRoot = "zed.app";
 
-  nativeBuildInputs = [
-    autoPatchelfHook
-    makeBinaryWrapper
-  ];
-
-  buildInputs = [
-    alsa-lib
-    glib
-    libdrm
-    libGL
-    libglvnd
-    libxkbcommon
-    stdenv.cc.cc.lib
-    vulkan-loader
-    wayland
-  ];
+  binaryPath = "libexec/zed-editor";
+  extraWrapperArgs = [ "--suffix" "PATH" ":" (lib.makeBinPath [ nodejs ]) ];
+  buildInputs = [ alsa-lib ];
 
   installPhase = ''
     runHook preInstall
@@ -91,13 +57,6 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
-  postFixup = ''
-    patchelf $out/libexec/zed-editor --add-rpath ${runtimeLibs}
-    wrapProgram $out/libexec/zed-editor \
-      --suffix PATH : ${lib.makeBinPath [ nodejs ]} \
-      --prefix LD_LIBRARY_PATH : ${runtimeLibs} \
-      --set-default XKB_CONFIG_ROOT "${xkeyboard_config}/share/X11/xkb"
-  '';
 
   meta = {
     description = "High-performance, multiplayer code editor from the creators of Atom and Tree-sitter";

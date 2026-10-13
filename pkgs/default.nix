@@ -2,6 +2,7 @@
 
 let
   githubReleaseBinary = pkgs.callPackage ../lib/github-release-binary.nix { };
+  gpuiApp = pkgs.callPackage ../lib/gpui-app.nix { };
 in
 {
   aria2 = pkgs.callPackage ./aria2 { };
@@ -10,6 +11,10 @@ in
 
   codeforge = pkgs.callPackage ./codeforge {
     inherit githubReleaseBinary;
+  };
+
+  disktree = pkgs.callPackage ./disktree {
+    inherit gpuiApp;
   };
 
 
@@ -25,11 +30,11 @@ in
 
   sublime = pkgs.callPackage ./sublime { };
 
-  spoofdpi = pkgs.callPackage ./spoofdpi {
-    inherit githubReleaseBinary;
-  };
-
   opencode = pkgs.callPackage ./opencode { };
+
+  probe = pkgs.callPackage ./probe {
+    inherit gpuiApp;
+  };
 
   mcontrolcenter = pkgs.callPackage ./mcontrolcenter { };
 
@@ -39,7 +44,13 @@ in
 
   foliate = pkgs.callPackage ./foliate { };
 
-  zed-editor = pkgs.callPackage ./zed-editor { };
+  fluxdown = pkgs.callPackage ./fluxdown {
+    inherit gpuiApp;
+  };
+
+  zed-editor = pkgs.callPackage ./zed-editor {
+    inherit gpuiApp;
+  };
 
   zjstatus = pkgs.callPackage ./zjstatus { };
 
