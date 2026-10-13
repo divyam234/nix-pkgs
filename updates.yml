@@ -99,6 +99,16 @@ packages:
       x86_64-linux:
         name: probe-desktop-{version}-linux-x64.tar.gz
 
+  tusk:
+    repo: alpcanaydin/tusk
+    file: pkgs/tusk/default.nix
+    tagPrefix: v
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: Tusk-{version}-ubuntu-amd64.deb
+
   ida-pro:
     repo: divyam234/nix-pkgs
     file: pkgs/ida-pro/default.nix

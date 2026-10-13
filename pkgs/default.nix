@@ -48,6 +48,10 @@ in
     inherit gpuiApp;
   };
 
+  tusk = pkgs.callPackage ./tusk {
+    inherit gpuiApp;
+  };
+
   zed-editor = pkgs.callPackage ./zed-editor {
     inherit gpuiApp;
   };
