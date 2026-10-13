@@ -13,8 +13,13 @@ on:
         description: "Override magnet link"
         required: false
         type: string
+      force:
+        description: "Rebuild even if the release tag already exists (overwrites assets)"
+        required: false
+        type: boolean
+        default: false
 
-run-name: Publish IDA Pro ${{ inputs.version || 'latest from hex-rays.com' }}
+run-name: Publish IDA Pro ${{ inputs.version || 'latest from hex-rays.com' }}${{ inputs.force && ' (force)' || '' }}
 
 permissions:
   contents: write
@@ -44,10 +49,15 @@ jobs:
       - id: detect
         env:
           GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           uv run --with beautifulsoup4 python3 << 'PYEOF'
           import json, os, re, subprocess, sys, urllib.parse, urllib.request
           from bs4 import BeautifulSoup
+
+          force = os.environ.get("FORCE", "false").lower() == "true"
+          input_version = os.environ.get("INPUT_VERSION", "").strip()
 
           req = urllib.request.Request(
               "https://hexrays.su/",
@@ -84,11 +94,37 @@ jobs:
           torrent_link = details.find("a", href=lambda h: h and h.endswith(".torrent"))
           torrent = urllib.parse.urljoin("https://hexrays.su/", torrent_link["href"]) if torrent_link else ""
 
+          if input_version:
+              ver = input_version.strip()
+              # Apply same sanitization as scraped versions so tags stay safe
+              ver = re.sub(r"[()]", "", ver)
+              ver = re.sub(r"[^A-Za-z0-9._-]", "-", ver)
+              ver = re.sub(r"-+", "-", ver).strip("-")
+              if force:
+                  print(f"Using input version override {ver} with force=true.", flush=True)
+                  with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                      f.write(f"version={ver}\n")
+                      f.write(f"date={date}\n")
+                      f.write(f"magnet={magnet}\n")
+                      f.write(f"torrent={torrent}\n")
+                      f.write("publish=true\n")
+                  sys.exit(0)
+
           current = ""
           with open("pkgs/ida-pro/default.nix") as f:
               m = re.search(r'^\s*version = "([^"]+)";', f.read(), re.MULTILINE)
               if m:
                   current = m.group(1)
+
+          if force and ver:
+              print(f"force=true, rebuilding {ver} even if release exists.", flush=True)
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write(f"version={ver}\n")
+                  f.write(f"date={date}\n")
+                  f.write(f"magnet={magnet}\n")
+                  f.write(f"torrent={torrent}\n")
+                  f.write("publish=true\n")
+              sys.exit(0)
 
           publish = ver != current
           if not publish:

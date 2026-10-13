@@ -8,11 +8,16 @@ on:
       version:
         required: false
         type: string
+      force:
+        description: "Rebuild even if the release tag already exists (overwrites assets)"
+        required: false
+        type: boolean
+        default: false
 
-run-name: Publish rclone ${{ inputs.version || 'latest unpublished tag' }}
+run-name: Publish rclone ${{ inputs.version || 'latest unpublished tag' }}${{ inputs.force && ' (force)' || '' }}
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: publish-rclone
@@ -26,6 +31,7 @@ jobs:
       source_repository: divyam234/rclone-private
       release_prefix: rclone-
       requested_version: ${{ inputs.version }}
+      force: ${{ inputs.force }}
       tag_pattern: '^v[0-9]+\.[0-9]+\.[0-9]+$'
       version_example: 'an existing stable tag such as v1.74.4'
       sort_version_reverse: true
@@ -102,12 +108,20 @@ jobs:
       - name: Create prerelease and upload assets
         working-directory: source
         run: |
-          gh release create "$RELEASE_TAG" \
-            build/rclone-"${VERSION}"-linux-amd64.tar.gz \
-            build/rclone-"${VERSION}"-linux-arm64.tar.gz \
-            build/checksums.txt \
-            --repo "$RELEASE_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "rclone $VERSION" \
-            --prerelease \
-            --latest=false
+          if gh release view "$RELEASE_TAG" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" \
+              build/rclone-"${VERSION}"-linux-amd64.tar.gz \
+              build/rclone-"${VERSION}"-linux-arm64.tar.gz \
+              build/checksums.txt \
+              --repo "$RELEASE_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" \
+              build/rclone-"${VERSION}"-linux-amd64.tar.gz \
+              build/rclone-"${VERSION}"-linux-arm64.tar.gz \
+              build/checksums.txt \
+              --repo "$RELEASE_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "rclone $VERSION" \
+              --prerelease \
+              --latest=false
+          fi
