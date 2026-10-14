@@ -27,3 +27,6 @@ NixOS and Home Manager rclone module documentation is in [modules/rclone/README.
 ```sh
 ./scripts/update-all.sh --check --build
 ```
+
+NordVPN and rclone publishing workflows run daily. Manual runs support `force`
+to rebuild existing releases; scheduled runs always use `force: false`.

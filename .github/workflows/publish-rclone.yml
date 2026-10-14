@@ -31,7 +31,7 @@ jobs:
       source_repository: divyam234/rclone-private
       release_prefix: rclone-
       requested_version: ${{ inputs.version }}
-      force: ${{ inputs.force }}
+      force: ${{ inputs.force == true }}
       tag_pattern: '^v[0-9]+\.[0-9]+\.[0-9]+$'
       version_example: 'an existing stable tag such as v1.74.4'
       sort_version_reverse: true
