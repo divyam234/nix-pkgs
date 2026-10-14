@@ -6,12 +6,12 @@
 }:
 
 let
-  version = "1.0.0";
+  version = "1.0.1";
 
   sources = {
     x86_64-linux = {
-      asset = "probe-desktop-1.0.0-linux-x64.tar.gz";
-      hash = "sha256-AkxSc9zLJoH4oluonwf4oDKW2iOkt6LdW/7IH8BR0Hc=";
+      asset = "probe-desktop-1.0.1-linux-x64.tar.gz";
+      hash = "sha256-wjpmdLYnlE7gX9HJ/Mg49v9tJ6/3say3Olx/+qVh9/M=";
     };
   };
 

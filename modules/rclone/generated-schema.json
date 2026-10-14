@@ -21876,6 +21876,20 @@
       "source": "config/providers",
       "type": "string"
     },
+    "teldrive-channel-id": {
+      "advanced": true,
+      "backend": "teldrive",
+      "cliName": "teldrive-channel-id",
+      "default": 0,
+      "defaultStr": "0",
+      "help": "Telegram channel ID to store uploaded chunks in.\n\nWhen set, uploads go to this channel instead of the channel currently\nselected on the TelDrive server, without changing the selection for\nother clients. The channel must already be registered with your\nTelDrive account. Uploads fail rather than rolling over to another\nchannel when this channel is full or unavailable.\n\nLeave at 0 to use the server's selected channel. Requires a TelDrive\nserver that supports the channelId upload parameter.\n",
+      "helpType": "int",
+      "name": "channel_id",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "int"
+    },
     "teldrive-chunk-size": {
       "advanced": false,
       "backend": "teldrive",
@@ -48617,6 +48631,20 @@
           "sensitive": true,
           "source": "config/providers",
           "type": "string"
+        },
+        "channel_id": {
+          "advanced": true,
+          "backend": "teldrive",
+          "cliName": "teldrive-channel-id",
+          "default": 0,
+          "defaultStr": "0",
+          "help": "Telegram channel ID to store uploaded chunks in.\n\nWhen set, uploads go to this channel instead of the channel currently\nselected on the TelDrive server, without changing the selection for\nother clients. The channel must already be registered with your\nTelDrive account. Uploads fail rather than rolling over to another\nchannel when this channel is full or unavailable.\n\nLeave at 0 to use the server's selected channel. Requires a TelDrive\nserver that supports the channelId upload parameter.\n",
+          "helpType": "int",
+          "name": "channel_id",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "int"
         },
         "chunk_size": {
           "advanced": false,
