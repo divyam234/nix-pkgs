@@ -6,13 +6,16 @@ window process. At startup it runs a "check saved sign-in" step which sets
 ``phase = reading(1)``, touches the system keychain, and later flips the
 phase to ``signed-out(2)``, which renders the blocking sign-in veil.
 
-This script neuters that flow with three minimal patches (x86_64):
+This script neuters that flow with three minimal patches (x86_64),
+plus one for the omp manager's offer gate (same event-driven pattern):
 
   P1: gate startup fn ..... phase = reading(1) -> off(0)
   P2: gate completion fn ... phase = signed-out(2) -> off(0)
   P3: gate startup fn entry  -> early return, so the gate is never armed,
       the keychain/saved session is never read, and the account worker is
       never asked to do anything.
+  P4: omp offer gate ........ jne -> jmp, so the "let Tern keep omp up to
+      date?" veil is never rendered.
 
 All sites are located by fingerprints: exact instruction bytes with
 wildcards only for rip-relative displacements (which shift between
@@ -94,12 +97,20 @@ PATTERNS = {
         " 48 89 df"
         " ff 15 ?? ?? ?? ??"
     ),
+    # Omp offer gate: event != -2 and runtime flag == 0 -> build offer UI.
+    "omp-offer": (
+        "48 83 bc 24 d8 01 00 00 fe 74 ??"
+        " 41 80 be d0 ac 00 00 00 75 ??"
+        " 48 8d b4 24 d8 01 00 00 48 8d 7c 24 50"
+        " ff 15 ?? ?? ?? ??"
+    ),
 }
 
 # (site, sub-pattern locating the instruction, imm offset within it, new byte)
 PATCHES = [
     ("gate-start", "48 c7 83 78 0b 00 00 01 00 00 00", 7, 0x00),  # P1: 1 -> 0
     ("gate-complete", "49 c7 06 02 00 00 00", 3, 0x00),  # P2: 2 -> 0
+    ("omp-offer", "41 80 be d0 ac 00 00 00 75", 8, 0xEB),  # P4: jne -> jmp
 ]
 
 # (site, replacement bytes for the function entry)
