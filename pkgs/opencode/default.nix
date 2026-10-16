@@ -9,17 +9,17 @@
 }:
 
 let
-  version = "2.0.29";
+  version = "2.0.30";
 
   sources = {
     x86_64-linux = {
       asset = "opencode-linux-x64.tar.gz";
-      hash = "sha256-F9CkIZF4+YKgj9w9GeklLt+BWyPy8m4+d7gAtDyFNZg=";
+      hash = "sha256-7KlhZ6EtmCGJ1PjTWVK/JtE1oTdRdI22T+F7ctUll5M=";
     };
 
     aarch64-linux = {
       asset = "opencode-linux-arm64.tar.gz";
-      hash = "sha256-OdCqeHUxsL6eZ9CH6P9mXNofjnSBJP55D+NfH90AXDg=";
+      hash = "sha256-UhHpXLYX6wThpaD6MuLg0RokizvH7RBdhMrXYcxmq3s=";
     };
   };
 
