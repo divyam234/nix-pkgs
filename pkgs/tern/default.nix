@@ -60,6 +60,12 @@ gpuiApp {
     # unpatched silently.
     python3 ${../../scripts/patch-tern-gate.py} "$out/bin/tern"
 
+    install -Dm644 ${./tern.desktop} "$out/share/applications/tern.desktop"
+    substituteInPlace "$out/share/applications/tern.desktop" \
+      --replace-fail 'Exec=tern' "Exec=$out/bin/tern"
+    install -Dm644 ${./tern.png} \
+      "$out/share/icons/hicolor/512x512/apps/tern.png"
+
     runHook postInstall
   '';
 
