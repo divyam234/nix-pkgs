@@ -256,5 +256,3 @@ packages:
     assets:
       x86_64-linux:
         name: Tern-{version}-linux-x86_64.tar.gz
-      aarch64-linux:
-        name: Tern-{version}-linux-arm64.tar.gz
