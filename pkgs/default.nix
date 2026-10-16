@@ -50,6 +50,10 @@ in
     inherit gpuiApp;
   };
 
+  tern = pkgs.callPackage ./tern {
+    inherit gpuiApp;
+  };
+
   tusk = pkgs.callPackage ./tusk {
     inherit gpuiApp;
   };

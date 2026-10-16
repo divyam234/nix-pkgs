@@ -15,7 +15,7 @@ Replace `rclone` with any package below.
 
 `aria2`, `brave`, `bun`, `codeforge`, `disktree`,
 `fluxdown`, `foliate`, `hydra`, `mcontrolcenter`, `nordvpn`, `opencode`, `pdfcraft`, `probe`,
-`rclone`, `restic`, `sublime`, `tusk`, `zed-editor`, `zjstatus`.
+`rclone`, `restic`, `sublime`, `tern`, `tusk`, `zed-editor`, `zjstatus`.
 
 
 ## Rclone modules
