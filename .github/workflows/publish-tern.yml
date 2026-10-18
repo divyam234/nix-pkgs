@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Replace assets even if this version is already published"
+        description: "Rebuild even if the release tag already exists (overwrites assets)"
         type: boolean
         default: false
 
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Download and verify upstream Linux archives
+      - name: Download, verify, and patch upstream Linux archives
         id: prepare
         env:
           STENCIL_COOKIE: ${{ secrets.STENCIL_COOKIE }}
@@ -36,7 +36,7 @@ jobs:
           if [ "$FORCE" = true ]; then args+=(--force); fi
           python3 scripts/prepare-tern-release.py "${args[@]}"
 
-      - name: Publish verified archives
+      - name: Publish patched archives
         if: steps.prepare.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}

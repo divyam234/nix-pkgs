@@ -5,14 +5,13 @@
   gpuiApp,
   glib,
   zenity,
-  python3,
 }:
 
 let
   version = "0.9.4";
 
-  # Only x86_64-linux: the startup login flow is removed by patching the
-  # binary (see scripts/patch-tern-gate.py), and the patch fingerprints
+  # Only x86_64-linux: release preparation patches the startup login flow
+  # (see scripts/patch-tern-gate.py), and the patch fingerprints
   # currently cover the x86_64 build only.
   sources = {
     x86_64-linux = {
@@ -47,18 +46,10 @@ gpuiApp {
     "--set-default" "TERN_BUILD_URL" "http://127.0.0.1:9"
   ];
 
-  nativeBuildInputs = [ python3 ];
-
   installPhase = ''
     runHook preInstall
 
     install -Dm755 tern/tern "$out/bin/tern"
-
-    # Remove the remote startup login flow (closed-beta gate, keychain
-    # lookup, sign-in veil). Fails the build if the fingerprints no
-    # longer match, so an upstream codegen change can never ship
-    # unpatched silently.
-    python3 ${../../scripts/patch-tern-gate.py} "$out/bin/tern"
 
     install -Dm644 ${./tern.desktop} "$out/share/applications/tern.desktop"
     substituteInPlace "$out/share/applications/tern.desktop" \
