@@ -17,12 +17,20 @@ plus one for the omp manager's offer gate (same event-driven pattern):
   P4: omp offer gate ........ jne -> jmp, so the "let Tern keep omp up to
       date?" veil is never rendered.
 
-All sites are located by fingerprints: exact instruction bytes with
-wildcards only for rip-relative displacements (which shift between
-builds). Register allocation, struct offsets and immediates are matched
-exactly, so any codegen change fails loudly instead of patching the
-wrong bytes. Re-run against a pristine binary; every fingerprint must
-match exactly once or the script aborts without writing anything.
+Sites are located by fingerprint variants: exact opcode and immediate
+bytes, with struct/stack displacements wildcarded (they shift with every
+build) and cross-field consistency enforced via regex backrefs plus per-
+variant validators (e.g. the phase field must appear with the same offset
+in the cmp and the immediate store; the keychain slot must sit at
+phase+0x10).  When upstream only moves struct fields - which is what
+broke the 0.8.4 fingerprints on 0.9.2 - the same variant keeps matching.
+When upstream changes codegen shape, add a new variant for the new shape
+next to the old one, so a single script covers every known version.
+
+Every site must be matched by exactly one variant exactly once, and every
+variant that does not match must match zero times, or the script aborts
+without writing anything: an unknown codegen change can never ship
+unpatched silently.
 """
 
 import argparse
@@ -36,85 +44,246 @@ WILD = "??"
 
 
 def to_regex(hex_pattern):
-    """Turn 'AA BB ?? CC' into a bytes regex."""
+    """Turn 'AA BB ?? (?P<name>.{4}) (?P=name)' into a bytes regex.
+
+    ``??`` matches a single wildcard byte (used for rip-relative
+    displacements); ``(?P<...>...)`` tokens pass through verbatim so the
+    pattern can capture struct offsets and back-reference them.
+    """
     out = b""
     for part in hex_pattern.split():
-        out += b"." if part == WILD else re.escape(bytes([int(part, 16)]))
+        if part == WILD:
+            out += b"."
+        elif part.startswith("(?P"):
+            out += part.encode()
+        else:
+            out += re.escape(bytes([int(part, 16)]))
     return re.compile(out, re.DOTALL)
 
 
-def find_unique(data, pattern, name):
-    """Find pattern exactly once in data; return the offset."""
-    matches = list(to_regex(pattern).finditer(data))
-    if len(matches) != 1:
-        raise RuntimeError(
-            f"fingerprint {name}: expected exactly 1 match, found "
-            f"{len(matches)}; the binary differs from the analyzed builds. "
-            "Either upstream changed the codegen (update the fingerprints "
-            "in PATTERNS using the same reverse-engineering flow) or the "
-            "gate was removed upstream (drop the patch) - refusing to patch"
-        )
-    return matches[0].start()
+def variant(label, pattern, patches=(), entry=None, validate=None):
+    """One known codegen shape of a patch site.
+
+    patches:  tuple of (byte offset within the match, new byte)
+    entry:    replacement bytes for the first len(entry) bytes of the match
+    validate: optional callable(dict of captured disp32s) -> None; raises
+              RuntimeError when the captured offsets are inconsistent
+    """
+    return {
+        "label": label,
+        "pattern": pattern,
+        "patches": patches,
+        "entry": entry,
+        "validate": validate,
+    }
 
 
-def sub_offset(data, match_at, sub_hex):
-    """Locate a sub-pattern inside a matched region; return its offset."""
-    region = data[match_at:match_at + 256]
-    match = to_regex(sub_hex).search(region)
-    if match is None:
-        raise RuntimeError("sub-pattern vanished inside fingerprint match")
-    return match_at + match.start()
+def _expect(cond, message):
+    if not cond:
+        raise RuntimeError(message)
 
 
-# Full context fingerprints. `??` = rip-relative disp32 (shifts per build).
-PATTERNS = {
-    # Gate startup fn: prologue, arm flag, phase check, phase = 1, keychain read.
+def validate_gate_start(captures):
+    """Account-state layout relations observed in 0.8.4 and 0.9.2.
+
+    The phase enum is followed by a presence flag at +8 and the keychain
+    slot at +0x10; both builds agree, so a match violating this points at
+    the wrong site.
+    """
+    phase = captures["phase"]
+    _expect(phase >= 0x400, f"gate-start: phase offset {phase:#x} implausibly small")
+    _expect(
+        captures["session_check"] == phase + 8,
+        f"gate-start: session check at {captures['session_check']:#x}, "
+        f"expected phase+8 ({phase + 8:#x})",
+    )
+    _expect(
+        captures["keychain"] == phase + 0x10,
+        f"gate-start: keychain slot at {captures['keychain']:#x}, "
+        f"expected phase+0x10 ({phase + 0x10:#x})",
+    )
+
+
+def validate_gate_complete(captures):
+    """Same layout relations plus session = phase+0x20 (both builds)."""
+    phase = captures["phase"]
+    session = captures["session"]
+    _expect(phase >= 0x400, f"gate-complete: phase offset {phase:#x} implausibly small")
+    _expect(
+        session == phase + 0x20,
+        f"gate-complete: session at {session:#x}, "
+        f"expected phase+0x20 ({phase + 0x20:#x})",
+    )
+    _expect(
+        captures["session_end"] == session + 0x10,
+        f"gate-complete: session tail at {captures['session_end']:#x}, "
+        f"expected session+0x10 ({session + 0x10:#x})",
+    )
+    _expect(
+        captures["phase_check"] == phase + 8,
+        f"gate-complete: phase recheck at {captures['phase_check']:#x}, "
+        f"expected phase+8 ({phase + 8:#x})",
+    )
+    _expect(
+        captures["phase_keychain"] == phase + 0x10,
+        f"gate-complete: keychain slot at {captures['phase_keychain']:#x}, "
+        f"expected phase+0x10 ({phase + 0x10:#x})",
+    )
+
+
+def validate_omp_flag(captures):
+    _expect(
+        captures["flag"] >= 0x400,
+        f"omp-offer: flag offset {captures['flag']:#x} implausibly small",
+    )
+
+
+# P3: xor eax,eax; ret, nop-padded over the 10-byte gate-start prologue.
+EARLY_RETURN = bytes.fromhex("31c0c3") + b"\x90" * 7
+
+# Patch sites: name -> tuple of known codegen variants (0.8.4 and 0.9.2
+# verified).  Exactly one variant must match exactly once.
+SITES = {
+    # Gate startup fn: prologue, arm flag, phase check, phase = 1, keychain
+    # read.  Struct offsets (arm/phase/session/keychain) move between
+    # builds - 0.8.4 used 0xc58/0xb78/0xb80/0xb88, 0.9.2 0x5378/0x5288/
+    # 0x5290/0x5298 - so they are captured and validated, not hardcoded.
+    # The backref forces the cmp and the immediate store to agree on the
+    # phase offset.
     "gate-start": (
-        "41 56 53 48 83 ec 18 48 89 fb"
-        " c6 87 58 0c 00 00 01"
-        " 83 bf 78 0b 00 00 05 72 17"
-        " 48 83 bb 80 0b 00 00 00 74 0d"
-        " 48 8b bb 88 0b 00 00"
-        " ff 15 ?? ?? ?? ??"
-        " 48 c7 83 78 0b 00 00 01 00 00 00"
-        " 48 89 e7"
-        " ff 15 ?? ?? ?? ??"
+        variant(
+            label="entry/phase/keychain shape (0.8.4, 0.9.2)",
+            pattern=(
+                "41 56 53 48 83 ec 18 48 89 fb"
+                " c6 87 (?P<arm>.{4}) 01"
+                " 83 bf (?P<phase>.{4}) 05 72 17"
+                " 48 83 bb (?P<session_check>.{4}) 00 74 0d"
+                " 48 8b bb (?P<keychain>.{4})"
+                " ff 15 ?? ?? ?? ??"
+                " 48 c7 83 (?P=phase) 01 00 00 00"
+                " 48 89 e7"
+                " ff 15 ?? ?? ?? ??"
+            ),
+            patches=((56, 0x00),),  # P1: phase = reading(1) -> off(0)
+            entry=EARLY_RETURN,  # P3
+            validate=validate_gate_start,
+        ),
     ),
-    # Gate completion fn: session copy, phase==0 -> phase = 2.
+    # Gate completion fn: session copy, phase == 0 -> phase = 2.  Same
+    # account-state offsets as gate-start plus the session copy at
+    # phase+0x20; backrefs pin the repeated fields.
     "gate-complete": (
-        "0f 10 83 98 0b 00 00 0f 10 8b a8 0b 00 00"
-        " 0f 29 4c 24 10 0f 29 04 24"
-        " 48 c7 83 98 0b 00 00 00 00 00 00"
-        " 4c 8d b3 78 0b 00 00"
-        " 83 bb 78 0b 00 00 05 72 17"
-        " 48 83 bb 80 0b 00 00 00 74 0d"
-        " 48 8b bb 88 0b 00 00"
-        " ff 15 ?? ?? ?? ??"
-        " 0f 28 04 24 0f 28 4c 24 10"
-        " 41 0f 11 4e 10 41 0f 11 06"
-        " 49 83 3e 00 75 07"
-        " 49 c7 06 02 00 00 00"
-        " 48 89 df"
-        " ff 15 ?? ?? ?? ??"
+        variant(
+            label="session/phase shape (0.8.4, 0.9.2)",
+            pattern=(
+                "0f 10 83 (?P<session>.{4})"
+                " 0f 10 8b (?P<session_end>.{4})"
+                " 0f 29 4c 24 10 0f 29 04 24"
+                " 48 c7 83 (?P=session) 00 00 00 00"
+                " 4c 8d b3 (?P<phase>.{4})"
+                " 83 bb (?P=phase) 05 72 17"
+                " 48 83 bb (?P<phase_check>.{4}) 00 74 0d"
+                " 48 8b bb (?P<phase_keychain>.{4})"
+                " ff 15 ?? ?? ?? ??"
+                " 0f 28 04 24 0f 28 4c 24 10"
+                " 41 0f 11 4e 10 41 0f 11 06"
+                " 49 83 3e 00 75 07"
+                " 49 c7 06 02 00 00 00"
+                " 48 89 df"
+                " ff 15 ?? ?? ?? ??"
+            ),
+            patches=((100, 0x00),),  # P2: phase = signed-out(2) -> off(0)
+            validate=validate_gate_complete,
+        ),
     ),
-    # Omp offer gate: event != -2 and runtime flag == 0 -> build offer UI.
+    # Omp offer gate: event != sentinel and runtime flag == 0 -> build the
+    # offer UI.  0.8.4 kept the event in a stack slot and the flag on the
+    # app struct in r14; 0.9.2 hoisted the event into rbp, moved the flag
+    # to rbx+0xce0 and scheduled a load between the cmp and the jne.  Both
+    # shapes share the same fix: flip the fall-through jne to jmp.
     "omp-offer": (
-        "48 83 bc 24 d8 01 00 00 fe 74 ??"
-        " 41 80 be d0 ac 00 00 00 75 ??"
-        " 48 8d b4 24 d8 01 00 00 48 8d 7c 24 50"
-        " ff 15 ?? ?? ?? ??"
+        variant(
+            label="stack-event/r14-flag shape (0.8.4)",
+            pattern=(
+                "48 83 bc 24 (?P<event>.{4}) fe 74 ??"
+                " 41 80 be (?P<flag>.{4}) 00 75 ??"
+                " 48 8d b4 24 (?P=event)"
+                " 48 8d 7c 24 ??"
+                " ff 15 ?? ?? ?? ??"
+            ),
+            patches=((19, 0xEB),),  # P4: jne -> jmp
+            validate=validate_omp_flag,
+        ),
+        variant(
+            label="rbp-event/rbx-flag shape (0.9.2)",
+            pattern=(
+                "48 83 fd fe 75 ??"
+                " 48 8b 44 24 (?P<slot>.)"
+                " e9 ?? ?? ?? ??"
+                " 80 bb (?P<flag>.{4}) 00"
+                " 48 8b 44 24 (?P=slot)"
+                " 75 ??"
+                " 48 8d b4 24 ?? ?? ?? ??"
+            ),
+            patches=((28, 0xEB),),  # P4: jne -> jmp
+            validate=validate_omp_flag,
+        ),
     ),
 }
 
-# (site, sub-pattern locating the instruction, imm offset within it, new byte)
-PATCHES = [
-    ("gate-start", "48 c7 83 78 0b 00 00 01 00 00 00", 7, 0x00),  # P1: 1 -> 0
-    ("gate-complete", "49 c7 06 02 00 00 00", 3, 0x00),  # P2: 2 -> 0
-    ("omp-offer", "41 80 be d0 ac 00 00 00 75", 8, 0xEB),  # P4: jne -> jmp
-]
 
-# (site, replacement bytes for the function entry)
-ENTRY_PATCH = ("gate-start", bytes.fromhex("31c0c3") + b"\x90" * 7)  # P3
+def find_variant(data, site_name, variants):
+    """Resolve a site to a single unambiguous variant match.
+
+    Returns (variant, match_offset, captured_disp32s).  Aborts unless
+    exactly one variant matches exactly once and all others match zero
+    times.
+    """
+    unambiguous = []
+    diagnostics = []
+    loose = []
+    for candidate in variants:
+        matches = list(to_regex(candidate["pattern"]).finditer(data))
+        diagnostics.append(f"{candidate['label']}: {len(matches)}")
+        if len(matches) == 1:
+            unambiguous.append((candidate, matches[0]))
+        elif len(matches) > 1:
+            loose.append(candidate["label"])
+    if len(unambiguous) != 1 or loose:
+        hint = (
+            "the binary differs from the analyzed builds. Either upstream "
+            "changed the codegen (add a fingerprint variant for the new "
+            "shape to SITES in scripts/patch-tern-gate.py, keeping the "
+            "struct offsets wildcarded and validated) or the gate was "
+            "removed upstream (drop the patch)"
+        )
+        if loose:
+            raise RuntimeError(
+                f"fingerprint {site_name}: over-generic variant(s) matched "
+                f"multiple times ({', '.join(loose)}); {hint}"
+            )
+        raise RuntimeError(
+            f"fingerprint {site_name}: expected exactly 1 variant with "
+            f"exactly 1 match, found {len(unambiguous)} "
+            f"[{', '.join(diagnostics)}]; {hint}"
+        )
+    candidate, match = unambiguous[0]
+    captures = {}
+    for name in match.groupdict():
+        raw = match.group(name)
+        # Backref-only captures (e.g. a 1-byte stack slot) are kept raw;
+        # validators only ever look at 4-byte struct displacements.
+        captures[name] = (
+            struct.unpack("<I", raw)[0] if len(raw) == 4 else raw
+        )
+    if candidate["validate"] is not None:
+        try:
+            candidate["validate"](captures)
+        except RuntimeError as error:
+            raise RuntimeError(
+                f"fingerprint {site_name} ({candidate['label']}): {error}"
+            ) from None
+    return candidate, match.start(), captures
 
 
 def patch_binary(path):
@@ -128,28 +297,30 @@ def patch_binary(path):
             "handles x86_64 Tern builds"
         )
 
-    matches = {}
-    for name, pattern in PATTERNS.items():
-        matches[name] = find_unique(data, pattern, name)
+    resolved = {}
+    for name, variants in SITES.items():
+        resolved[name] = find_variant(data, name, variants)
+
+    # Both gate fns poke the same account-state field; a disagreement means
+    # one of the matches landed on an impostor site.
+    start_phase = resolved["gate-start"][2]["phase"]
+    complete_phase = resolved["gate-complete"][2]["phase"]
+    if start_phase != complete_phase:
+        raise RuntimeError(
+            f"gate-start phase {start_phase:#x} != gate-complete phase "
+            f"{complete_phase:#x}; the fingerprints disagree on the "
+            "account-state layout - refusing to patch"
+        )
 
     edits = []
-    for site, sub, imm_off, new_byte in PATCHES:
-        at = matches[site]
-        instr = sub_offset(data, at, sub)
-        target = instr + imm_off
-        old = data[target]
-        edits.append((target, old, new_byte))
-
-    site, entry = ENTRY_PATCH
-    at = matches[site]
-    old_entry = bytes(data[at:at + len(entry)])
-    expected_entry = bytes.fromhex("4156534883ec184889fb")
-    if old_entry != expected_entry:
-        raise RuntimeError(
-            f"entry prologue mismatch at {at:#x}: {old_entry.hex()} "
-            "(register allocation changed?) - refusing to patch"
-        )
-    edits.append((at, old_entry, entry))
+    for name, (candidate, at, _captures) in resolved.items():
+        for offset, new_byte in candidate["patches"]:
+            edits.append((at + offset, data[at + offset], new_byte))
+        if candidate["entry"] is not None:
+            entry = candidate["entry"]
+            # The pattern pins these bytes exactly, so this can only fail
+            # if the file changed under us.
+            edits.append((at, bytes(data[at:at + len(entry)]), entry))
 
     # All checks passed; apply.
     for target, old, new in edits:
