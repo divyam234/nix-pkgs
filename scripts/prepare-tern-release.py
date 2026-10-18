@@ -124,7 +124,7 @@ def prepare(directory, cookie, repository, force=False):
     (directory / "checksums.txt").write_text("".join(checksums))
     (directory / "release-notes.md").write_text(
         f"Tern {version}\n\nUpstream build: {release['id']}\n\n"
-        f"Source: {BASE_URL}\n\nStartup login flow patched before publishing.\n\n{release.get('notes', '')}\n"
+        f"Source: {BASE_URL}\n\n{release.get('notes', '')}\n"
     )
     return version, tag, True
 
