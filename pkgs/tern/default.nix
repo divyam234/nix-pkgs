@@ -16,7 +16,7 @@ let
   sources = {
     x86_64-linux = {
       asset = "Tern-0.9.4-linux-x86_64.tar.gz";
-      hash = "sha256-S2ZQXBAgFykOEEM5HcJSImCzpRjVMKIao+ebyhA0cIc=";
+      hash = "sha256-+N3n+GqInDfV2nGAU+w9dWEcQmg5JE/ScftQjL8ijyg=";
     };
   };
 
