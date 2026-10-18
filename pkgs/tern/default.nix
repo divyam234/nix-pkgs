@@ -9,15 +9,15 @@
 }:
 
 let
-  version = "0.9.2";
+  version = "0.9.4";
 
   # Only x86_64-linux: the startup login flow is removed by patching the
   # binary (see scripts/patch-tern-gate.py), and the patch fingerprints
   # currently cover the x86_64 build only.
   sources = {
     x86_64-linux = {
-      asset = "Tern-0.9.2-linux-x86_64.tar.gz";
-      hash = "sha256-vVT+cuJSzCZAF3GhpNtFifoAmOnENVz7FsszTxKfjS8=";
+      asset = "Tern-0.9.4-linux-x86_64.tar.gz";
+      hash = "sha256-S2ZQXBAgFykOEEM5HcJSImCzpRjVMKIao+ebyhA0cIc=";
     };
   };
 
