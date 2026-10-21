@@ -15,18 +15,18 @@
   openvpn,
 }:
 let
-  version = "5.4.1";
+  version = "6.0.1";
 
   sources = {
     x86_64-linux = {
       asset = "nordvpn-v${version}-linux-amd64.tar.gz";
-      hash = "sha256-jv3IqZsnoANaicYQoaBmhyQ1MT6L6GvAMr2xZaZESac=";
+      hash = "sha256-f+gE6wFuXwa6pm9ZyxRk0X4rjfX/yGm1LP8F41YbX+A=";
       dir = "nordvpn-v${version}-linux-amd64";
     };
 
     aarch64-linux = {
       asset = "nordvpn-v${version}-linux-arm64.tar.gz";
-      hash = "sha256-0vemvD9EyeBddEw6CB95LIq4SQnwUgfwDFTlStGdBvM=";
+      hash = "sha256-uit7XfbLMVki/fz2/vp3wafrm1F4TYe86957QEqXNso=";
       dir = "nordvpn-v${version}-linux-arm64";
     };
   };
