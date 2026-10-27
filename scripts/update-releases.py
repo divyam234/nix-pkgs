@@ -485,11 +485,18 @@ def prepare_github_head_update(repo_root, package_name, config):
     rev = commit["sha"]
     new_version = github_head_version(old_version, commit, config)
     fetch_submodules = config.get("fetchSubmodules", False)
-    source_hash = prefetch_github_source(
-        config["repo"],
-        rev,
-        fetch_submodules=fetch_submodules,
-    )
+    if config.get("archive"):
+        # The package fetches a tar archive (fetchurl), so hash the archive
+        # itself with the same prefetch used for release assets.
+        source_hash = prefetch_hash(
+            f"https://github.com/{config['repo']}/archive/{rev}.tar.gz"
+        )
+    else:
+        source_hash = prefetch_github_source(
+            config["repo"],
+            rev,
+            fetch_submodules=fetch_submodules,
+        )
 
     updated_text = replace_top_level_field(package_text, "version", new_version)
     updated_text = replace_top_level_field(updated_text, "rev", rev)
