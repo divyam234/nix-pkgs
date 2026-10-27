@@ -76,6 +76,24 @@ packages:
       x86_64-linux:
         name: FluxDown-{version}-linux-x64.tar.gz
 
+  vlc:
+    repo: dsojevic/juxtopposed-vlc
+    file: pkgs/vlc/default.nix
+    tagPrefix: ''
+    release:
+      source: list
+      includePrereleases: true
+      tagPattern: '^4\.0\.0-beta\.[0-9]+$'
+    version:
+      source: tag
+    assets:
+      x86_64-linux:
+        name: vlc-juxtopposed-{version}-linux-x86_64.tar.gz
+    test:
+      command: bin/vlc
+      args: [--version]
+      expectedOutput: 'VLC version {version}'
+
   zed-editor:
     repo: zed-industries/zed
     file: pkgs/zed-editor/default.nix
