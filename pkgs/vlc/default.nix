@@ -3,9 +3,7 @@
 # Source: https://github.com/dsojevic/juxtopposed-vlc (GPLv2+ code, CC BY 4.0 design)
 # The fork moves quickly; updates are tracked from the repo head and fetched
 # as tar archives so the hash comes from the standard prefetch flow.
-# `args@` lets nixpkgs-style overrides (e.g. `vlc.override { withQt5 = … }`)
-# pass through without failing on arguments this Qt6-only build ignores.
-args@{
+{
   lib,
   stdenv,
   fetchurl,
@@ -82,7 +80,6 @@ args@{
   wayland,
   wayland-protocols,
   zlib,
-  ...
 }:
 
 let
@@ -219,11 +216,11 @@ let
     mkdir -p $out/share/applications
     sed -e "s,@bindir@,$out/bin,g" -e "s,@MIMETYPES@,$mimetypes,g" \
       -e 's, --started-from-file,,' \
-      "$srcroot/share/vlc.desktop.in" > $out/share/applications/vlc.desktop
+      "$srcroot/share/vlc.desktop.in" > $out/share/applications/vlc4.desktop
     for sz in 16x16 32x32 48x48 128x128 256x256; do
       if [ -f "$srcroot/share/icons/$sz/vlc.png" ]; then
         install -Dm444 "$srcroot/share/icons/$sz/vlc.png" \
-          $out/share/icons/hicolor/$sz/apps/vlc.png
+          $out/share/icons/hicolor/$sz/apps/vlc4.png
       fi
     done
 

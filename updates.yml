@@ -76,7 +76,7 @@ packages:
       x86_64-linux:
         name: FluxDown-{version}-linux-x64.tar.gz
 
-  vlc:
+  vlc4:
     source: github-head
     repo: dsojevic/juxtopposed-vlc
     file: pkgs/vlc/default.nix

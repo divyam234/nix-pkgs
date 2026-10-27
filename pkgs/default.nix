@@ -58,7 +58,7 @@ in
     inherit gpuiApp;
   };
 
-  vlc = pkgs.callPackage ./vlc { };
+  vlc4 = pkgs.callPackage ./vlc { };
 
   zed-editor = pkgs.callPackage ./zed-editor {
     inherit gpuiApp;
