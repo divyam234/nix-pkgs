@@ -30,7 +30,7 @@
   cairo,
   dbus,
   faad2,
-  ffmpeg_9,
+  ffmpeg,
   flac,
   fontconfig,
   freefont_ttf,
@@ -120,7 +120,7 @@ let
     cairo
     dbus
     faad2
-    ffmpeg_9
+    ffmpeg
     flac
     fontconfig
     freetype
