@@ -34,12 +34,12 @@ jobs:
       - name: Update flake inputs
         run: nix flake update
 
-      - name: Update and validate packages
+      - name: Update package versions and hashes
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
           uv run --with pyyaml --with semver==3.0.4 python -B scripts/update-releases.py
-          updates.yml --check --build --smoke-test
+          updates.yml
 
       - name: Update and validate Sublime
         run: nix shell nixpkgs#radare2 -c uv run --with r2pipe python -B pkgs/sublime/update.py

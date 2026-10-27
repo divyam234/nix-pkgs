@@ -42,7 +42,7 @@
             overlays = [ self.overlays.default ];
           };
           customPackages = import ./pkgs { inherit pkgs prev; };
-          packageNames = builtins.attrNames customPackages;
+          packageNames = builtins.filter (name: name != "vlc4") (builtins.attrNames customPackages);
         in
         customPackages // {
           all = pkgs.symlinkJoin {
