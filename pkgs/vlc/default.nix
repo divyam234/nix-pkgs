@@ -3,7 +3,9 @@
 # Source: https://github.com/dsojevic/juxtopposed-vlc (GPLv2+ code, CC BY 4.0 design)
 # The fork moves quickly; updates are tracked from the repo head and fetched
 # as tar archives so the hash comes from the standard prefetch flow.
-{
+# `args@` lets nixpkgs-style overrides (e.g. `vlc.override { withQt5 = … }`)
+# pass through without failing on arguments this Qt6-only build ignores.
+args@{
   lib,
   stdenv,
   fetchurl,
@@ -80,6 +82,7 @@
   wayland,
   wayland-protocols,
   zlib,
+  ...
 }:
 
 let
