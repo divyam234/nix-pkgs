@@ -85,12 +85,12 @@
 let
   vlc = stdenv.mkDerivation (finalAttrs: {
     pname = "vlc";
-    version = "4.0.0-beta.5";
-    rev = "958859ebb3f02e526fc0ec8f99336434e6143739";
+    version = "4.0.0-beta.5-unstable-2026-10-26";
+    rev = "619b57dd8597605500aed1845d182bd37742dc4e";
 
   src = fetchurl {
     url = "https://github.com/dsojevic/juxtopposed-vlc/archive/${finalAttrs.rev}.tar.gz";
-    hash = "sha256-UOie2c251QOoU1tFDCxuDMsu6Xl/jGjheaCVn/ufU1w=";
+    hash = "sha256-+g9VKnWIzJ2nu3etx9dTZTwSdRC9atfF0IYU3gNtKVI=";
   };
 
   sourceRoot = "juxtopposed-vlc-${finalAttrs.rev}";
