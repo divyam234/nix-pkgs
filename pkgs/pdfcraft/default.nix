@@ -21,17 +21,17 @@
 }:
 
 let
-  version = "0.14.0";
+  version = "0.15.0";
 
   sources = {
     x86_64-linux = {
-      asset = "pdfcraft-0.14.0-linux-x86_64.tar.gz";
-      hash = "sha256-qT9RHof2MDbKX1MAsaehijzSKFIF3qsVOUyqbug8bx8=";
+      asset = "pdfcraft-0.15.0-linux-x86_64.tar.gz";
+      hash = "sha256-sWehjGCnsynwWlu/l+Mtxniq0/jVhm2OQ3j/JCc/gxM=";
     };
 
     aarch64-linux = {
-      asset = "pdfcraft-0.14.0-linux-aarch64.tar.gz";
-      hash = "sha256-/mcRteIRvAFAXz2teZ8lL04bLMl2t8R/g/56l86+mDg=";
+      asset = "pdfcraft-0.15.0-linux-aarch64.tar.gz";
+      hash = "sha256-s4C8ekwo0F1+qV6yMIXKMixJyhohuLt5OJqOCDrpK50=";
     };
   };
 
