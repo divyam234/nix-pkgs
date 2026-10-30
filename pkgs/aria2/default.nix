@@ -19,7 +19,9 @@ let
     };
   };
 
-  source = sources.${stdenvNoCC.hostPlatform.system} or (throw "aria2 is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "aria2 is not packaged for ${stdenvNoCC.hostPlatform.system}");
 in
 stdenvNoCC.mkDerivation {
   pname = "aria2";

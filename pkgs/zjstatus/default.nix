@@ -1,4 +1,8 @@
-{ lib, fetchurl, stdenvNoCC }:
+{
+  lib,
+  fetchurl,
+  stdenvNoCC,
+}:
 
 let
   version = "0.23.0";

@@ -15,7 +15,9 @@ let
     };
   };
 
-  source = sources.${stdenvNoCC.hostPlatform.system} or (throw "probe is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "probe is not packaged for ${stdenvNoCC.hostPlatform.system}");
 in
 gpuiApp {
   pname = "probe";

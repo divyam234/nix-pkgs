@@ -9,7 +9,12 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+    }:
     let
       systems = [
         "x86_64-linux"
@@ -19,8 +24,12 @@
       forAllSystems = nixpkgs.lib.genAttrs systems;
     in
     {
-      overlays.default = final: prev: import ./pkgs { pkgs = final; inherit prev; };
-
+      overlays.default =
+        final: prev:
+        import ./pkgs {
+          pkgs = final;
+          inherit prev;
+        };
 
       nixosModules.rclone = { lib, pkgs, ... }: {
         imports = [ ./modules/rclone.nix ];
@@ -34,7 +43,8 @@
 
       lib.rclone = import ./lib/rclone-schema.nix { lib = nixpkgs.lib; };
 
-      packages = forAllSystems (system:
+      packages = forAllSystems (
+        system:
         let
           prev = import nixpkgs { inherit system; };
           pkgs = import nixpkgs {
@@ -44,15 +54,18 @@
           customPackages = import ./pkgs { inherit pkgs prev; };
           packageNames = builtins.filter (name: name != "vlc4") (builtins.attrNames customPackages);
         in
-        customPackages // {
+        customPackages
+        // {
           all = pkgs.symlinkJoin {
             name = "all-packages";
             paths = map (name: customPackages.${name}) packageNames;
           };
           default = customPackages.opencode;
-        });
+        }
+      );
 
-      checks = forAllSystems (system:
+      checks = forAllSystems (
+        system:
         let
           pkgs = import nixpkgs {
             inherit system;
@@ -97,7 +110,10 @@
                   jobs.backup = {
                     enable = true;
                     command = "sync";
-                    arguments = [ "/srv/data" "backup:data" ];
+                    arguments = [
+                      "/srv/data"
+                      "backup:data"
+                    ];
                     onCalendar = "daily";
                   };
                 };
@@ -143,7 +159,10 @@
                   jobs.backup = {
                     enable = true;
                     command = "sync";
-                    arguments = [ "%h/data" "backup:data" ];
+                    arguments = [
+                      "%h/data"
+                      "backup:data"
+                    ];
                     onCalendar = "daily";
                   };
                 };
@@ -152,53 +171,65 @@
           };
         in
         {
-          rclone-modules = pkgs.runCommand "rclone-modules-check" {
-            nixosMount = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.ExecStart;
-            nixosVfsMode = nixosTest.config.systemd.services."rclone-mount-media".environment.RCLONE_VFS_CACHE_MODE;
-            nixosTimer = nixosTest.config.systemd.timers."rclone-job-backup".timerConfig.OnCalendar;
-            nixosFuseAllowOther = if nixosTest.config.programs.fuse.userAllowOther then "true" else "false";
-            nixosMountType = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.Type;
-            nixosMountSuccess = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.SuccessExitStatus;
-            nixosWebdavType = nixosTest.config.systemd.services."rclone-serve-webdav".serviceConfig.Type;
-            nixosWebdavCacheDir = nixosTest.config.systemd.services."rclone-serve-webdav".environment.RCLONE_CACHE_DIR;
-            nixosWebdavMounts = nixosTest.config.systemd.services."rclone-serve-webdav".unitConfig.RequiresMountsFor;
-            nixosFtpType = nixosTest.config.systemd.services."rclone-serve-ftp".serviceConfig.Type;
-            nixosRcdSuccess = nixosTest.config.systemd.services."rclone-rcd-main".serviceConfig.SuccessExitStatus;
-            homeMount = builtins.head homeTest.config.systemd.user.services."rclone-mount-media".Service.ExecStart;
-            homeTimer = homeTest.config.systemd.user.timers."rclone-job-backup".Timer.OnCalendar;
-            homeMountType = homeTest.config.systemd.user.services."rclone-mount-media".Service.Type;
-            homeMountSuccess = homeTest.config.systemd.user.services."rclone-mount-media".Service.SuccessExitStatus;
-            homeWebdavType = homeTest.config.systemd.user.services."rclone-serve-webdav".Service.Type;
-            homeFtpType = homeTest.config.systemd.user.services."rclone-serve-ftp".Service.Type;
-            homeRcdSuccess = homeTest.config.systemd.user.services."rclone-rcd-main".Service.SuccessExitStatus;
-          } ''
-            test "$nixosVfsMode" = "full"
-            test "$nixosTimer" = "daily"
-            test "$homeTimer" = "daily"
-            test "$nixosFuseAllowOther" = "true"
-            test "$nixosMountType" = "notify"
-            test "$nixosMountSuccess" = "143"
-            test "$nixosWebdavType" = "notify"
-            test "$nixosWebdavCacheDir" = "/mnt/rclone-cache"
-            test "$nixosWebdavMounts" = "/mnt/rclone-cache"
-            test "$nixosFtpType" = "simple"
-            test "$nixosRcdSuccess" = "143"
-            test "$homeMountType" = "notify"
-            test "$homeMountSuccess" = "143"
-            test "$homeWebdavType" = "notify"
-            test "$homeFtpType" = "simple"
-            test "$homeRcdSuccess" = "143"
-            case "$nixosMount" in
-              *"rclone mount media: /mnt/media"*) ;;
-              *) exit 1 ;;
-            esac
-            case "$homeMount" in
-              *"rclone mount media: %h/mnt/media"*) ;;
-              *) exit 1 ;;
-            esac
-            touch "$out"
-          '';
-        });
+          rclone-modules =
+            pkgs.runCommand "rclone-modules-check"
+              {
+                nixosMount = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.ExecStart;
+                nixosVfsMode =
+                  nixosTest.config.systemd.services."rclone-mount-media".environment.RCLONE_VFS_CACHE_MODE;
+                nixosTimer = nixosTest.config.systemd.timers."rclone-job-backup".timerConfig.OnCalendar;
+                nixosFuseAllowOther = if nixosTest.config.programs.fuse.userAllowOther then "true" else "false";
+                nixosMountType = nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.Type;
+                nixosMountSuccess =
+                  nixosTest.config.systemd.services."rclone-mount-media".serviceConfig.SuccessExitStatus;
+                nixosWebdavType = nixosTest.config.systemd.services."rclone-serve-webdav".serviceConfig.Type;
+                nixosWebdavCacheDir =
+                  nixosTest.config.systemd.services."rclone-serve-webdav".environment.RCLONE_CACHE_DIR;
+                nixosWebdavMounts =
+                  nixosTest.config.systemd.services."rclone-serve-webdav".unitConfig.RequiresMountsFor;
+                nixosFtpType = nixosTest.config.systemd.services."rclone-serve-ftp".serviceConfig.Type;
+                nixosRcdSuccess =
+                  nixosTest.config.systemd.services."rclone-rcd-main".serviceConfig.SuccessExitStatus;
+                homeMount =
+                  builtins.head
+                    homeTest.config.systemd.user.services."rclone-mount-media".Service.ExecStart;
+                homeTimer = homeTest.config.systemd.user.timers."rclone-job-backup".Timer.OnCalendar;
+                homeMountType = homeTest.config.systemd.user.services."rclone-mount-media".Service.Type;
+                homeMountSuccess =
+                  homeTest.config.systemd.user.services."rclone-mount-media".Service.SuccessExitStatus;
+                homeWebdavType = homeTest.config.systemd.user.services."rclone-serve-webdav".Service.Type;
+                homeFtpType = homeTest.config.systemd.user.services."rclone-serve-ftp".Service.Type;
+                homeRcdSuccess = homeTest.config.systemd.user.services."rclone-rcd-main".Service.SuccessExitStatus;
+              }
+              ''
+                test "$nixosVfsMode" = "full"
+                test "$nixosTimer" = "daily"
+                test "$homeTimer" = "daily"
+                test "$nixosFuseAllowOther" = "true"
+                test "$nixosMountType" = "notify"
+                test "$nixosMountSuccess" = "143"
+                test "$nixosWebdavType" = "notify"
+                test "$nixosWebdavCacheDir" = "/mnt/rclone-cache"
+                test "$nixosWebdavMounts" = "/mnt/rclone-cache"
+                test "$nixosFtpType" = "simple"
+                test "$nixosRcdSuccess" = "143"
+                test "$homeMountType" = "notify"
+                test "$homeMountSuccess" = "143"
+                test "$homeWebdavType" = "notify"
+                test "$homeFtpType" = "simple"
+                test "$homeRcdSuccess" = "143"
+                case "$nixosMount" in
+                  *"rclone mount media: /mnt/media"*) ;;
+                  *) exit 1 ;;
+                esac
+                case "$homeMount" in
+                  *"rclone mount media: %h/mnt/media"*) ;;
+                  *) exit 1 ;;
+                esac
+                touch "$out"
+              '';
+        }
+      );
 
     };
 }

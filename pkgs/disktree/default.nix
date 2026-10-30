@@ -23,7 +23,9 @@ let
     };
   };
 
-  source = sources.${stdenvNoCC.hostPlatform.system} or (throw "disktree is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "disktree is not packaged for ${stdenvNoCC.hostPlatform.system}");
 in
 gpuiApp {
   pname = "disktree";
@@ -38,7 +40,16 @@ gpuiApp {
   dontConfigure = true;
   dontBuild = true;
   binaryPath = "bin/disktree";
-  extraWrapperArgs = [ "--suffix" "PATH" ":" (lib.makeBinPath [ git trash-cli xdg-utils ]) ];
+  extraWrapperArgs = [
+    "--suffix"
+    "PATH"
+    ":"
+    (lib.makeBinPath [
+      git
+      trash-cli
+      xdg-utils
+    ])
+  ];
 
   installPhase = ''
     runHook preInstall

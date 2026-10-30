@@ -21,7 +21,9 @@ let
     };
   };
 
-  source = sources.${stdenv.hostPlatform.system} or (throw "rclone is not packaged for ${stdenv.hostPlatform.system}");
+  source =
+    sources.${stdenv.hostPlatform.system}
+      or (throw "rclone is not packaged for ${stdenv.hostPlatform.system}");
 in
 stdenv.mkDerivation {
   pname = "rclone";

@@ -20,7 +20,9 @@ let
     };
   };
 
-  source = sources.${stdenvNoCC.hostPlatform.system} or (throw "tern is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "tern is not packaged for ${stdenvNoCC.hostPlatform.system}");
 in
 gpuiApp {
   pname = "tern";
@@ -36,14 +38,24 @@ gpuiApp {
   dontBuild = true;
   binaryPath = "bin/tern";
   extraWrapperArgs = [
-    "--prefix" "PATH" ":" (lib.makeBinPath [ glib.bin zenity ])
+    "--prefix"
+    "PATH"
+    ":"
+    (lib.makeBinPath [
+      glib.bin
+      zenity
+    ])
     # Never phone home: the closed beta gate is patched out and omp
     # management is disabled via state, so the auth and build services
     # are unreachable by design. Pointing them at a dead address makes
     # any residual check fail fast instead of hitting the network.
     # --set-default keeps them overridable via the environment.
-    "--set-default" "TERN_AUTH_URL" "http://127.0.0.1:9"
-    "--set-default" "TERN_BUILD_URL" "http://127.0.0.1:9"
+    "--set-default"
+    "TERN_AUTH_URL"
+    "http://127.0.0.1:9"
+    "--set-default"
+    "TERN_BUILD_URL"
+    "http://127.0.0.1:9"
   ];
 
   installPhase = ''

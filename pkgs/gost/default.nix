@@ -19,7 +19,9 @@ let
     };
   };
 
-  source = sources.${stdenv.hostPlatform.system} or (throw "gost is not packaged for ${stdenv.hostPlatform.system}");
+  source =
+    sources.${stdenv.hostPlatform.system}
+      or (throw "gost is not packaged for ${stdenv.hostPlatform.system}");
 in
 stdenv.mkDerivation {
   pname = "gost";

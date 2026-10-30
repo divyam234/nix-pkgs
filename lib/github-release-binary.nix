@@ -22,7 +22,9 @@
 }:
 
 let
-  source = sources.${stdenv.hostPlatform.system} or (throw "${pname} is not packaged for ${stdenv.hostPlatform.system}");
+  source =
+    sources.${stdenv.hostPlatform.system}
+      or (throw "${pname} is not packaged for ${stdenv.hostPlatform.system}");
 in
 stdenv.mkDerivation {
   inherit pname version sourceRoot;
@@ -51,5 +53,6 @@ stdenv.mkDerivation {
   meta = {
     mainProgram = installName;
     platforms = builtins.attrNames sources;
-  } // meta;
+  }
+  // meta;
 }

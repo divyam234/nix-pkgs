@@ -1,8 +1,37 @@
-{ pkgs, lib, stdenv, fetchurl, autoPatchelfHook, makeWrapper, copyDesktopItems
-, perl, cairo, dbus, fontconfig, freetype, glib, gtk3, libdrm, libGL
-, libkrb5, libsecret, libunwind, libxkbcommon, libinput, openssl
-, qt6, libice, libsm, libX11, libxcb, libXext, libXi, libXrender
-, zlib, curl, python314
+{
+  pkgs,
+  lib,
+  stdenv,
+  fetchurl,
+  autoPatchelfHook,
+  makeWrapper,
+  copyDesktopItems,
+  perl,
+  cairo,
+  dbus,
+  fontconfig,
+  freetype,
+  glib,
+  gtk3,
+  libdrm,
+  libGL,
+  libkrb5,
+  libsecret,
+  libunwind,
+  libxkbcommon,
+  libinput,
+  openssl,
+  qt6,
+  libice,
+  libsm,
+  libX11,
+  libxcb,
+  libXext,
+  libXi,
+  libXrender,
+  zlib,
+  curl,
+  python314,
 }:
 
 let
@@ -19,16 +48,40 @@ let
     };
   };
 
-  source = sources.${stdenv.hostPlatform.system} or (throw "ida-pro is not packaged for ${stdenv.hostPlatform.system}");
+  source =
+    sources.${stdenv.hostPlatform.system}
+      or (throw "ida-pro is not packaged for ${stdenv.hostPlatform.system}");
 
   pythonForIDA = python314.withPackages (ps: with ps; [ rpyc ]);
 
   runtimeDependencies = [
-    cairo dbus fontconfig freetype glib gtk3 libdrm libGL
-    libkrb5 libsecret libunwind libxkbcommon libinput openssl.out
-    qt6.qtbase qt6.qtwayland
-    stdenv.cc libice libsm libX11 libxcb libXext libXi libXrender
-    zlib curl.out pythonForIDA
+    cairo
+    dbus
+    fontconfig
+    freetype
+    glib
+    gtk3
+    libdrm
+    libGL
+    libkrb5
+    libsecret
+    libunwind
+    libxkbcommon
+    libinput
+    openssl.out
+    qt6.qtbase
+    qt6.qtwayland
+    stdenv.cc
+    libice
+    libsm
+    libX11
+    libxcb
+    libXext
+    libXi
+    libXrender
+    zlib
+    curl.out
+    pythonForIDA
   ];
 in
 stdenv.mkDerivation {
@@ -114,6 +167,9 @@ stdenv.mkDerivation {
     homepage = "https://hex-rays.com/ida-pro/";
     maintainers = [ ];
     mainProgram = "ida";
-    platforms = [ "x86_64-linux" "aarch64-linux" ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
   };
 }

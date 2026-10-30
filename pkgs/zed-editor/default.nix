@@ -22,7 +22,9 @@ let
     };
   };
 
-  source = sources.${stdenvNoCC.hostPlatform.system} or (throw "zed-editor is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "zed-editor is not packaged for ${stdenvNoCC.hostPlatform.system}");
 
 in
 gpuiApp {
@@ -37,7 +39,12 @@ gpuiApp {
   sourceRoot = "zed.app";
 
   binaryPath = "libexec/zed-editor";
-  extraWrapperArgs = [ "--suffix" "PATH" ":" (lib.makeBinPath [ nodejs ]) ];
+  extraWrapperArgs = [
+    "--suffix"
+    "PATH"
+    ":"
+    (lib.makeBinPath [ nodejs ])
+  ];
   buildInputs = [ alsa-lib ];
 
   installPhase = ''
@@ -56,7 +63,6 @@ gpuiApp {
 
     runHook postInstall
   '';
-
 
   meta = {
     description = "High-performance, multiplayer code editor from the creators of Atom and Tree-sitter";

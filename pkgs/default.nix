@@ -17,7 +17,6 @@ in
     inherit gpuiApp;
   };
 
-
   gost = pkgs.callPackage ./gost { };
 
   hydra = pkgs.callPackage ./hydra {

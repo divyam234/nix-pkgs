@@ -18,7 +18,9 @@ let
     };
   };
 
-  source = sources.${stdenvNoCC.hostPlatform.system} or (throw "fluxdown is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "fluxdown is not packaged for ${stdenvNoCC.hostPlatform.system}");
 in
 gpuiApp {
   pname = "fluxdown";
@@ -34,7 +36,10 @@ gpuiApp {
   dontBuild = true;
   binaryPath = "bin/fluxdown-desktop";
   nativeBuildInputs = [ wrapGAppsHook3 ];
-  buildInputs = [ gtk3 libayatana-appindicator ];
+  buildInputs = [
+    gtk3
+    libayatana-appindicator
+  ];
 
   installPhase = ''
     runHook preInstall

@@ -35,7 +35,9 @@ let
     };
   };
 
-  source = sources.${stdenvNoCC.hostPlatform.system} or (throw "pdfcraft is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "pdfcraft is not packaged for ${stdenvNoCC.hostPlatform.system}");
   runtimeLibs = [
     dbus
     fontconfig
@@ -63,7 +65,10 @@ stdenvNoCC.mkDerivation {
   sourceRoot = lib.removeSuffix ".tar.gz" source.asset;
   dontConfigure = true;
   dontBuild = true;
-  nativeBuildInputs = [ autoPatchelfHook makeBinaryWrapper ];
+  nativeBuildInputs = [
+    autoPatchelfHook
+    makeBinaryWrapper
+  ];
   buildInputs = runtimeLibs;
 
   installPhase = ''
@@ -82,13 +87,21 @@ stdenvNoCC.mkDerivation {
   postFixup = ''
     wrapProgram $out/bin/pdfcraft \
       --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath runtimeLibs} \
-      --suffix PATH : ${lib.makeBinPath [ xdg-utils zenity ]}
+      --suffix PATH : ${
+        lib.makeBinPath [
+          xdg-utils
+          zenity
+        ]
+      }
   '';
 
   meta = {
     description = "Native PDF reader and editor with a command-line interface";
     homepage = "https://github.com/storytold/pdfcraft";
-    license = with lib.licenses; [ mit asl20 ];
+    license = with lib.licenses; [
+      mit
+      asl20
+    ];
     mainProgram = "pdfcraft";
     platforms = builtins.attrNames sources;
   };

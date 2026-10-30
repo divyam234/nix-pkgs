@@ -1,8 +1,3 @@
-# VLC 4.0 development tree with the Juxtopposed interface redesign.
-# Based on https://github.com/iankengott/vlc-redesign-nix package.nix.
-# Source: https://github.com/dsojevic/juxtopposed-vlc (GPLv2+ code, CC BY 4.0 design)
-# The fork moves quickly; updates are tracked from the repo head and fetched
-# as tar archives so the hash comes from the standard prefetch flow.
 {
   lib,
   stdenv,
@@ -88,168 +83,171 @@ let
     version = "4.0.0-beta.5-unstable-2026-10-26";
     rev = "619b57dd8597605500aed1845d182bd37742dc4e";
 
-  src = fetchurl {
-    url = "https://github.com/dsojevic/juxtopposed-vlc/archive/${finalAttrs.rev}.tar.gz";
-    hash = "sha256-+g9VKnWIzJ2nu3etx9dTZTwSdRC9atfF0IYU3gNtKVI=";
-  };
+    src = fetchurl {
+      url = "https://github.com/dsojevic/juxtopposed-vlc/archive/${finalAttrs.rev}.tar.gz";
+      hash = "sha256-+g9VKnWIzJ2nu3etx9dTZTwSdRC9atfF0IYU3gNtKVI=";
+    };
 
-  sourceRoot = "juxtopposed-vlc-${finalAttrs.rev}";
+    sourceRoot = "juxtopposed-vlc-${finalAttrs.rev}";
 
-  nativeBuildInputs = [
-    meson
-    ninja
-    pkg-config
-    python3
-    flex
-    bison
-    gettext
-    lua5_2_compat
-    unzip
-    wayland-scanner
-    # Let qsb find spirv-opt so the Qt shaders get optimized.
-    spirv-tools
-    qt6.wrapQtAppsHook
-    qt6.qttools
-    wrapGAppsHook3
-    patchelf
-  ];
+    nativeBuildInputs = [
+      meson
+      ninja
+      pkg-config
+      python3
+      flex
+      bison
+      gettext
+      lua5_2_compat
+      unzip
+      wayland-scanner
+      # Let qsb find spirv-opt so the Qt shaders get optimized.
+      spirv-tools
+      qt6.wrapQtAppsHook
+      qt6.qttools
+      wrapGAppsHook3
+      patchelf
+    ];
 
-  buildInputs = [
-    alsa-lib
-    avahi
-    cairo
-    dbus
-    faad2
-    ffmpeg
-    flac
-    fontconfig
-    freetype
-    fribidi
-    gnutls
-    harfbuzz
-    libGL
-    libarchive
-    libass
-    libbluray
-    libcddb
-    libdvbpsi
-    libdvdnav
-    libdvdnav.libdvdread
-    libebml
-    libgcrypt
-    libgpg-error
-    libjpeg
-    libmatroska
-    libogg
-    libopus
-    libplacebo
-    libpng
-    libpulseaudio
-    librsvg
-    libsamplerate
-    libssh2
-    libtheora
-    libva
-    libvorbis
-    libxml2
-    libxcb
-    libxcb-keysyms
-    libxkbcommon
-    libx11
-    libxext
-    libxinerama
-    libxpm
-    libsm
-    live555
-    lua5_2_compat
-    ncurses
-    samba
-    speex
-    srt
-    systemdLibs
-    taglib
-    wayland
-    wayland-protocols
-    zlib
-    qt6.qtbase
-    qt6.qtdeclarative
-    qt6.qtsvg
-    qt6.qtwayland
-    qt6.qt5compat
-    qt6.qtshadertools
-    kdePackages.kwindowsystem
-  ];
+    buildInputs = [
+      alsa-lib
+      avahi
+      cairo
+      dbus
+      faad2
+      ffmpeg
+      flac
+      fontconfig
+      freetype
+      fribidi
+      gnutls
+      harfbuzz
+      libGL
+      libarchive
+      libass
+      libbluray
+      libcddb
+      libdvbpsi
+      libdvdnav
+      libdvdnav.libdvdread
+      libebml
+      libgcrypt
+      libgpg-error
+      libjpeg
+      libmatroska
+      libogg
+      libopus
+      libplacebo
+      libpng
+      libpulseaudio
+      librsvg
+      libsamplerate
+      libssh2
+      libtheora
+      libva
+      libvorbis
+      libxml2
+      libxcb
+      libxcb-keysyms
+      libxkbcommon
+      libx11
+      libxext
+      libxinerama
+      libxpm
+      libsm
+      live555
+      lua5_2_compat
+      ncurses
+      samba
+      speex
+      srt
+      systemdLibs
+      taglib
+      wayland
+      wayland-protocols
+      zlib
+      qt6.qtbase
+      qt6.qtdeclarative
+      qt6.qtsvg
+      qt6.qtwayland
+      qt6.qt5compat
+      qt6.qtshadertools
+      kdePackages.kwindowsystem
+    ];
 
-  strictDeps = true;
-  dontWrapGApps = true; # Qt wrapper adds the gapps args below
+    strictDeps = true;
+    dontWrapGApps = true; # Qt wrapper adds the gapps args below
 
-  postPatch = ''
-    patchShebangs buildsystem
-    substituteInPlace modules/text_renderer/freetype/platform_fonts.h \
-      --replace-fail \
-        /usr/share/fonts/truetype/freefont \
-        ${freefont_ttf}/share/fonts/truetype
-  '';
+    postPatch = ''
+      patchShebangs buildsystem
+      substituteInPlace modules/text_renderer/freetype/platform_fonts.h \
+        --replace-fail \
+          /usr/share/fonts/truetype/freefont \
+          ${freefont_ttf}/share/fonts/truetype
+    '';
 
-  # nixpkgs defaults to auto_features=enabled, which makes optional probes
-  # (AArch64 branch protection, every optional codec) hard errors.
-  mesonAutoFeatures = "auto";
+    # nixpkgs defaults to auto_features=enabled, which makes optional probes
+    # (AArch64 branch protection, every optional codec) hard errors.
+    mesonAutoFeatures = "auto";
 
-  mesonFlags = [
-    "-Drust=disabled"
-    "-Dchromecast=disabled" # protobuf/abseil headers need C++20; VLC builds as C++17
-    # The medialibrary plugin is not packaged in nixpkgs, and the test suite
-    # unconditionally depends on it.
-    "-Dtests=disabled"
-  ];
+    mesonFlags = [
+      "-Drust=disabled"
+      "-Dchromecast=disabled" # protobuf/abseil headers need C++20; VLC builds as C++17
+      # The medialibrary plugin is not packaged in nixpkgs, and the test suite
+      # unconditionally depends on it.
+      "-Dtests=disabled"
+    ];
 
-  installPhase = ''
-    runHook preInstall
+    installPhase = ''
+      runHook preInstall
 
-    meson install --no-rebuild
+      meson install --no-rebuild
 
-    # The meson install ships no desktop entry or icons, so generate them from
-    # the source tree. VLC 4 dropped --started-from-file; passing it makes vlc
-    # exit with "Unknown option".
-    srcroot="$NIX_BUILD_TOP/$sourceRoot"
-    mimetypes="$(sed 's/\s*#.*$//g' "$srcroot/share/vlc.desktop.mimetypes" | grep -v '^$' | tr '\n' ';')"
-    mkdir -p $out/share/applications
-    sed -e "s,@bindir@,$out/bin,g" -e "s,@MIMETYPES@,$mimetypes,g" \
-      -e 's, --started-from-file,,' \
-      "$srcroot/share/vlc.desktop.in" > $out/share/applications/vlc4.desktop
-    for sz in 16x16 32x32 48x48 128x128 256x256; do
-      if [ -f "$srcroot/share/icons/$sz/vlc.png" ]; then
-        install -Dm444 "$srcroot/share/icons/$sz/vlc.png" \
-          $out/share/icons/hicolor/$sz/apps/vlc4.png
-      fi
-    done
+      # The meson install ships no desktop entry or icons, so generate them from
+      # the source tree. VLC 4 dropped --started-from-file; passing it makes vlc
+      # exit with "Unknown option".
+      srcroot="$NIX_BUILD_TOP/$sourceRoot"
+      mimetypes="$(sed 's/\s*#.*$//g' "$srcroot/share/vlc.desktop.mimetypes" | grep -v '^$' | tr '\n' ';')"
+      mkdir -p $out/share/applications
+      sed -e "s,@bindir@,$out/bin,g" -e "s,@MIMETYPES@,$mimetypes,g" \
+        -e 's, --started-from-file,,' \
+        "$srcroot/share/vlc.desktop.in" > $out/share/applications/vlc4.desktop
+      for sz in 16x16 32x32 48x48 128x128 256x256; do
+        if [ -f "$srcroot/share/icons/$sz/vlc.png" ]; then
+          install -Dm444 "$srcroot/share/icons/$sz/vlc.png" \
+            $out/share/icons/hicolor/$sz/apps/vlc4.png
+        fi
+      done
 
-    runHook postInstall
-  '';
+      runHook postInstall
+    '';
 
-  # VLC 4 does not load the D-Bus control interface by default, so without
-  # this there is no MPRIS service and media keys / playerctl cannot see the
-  # player.
-  preFixup = ''
-    qtWrapperArgs+=("''${gappsWrapperArgs[@]}")
+    # VLC 4 does not load the D-Bus control interface by default, so without
+    # this there is no MPRIS service and media keys / playerctl cannot see the
+    # player.
+    preFixup = ''
+      qtWrapperArgs+=("''${gappsWrapperArgs[@]}")
 
-    # The xcb plugins link libvlc_xcb_events.so from $out/lib/vlc, which is
-    # not in their RUNPATH, so they fail to load without this.
-    for f in $out/lib/vlc/plugins/video_output/libxcb_*_plugin.so; do
-      if [ -f "$f" ]; then
-        patchelf --add-rpath $out/lib/vlc "$f"
-      fi
-    done
-  '';
+      # The xcb plugins link libvlc_xcb_events.so from $out/lib/vlc, which is
+      # not in their RUNPATH, so they fail to load without this.
+      for f in $out/lib/vlc/plugins/video_output/libxcb_*_plugin.so; do
+        if [ -f "$f" ]; then
+          patchelf --add-rpath $out/lib/vlc "$f"
+        fi
+      done
+    '';
 
-  meta = {
-    description = "VLC 4.0 development build with the Juxtopposed interface redesign";
-    homepage = "https://github.com/dsojevic/juxtopposed-vlc";
-    license = with lib.licenses; [ gpl2Plus cc-by-40 ];
-    mainProgram = "vlc";
-    platforms = lib.platforms.linux;
-  };
-});
+    meta = {
+      description = "VLC 4.0 development build with the Juxtopposed interface redesign";
+      homepage = "https://github.com/dsojevic/juxtopposed-vlc";
+      license = with lib.licenses; [
+        gpl2Plus
+        cc-by-40
+      ];
+      mainProgram = "vlc";
+      platforms = lib.platforms.linux;
+    };
+  });
 
   # VLC 4 does not load the D-Bus control interface by default, so without
   # this there is no MPRIS service: media keys (and playerctl, KDE Connect,
@@ -263,5 +261,8 @@ in
 symlinkJoin {
   inherit (vlc) pname version meta;
   name = "${vlc.pname}-${vlc.version}";
-  paths = [ wrapped vlc ];
+  paths = [
+    wrapped
+    vlc
+  ];
 }

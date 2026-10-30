@@ -18,7 +18,9 @@ let
     };
   };
 
-  source = sources.${stdenvNoCC.hostPlatform.system} or (throw "tusk is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "tusk is not packaged for ${stdenvNoCC.hostPlatform.system}");
 in
 gpuiApp {
   pname = "tusk";
@@ -40,9 +42,16 @@ gpuiApp {
   dontBuild = true;
   binaryPath = "bin/tusk";
   extraWrapperArgs = [
-    "--set-default" "TUSK_PGLS" "${placeholder "out"}/bin/postgres-language-server"
-    "--set-default" "TUSK_SQLS" "${placeholder "out"}/bin/sqls"
-    "--suffix" "PATH" ":" (lib.makeBinPath [ postgresql ])
+    "--set-default"
+    "TUSK_PGLS"
+    "${placeholder "out"}/bin/postgres-language-server"
+    "--set-default"
+    "TUSK_SQLS"
+    "${placeholder "out"}/bin/sqls"
+    "--suffix"
+    "PATH"
+    ":"
+    (lib.makeBinPath [ postgresql ])
   ];
 
   installPhase = ''
