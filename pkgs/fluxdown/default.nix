@@ -9,12 +9,12 @@
 }:
 
 let
-  version = "0.6.3";
+  version = "0.6.4";
 
   sources = {
     x86_64-linux = {
-      asset = "FluxDown-0.6.3-linux-x64.tar.gz";
-      hash = "sha256-cXu5W7CUW/K6Y2SpuZAeYhF0i5rKnw7Y9U31o8GwrJ8=";
+      asset = "FluxDown-0.6.4-linux-x64.tar.gz";
+      hash = "sha256-dAaY1cZOBQRSnmW0qGKZoioF7dgFEAexObQwEkeIRmI=";
     };
   };
 
