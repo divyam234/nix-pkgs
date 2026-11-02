@@ -79,12 +79,14 @@ packages:
   vlc4:
     source: github-head
     repo: dsojevic/juxtopposed-vlc
+    ref: 4.0.0-beta.5
     file: pkgs/vlc/default.nix
     archive: true
     version:
       base: 4.0.0-beta.5
+      dateSuffix: false
     test:
-      command: bin/vlc
+      command: bin/vlc4
       args: [--version]
 
   zed-editor:

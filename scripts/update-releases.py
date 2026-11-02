@@ -194,6 +194,8 @@ def replace_top_level_field(package_text, field, value):
 def github_head_version(current, commit, config):
     version_cfg = config.get("version", {})
     base = version_cfg.get("base") or current.split("-unstable-", 1)[0]
+    if not version_cfg.get("dateSuffix", True):
+        return base
     date = commit["commit"]["committer"]["date"][:10]
     return f"{base}-unstable-{date}"
 

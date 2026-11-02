@@ -19,7 +19,6 @@
   patchelf,
   makeWrapper,
   runCommand,
-  symlinkJoin,
   alsa-lib,
   avahi,
   cairo,
@@ -80,12 +79,12 @@
 let
   vlc = stdenv.mkDerivation (finalAttrs: {
     pname = "vlc";
-    version = "4.0.0-beta.5-unstable-2026-10-26";
-    rev = "619b57dd8597605500aed1845d182bd37742dc4e";
+    version = "4.0.0-beta.5";
+    rev = "958859ebb3f02e526fc0ec8f99336434e6143739";
 
     src = fetchurl {
       url = "https://github.com/dsojevic/juxtopposed-vlc/archive/${finalAttrs.rev}.tar.gz";
-      hash = "sha256-+g9VKnWIzJ2nu3etx9dTZTwSdRC9atfF0IYU3gNtKVI=";
+      hash = "sha256-UOie2c251QOoU1tFDCxuDMsu6Xl/jGjheaCVn/ufU1w=";
     };
 
     sourceRoot = "juxtopposed-vlc-${finalAttrs.rev}";
@@ -249,20 +248,23 @@ let
     };
   });
 
-  # VLC 4 does not load the D-Bus control interface by default, so without
-  # this there is no MPRIS service: media keys (and playerctl, KDE Connect,
-  # etc.) have nothing to talk to. This tree rejects the --control flag in
-  # its command-line parser, so --extraintf is used instead. Wrapping outside
-  # the compiled derivation keeps this a no-recompile change.
-  wrapped = runCommand "vlc-wrapped" { nativeBuildInputs = [ makeWrapper ]; } ''
-    makeWrapper ${vlc}/bin/vlc $out/bin/vlc --add-flags "--extraintf dbus"
-  '';
+  # Keep libraries, plugins and data private so stable VLC can share a profile.
+  # The public wrapper also enables MPRIS, which VLC 4 does not load by default.
 in
-symlinkJoin {
-  inherit (vlc) pname version meta;
-  name = "${vlc.pname}-${vlc.version}";
-  paths = [
-    wrapped
-    vlc
-  ];
-}
+runCommand "vlc4-${vlc.version}"
+  {
+    pname = "vlc4";
+    inherit (vlc) version;
+    meta = vlc.meta // { mainProgram = "vlc4"; };
+    nativeBuildInputs = [ makeWrapper ];
+  }
+  ''
+    makeWrapper ${vlc}/bin/vlc $out/bin/vlc4 --add-flags "--extraintf dbus"
+
+    mkdir -p $out/share/applications
+    substitute ${vlc}/share/applications/vlc4.desktop $out/share/applications/vlc4.desktop \
+      --replace-fail '${vlc}/bin/vlc' "$out/bin/vlc4" \
+      --replace-fail 'Icon=vlc' 'Icon=vlc4'
+    sed -i '/^Name\(\[[^]]*\]\)\?=/s/VLC/VLC 4/g' $out/share/applications/vlc4.desktop
+    ln -s ${vlc}/share/icons $out/share/icons
+  ''
