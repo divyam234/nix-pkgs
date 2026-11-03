@@ -3,7 +3,13 @@
   stdenvNoCC,
   fetchurl,
   gpuiApp,
+  installShellFiles,
   glib,
+  glib-networking,
+  libpulseaudio,
+  pipewire,
+  webkitgtk_4_1,
+  wrapGAppsHook3,
   zenity,
 }:
 
@@ -37,6 +43,21 @@ gpuiApp {
   dontConfigure = true;
   dontBuild = true;
   binaryPath = "bin/tern";
+  nativeBuildInputs = [
+    installShellFiles
+    wrapGAppsHook3
+  ];
+  buildInputs = [
+    glib-networking
+    libpulseaudio
+    pipewire
+    webkitgtk_4_1
+  ];
+  # gpuiApp owns the GPUI wrapper; add the GTK/GIO environment afterward.
+  dontWrapGApps = true;
+  postFixup = ''
+    wrapProgram "$out/bin/tern" "''${gappsWrapperArgs[@]}"
+  '';
   extraWrapperArgs = [
     "--prefix"
     "PATH"
@@ -62,6 +83,11 @@ gpuiApp {
     runHook preInstall
 
     install -Dm755 tern/tern "$out/bin/tern"
+
+    substitute ${./tern.bash} tern.bash --subst-var-by tern "$out/bin/tern"
+    substitute ${./_tern} _tern --subst-var-by tern "$out/bin/tern"
+    substitute ${./tern.fish} tern.fish --subst-var-by tern "$out/bin/tern"
+    installShellCompletion --cmd tern tern.bash _tern tern.fish
 
     install -Dm644 ${./tern.desktop} "$out/share/applications/tern.desktop"
     substituteInPlace "$out/share/applications/tern.desktop" \

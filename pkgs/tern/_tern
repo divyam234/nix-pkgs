@@ -1,0 +1,43 @@
+#compdef tern
+
+# Adapted from Tern 0.9.9 shell integration; use the installed CLI outside Tern.
+_tern() {
+	'builtin' 'local' -a out tags items
+	'builtin' 'local' rec tag word desc paths='' at=''
+	'builtin' 'local' -i ret=1
+	out=("${(@f)$(command "@tern@" __complete "${(@Q)words[2,CURRENT-1]}" "${(Q)PREFIX}" 2>/dev/null)}")
+	for rec in $out; do
+		case $rec in
+			(:files|:dirs) paths=$rec ;;
+			(:line\ *) at=${rec#:line } ;;
+			(*$'\t'*$'\t'*)
+				tag=${rec%%$'\t'*}
+				(( ${tags[(Ie)$tag]} )) || tags+=("$tag")
+				;;
+		esac
+	done
+	if [[ -n $at ]]; then
+		# Word N of those given is words[N+2]: it becomes the first.
+		'builtin' 'shift' $(( at + 1 )) words
+		(( CURRENT -= at + 1 ))
+		_normal
+		'builtin' 'return'
+	fi
+	for tag in $tags; do
+		items=()
+		for rec in ${(M)out:#$tag$'\t'*}; do
+			rec=${rec#*$'\t'}
+			word=${rec%%$'\t'*}
+			desc=${rec#*$'\t'}
+			items+=("${word//:/\\:}${desc:+:$desc}")
+		done
+		_describe -t "$tag" "$tag" items && ret=0
+	done
+	case $paths in
+		(:files) _files && ret=0 ;;
+		(:dirs) _files -/ && ret=0 ;;
+	esac
+	'builtin' 'return' ret
+}
+
+_tern "$@"
