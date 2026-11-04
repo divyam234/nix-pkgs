@@ -83,11 +83,11 @@ let
     rev = "958859ebb3f02e526fc0ec8f99336434e6143739";
 
     src = fetchurl {
-      url = "https://github.com/dsojevic/juxtopposed-vlc/archive/${finalAttrs.rev}.tar.gz";
+      url = "https://github.com/hakone-org/hakone/archive/${finalAttrs.rev}.tar.gz";
       hash = "sha256-KWXAlYf4NEmsPrZNtdD6sW5caEa3LjDfG3fClQ+uy9M=";
     };
 
-    sourceRoot = "juxtopposed-vlc-${finalAttrs.rev}";
+    sourceRoot = "hakone-${finalAttrs.rev}";
 
     nativeBuildInputs = [
       meson
@@ -237,8 +237,8 @@ let
     '';
 
     meta = {
-      description = "VLC 4.0 development build with the Juxtopposed interface redesign";
-      homepage = "https://github.com/dsojevic/juxtopposed-vlc";
+      description = "Hakone, a VLC 4.0 development build with the Juxtopposed interface redesign";
+      homepage = "https://github.com/hakone-org/hakone";
       license = with lib.licenses; [
         gpl2Plus
         cc-by-40
