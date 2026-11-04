@@ -84,7 +84,7 @@ let
 
     src = fetchurl {
       url = "https://github.com/dsojevic/juxtopposed-vlc/archive/${finalAttrs.rev}.tar.gz";
-      hash = "sha256-UOie2c251QOoU1tFDCxuDMsu6Xl/jGjheaCVn/ufU1w=";
+      hash = "sha256-KWXAlYf4NEmsPrZNtdD6sW5caEa3LjDfG3fClQ+uy9M=";
     };
 
     sourceRoot = "juxtopposed-vlc-${finalAttrs.rev}";
