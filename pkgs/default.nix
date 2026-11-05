@@ -27,6 +27,10 @@ in
 
   restic = pkgs.callPackage ./restic { };
 
+  sonora = pkgs.callPackage ./sonora {
+    inherit gpuiApp;
+  };
+
   sublime = pkgs.callPackage ./sublime { };
 
   opencode = pkgs.callPackage ./opencode { };

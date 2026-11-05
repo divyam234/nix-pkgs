@@ -15,7 +15,7 @@ Replace `rclone` with any package below.
 
 `aria2`, `brave`, `bun`, `codeforge`, `disktree`,
 `fluxdown`, `foliate`, `hydra`, `mcontrolcenter`, `nordvpn`, `opencode`, `pdfcraft`, `probe`,
-`rclone`, `restic`, `sublime`, `tern`, `tusk`, `vlc4`, `zed-editor`, `zjstatus`.
+`rclone`, `restic`, `sonora`, `sublime`, `tern`, `tusk`, `vlc4`, `zed-editor`, `zjstatus`.
 
 `nix build .#all` excludes VLC to avoid its lengthy source build in CI.
 Build it explicitly with `nix build .#vlc4`.
