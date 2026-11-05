@@ -68,9 +68,9 @@ gpuiApp {
       glib.bin
       zenity
     ])
-    # Never phone home: the closed beta gate is patched out and omp
-    # management is disabled via state, so the auth and build services
-    # are unreachable by design. Pointing them at a dead address makes
+    # Never phone home: the omp management offer is patched out, so the
+    # build service is unreachable by design. The sign-in card is
+    # non-blocking, but pointing the auth service at a dead address makes
     # any residual check fail fast instead of hitting the network.
     # --set-default keeps them overridable via the environment.
     "--set-default"

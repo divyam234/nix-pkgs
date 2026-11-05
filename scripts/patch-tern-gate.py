@@ -1,31 +1,22 @@
 #!/usr/bin/env python3
-"""Remove Tern's remote startup login flow by patching the installed binary.
+"""Neuter Tern's omp management offer by patching the installed binary.
 
-The closed-beta gate is driven by a small account state machine in the Tern
-window process. At startup it runs a "check saved sign-in" step which sets
-``phase = reading(1)``, touches the system keychain, and later flips the
-phase to ``signed-out(2)``, which renders the blocking sign-in veil.
+Up to 0.9.9 Tern also had a blocking startup sign-in gate. That state machine
+and its UI strings ("Closed beta", "your keyring", "tn-gate-wait") are gone
+from 0.9.12; the remaining sign-in card is the non-blocking first-start card,
+so the gate patches (P1-P3) were dropped. Only the omp offer gate remains:
 
-This script neuters that flow with three minimal patches (x86_64),
-plus one for the omp manager's offer gate (same event-driven pattern):
-
-  P1: gate startup fn ..... phase = reading(1) -> off(0)
-  P2: gate completion fn ... phase = signed-out(2) -> off(0)
-  P3: gate startup fn entry  -> early return, so the gate is never armed,
-      the keychain/saved session is never read, and the account worker is
-      never asked to do anything.
   P4: omp offer gate ........ jne -> jmp, so the "let Tern keep omp up to
       date?" veil is never rendered.
 
 Sites are located by fingerprint variants: exact opcode and immediate
 bytes, with struct/stack displacements wildcarded (they shift with every
-build) and cross-field consistency enforced via regex backrefs plus per-
-variant validators (e.g. the phase field must appear with the same offset
-in the cmp and the immediate store; the keychain slot must sit at
-phase+0x10).  When upstream only moves struct fields - which is what
-broke the 0.8.4 fingerprints on 0.9.2 - the same variant keeps matching.
-When upstream changes codegen shape, add a new variant for the new shape
-next to the old one, so a single script covers every known version.
+build) and cross-field consistency enforced via regex backrefs plus
+per-variant validators (e.g. the flag must sit at a plausible struct
+offset).  When upstream moves struct fields, the same variant keeps
+matching; when upstream changes codegen shape, add a new variant for the
+new shape next to the old one, so a single script covers every known
+version.
 
 Every site must be matched by exactly one variant exactly once, and every
 variant that does not match must match zero times, or the script aborts
@@ -83,54 +74,6 @@ def _expect(cond, message):
         raise RuntimeError(message)
 
 
-def validate_gate_start(captures):
-    """Account-state layout relations observed in 0.8.4 and 0.9.2.
-
-    The phase enum is followed by a presence flag at +8 and the keychain
-    slot at +0x10; both builds agree, so a match violating this points at
-    the wrong site.
-    """
-    phase = captures["phase"]
-    _expect(phase >= 0x400, f"gate-start: phase offset {phase:#x} implausibly small")
-    _expect(
-        captures["session_check"] == phase + 8,
-        f"gate-start: session check at {captures['session_check']:#x}, "
-        f"expected phase+8 ({phase + 8:#x})",
-    )
-    _expect(
-        captures["keychain"] == phase + 0x10,
-        f"gate-start: keychain slot at {captures['keychain']:#x}, "
-        f"expected phase+0x10 ({phase + 0x10:#x})",
-    )
-
-
-def validate_gate_complete(captures):
-    """Same layout relations plus session = phase+0x20 (both builds)."""
-    phase = captures["phase"]
-    session = captures["session"]
-    _expect(phase >= 0x400, f"gate-complete: phase offset {phase:#x} implausibly small")
-    _expect(
-        session == phase + 0x20,
-        f"gate-complete: session at {session:#x}, "
-        f"expected phase+0x20 ({phase + 0x20:#x})",
-    )
-    _expect(
-        captures["session_end"] == session + 0x10,
-        f"gate-complete: session tail at {captures['session_end']:#x}, "
-        f"expected session+0x10 ({session + 0x10:#x})",
-    )
-    _expect(
-        captures["phase_check"] == phase + 8,
-        f"gate-complete: phase recheck at {captures['phase_check']:#x}, "
-        f"expected phase+8 ({phase + 8:#x})",
-    )
-    _expect(
-        captures["phase_keychain"] == phase + 0x10,
-        f"gate-complete: keychain slot at {captures['phase_keychain']:#x}, "
-        f"expected phase+0x10 ({phase + 0x10:#x})",
-    )
-
-
 def validate_omp_flag(captures):
     _expect(
         captures["flag"] >= 0x400,
@@ -138,69 +81,16 @@ def validate_omp_flag(captures):
     )
 
 
-# P3: xor eax,eax; ret, nop-padded over the 10-byte gate-start prologue.
-EARLY_RETURN = bytes.fromhex("31c0c3") + b"\x90" * 7
-
-# Patch sites: name -> tuple of known codegen variants (0.8.4 and 0.9.2
-# verified).  Exactly one variant must match exactly once.
+# Patch sites: name -> tuple of known codegen variants (0.8.4, 0.9.2 and
+# 0.9.12 verified).  Exactly one variant must match exactly once.
 SITES = {
-    # Gate startup fn: prologue, arm flag, phase check, phase = 1, keychain
-    # read.  Struct offsets (arm/phase/session/keychain) move between
-    # builds - 0.8.4 used 0xc58/0xb78/0xb80/0xb88, 0.9.2 0x5378/0x5288/
-    # 0x5290/0x5298 - so they are captured and validated, not hardcoded.
-    # The backref forces the cmp and the immediate store to agree on the
-    # phase offset.
-    "gate-start": (
-        variant(
-            label="entry/phase/keychain shape (0.8.4, 0.9.2)",
-            pattern=(
-                "41 56 53 48 83 ec 18 48 89 fb"
-                " c6 87 (?P<arm>.{4}) 01"
-                " 83 bf (?P<phase>.{4}) 05 72 17"
-                " 48 83 bb (?P<session_check>.{4}) 00 74 0d"
-                " 48 8b bb (?P<keychain>.{4})"
-                " ff 15 ?? ?? ?? ??"
-                " 48 c7 83 (?P=phase) 01 00 00 00"
-                " 48 89 e7"
-                " ff 15 ?? ?? ?? ??"
-            ),
-            patches=((56, 0x00),),  # P1: phase = reading(1) -> off(0)
-            entry=EARLY_RETURN,  # P3
-            validate=validate_gate_start,
-        ),
-    ),
-    # Gate completion fn: session copy, phase == 0 -> phase = 2.  Same
-    # account-state offsets as gate-start plus the session copy at
-    # phase+0x20; backrefs pin the repeated fields.
-    "gate-complete": (
-        variant(
-            label="session/phase shape (0.8.4, 0.9.2)",
-            pattern=(
-                "0f 10 83 (?P<session>.{4})"
-                " 0f 10 8b (?P<session_end>.{4})"
-                " 0f 29 4c 24 10 0f 29 04 24"
-                " 48 c7 83 (?P=session) 00 00 00 00"
-                " 4c 8d b3 (?P<phase>.{4})"
-                " 83 bb (?P=phase) 05 72 17"
-                " 48 83 bb (?P<phase_check>.{4}) 00 74 0d"
-                " 48 8b bb (?P<phase_keychain>.{4})"
-                " ff 15 ?? ?? ?? ??"
-                " 0f 28 04 24 0f 28 4c 24 10"
-                " 41 0f 11 4e 10 41 0f 11 06"
-                " 49 83 3e 00 75 07"
-                " 49 c7 06 02 00 00 00"
-                " 48 89 df"
-                " ff 15 ?? ?? ?? ??"
-            ),
-            patches=((100, 0x00),),  # P2: phase = signed-out(2) -> off(0)
-            validate=validate_gate_complete,
-        ),
-    ),
     # Omp offer gate: event != sentinel and runtime flag == 0 -> build the
     # offer UI.  0.8.4 kept the event in a stack slot and the flag on the
     # app struct in r14; 0.9.2 hoisted the event into rbp, moved the flag
-    # to rbx+0xce0 and scheduled a load between the cmp and the jne.  Both
-    # shapes share the same fix: flip the fall-through jne to jmp.
+    # to rbx+0xce0 and scheduled a load between the cmp and the jne.
+    # 0.9.12 returns to the 0.8.4 shape but marks the flag handled before
+    # building the UI, adding a store between the jne and the event load.
+    # All shapes share the same fix: flip the fall-through jne to jmp.
     "omp-offer": (
         variant(
             label="stack-event/r14-flag shape (0.8.4)",
@@ -226,6 +116,19 @@ SITES = {
                 " 48 8d b4 24 ?? ?? ?? ??"
             ),
             patches=((28, 0xEB),),  # P4: jne -> jmp
+            validate=validate_omp_flag,
+        ),
+        variant(
+            label="stack-event/r14-flag/handled shape (0.9.12)",
+            pattern=(
+                "48 83 bc 24 (?P<event>.{4}) fe 74 ??"
+                " 41 80 be (?P<flag>.{4}) 00 75 ??"
+                " 48 8d b4 24 (?P=event)"
+                " 41 c6 86 (?P=flag) 01"
+                " 48 8d 7c 24 ??"
+                " ff 15 ?? ?? ?? ??"
+            ),
+            patches=((19, 0xEB),),  # P4: jne -> jmp
             validate=validate_omp_flag,
         ),
     ),
@@ -254,7 +157,7 @@ def find_variant(data, site_name, variants):
             "the binary differs from the analyzed builds. Either upstream "
             "changed the codegen (add a fingerprint variant for the new "
             "shape to SITES in scripts/patch-tern-gate.py, keeping the "
-            "struct offsets wildcarded and validated) or the gate was "
+            "struct offsets wildcarded and validated) or the offer was "
             "removed upstream (drop the patch)"
         )
         if loose:
@@ -301,17 +204,6 @@ def patch_binary(path):
     for name, variants in SITES.items():
         resolved[name] = find_variant(data, name, variants)
 
-    # Both gate fns poke the same account-state field; a disagreement means
-    # one of the matches landed on an impostor site.
-    start_phase = resolved["gate-start"][2]["phase"]
-    complete_phase = resolved["gate-complete"][2]["phase"]
-    if start_phase != complete_phase:
-        raise RuntimeError(
-            f"gate-start phase {start_phase:#x} != gate-complete phase "
-            f"{complete_phase:#x}; the fingerprints disagree on the "
-            "account-state layout - refusing to patch"
-        )
-
     edits = []
     for name, (candidate, at, _captures) in resolved.items():
         for offset, new_byte in candidate["patches"]:
@@ -349,7 +241,7 @@ def main():
             print(f"{args.binary}: {target:#x}: {old:#04x} -> {new:#04x}")
         else:
             print(f"{args.binary}: {target:#x}: {len(old)} bytes replaced")
-    print(f"{args.binary}: startup login flow removed")
+    print(f"{args.binary}: omp management offer removed")
     return 0
 
 
