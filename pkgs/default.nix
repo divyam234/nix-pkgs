@@ -45,7 +45,7 @@ in
 
   nordvpn = pkgs.callPackage ./nordvpn { };
 
-  brave = pkgs.callPackage ./brave { originalBrave = prev.brave; };
+  brave = pkgs.callPackage ./brave { };
 
   foliate = pkgs.callPackage ./foliate { };
 
