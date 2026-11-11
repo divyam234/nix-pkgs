@@ -15,15 +15,15 @@
 }:
 
 let
-  version = "0.9.14";
+  version = "0.9.16";
 
   # Only x86_64-linux: release preparation patches the startup login flow
   # (see scripts/patch-tern-gate.py), and the patch fingerprints
   # currently cover the x86_64 build only.
   sources = {
     x86_64-linux = {
-      asset = "Tern-0.9.14-linux-x86_64.tar.gz";
-      hash = "sha256-aKuIgJT+8+g+R7e9JtfCfLMetIroGh4Cn9s0bnOQUgM=";
+      asset = "Tern-0.9.16-linux-x86_64.tar.gz";
+      hash = "sha256-yW24NmMy7fVT2A/MJRUS51Ku5rxrpMs4eKw6Lgp5Fzk=";
     };
   };
 
