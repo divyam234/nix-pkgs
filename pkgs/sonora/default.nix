@@ -20,12 +20,12 @@
 }:
 
 let
-  version = "0.48.1";
+  version = "0.49.0";
 
   sources = {
     x86_64-linux = {
       asset = "sonora-v${version}-x86_64-unknown-linux-gnu";
-      hash = "sha256-NtES2hlXk5piA+vwnmg3LXiIO9y5wlFkdrMHHQCqFU4=";
+      hash = "sha256-/+mhHr5WocrH9d5sCon5adE4xuV52szJAVhqmSraKt0=";
     };
   };
 
