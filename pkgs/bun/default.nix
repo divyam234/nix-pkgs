@@ -9,24 +9,24 @@
 }:
 
 let
-  version = "1.4.4";
+  version = "1.4.5";
 
   sources = {
     x86_64-linux = {
       asset = "bun-linux-x64.zip";
-      hash = "sha256-v4zL+ysLgBWeD5ptFcVTF63YB3U028YTCj7bUvzLOVw=";
+      hash = "sha256-lFWbO1KJlaSUUvnyQEzsdPLv19BuCgAKjNIUsCw2Zus=";
       dir = "bun-linux-x64";
     };
 
     x86_64-linux-baseline = {
       asset = "bun-linux-x64-baseline.zip";
-      hash = "sha256-4ERutVmVdy65iUvrrppr42jZhai5Jx7hJEhvmUbu3XY=";
+      hash = "sha256-3LI6GKHC//EtV7zvaW27tC62f94p9DgW7LWVRZokxGM=";
       dir = "bun-linux-x64-baseline";
     };
 
     aarch64-linux = {
       asset = "bun-linux-aarch64.zip";
-      hash = "sha256-uqa7NvUdblhWHgK76oJQOKnfRU9nPW13bou/hvjHhQ4=";
+      hash = "sha256-GGVqO/DqVkH1eWrkITt1JVV5pwoP3tLzN5M3hVaM34Q=";
       dir = "bun-linux-aarch64";
     };
   };

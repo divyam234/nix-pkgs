@@ -3,17 +3,17 @@
 }:
 
 let
-  version = "1.0.4";
+  version = "1.0.5";
 
   sources = {
     x86_64-linux = {
       asset = "hydra_Linux_x86_64.tar.gz";
-      hash = "sha256-s+7sDxNuEITtf4vMwWB0cAg4pJKhuPCjOkvLj6ZUdLk=";
+      hash = "sha256-fXf0HyAbu3mP5WRKTgaJDtbbkt1++zw0zLFOv1Y9WEU=";
     };
 
     aarch64-linux = {
       asset = "hydra_Linux_arm64.tar.gz";
-      hash = "sha256-Dwj2krXQIXXUWJZqlxlKZtiAcqvKIox0TVYC27RbhK0=";
+      hash = "sha256-eovd11iFEUBoZGZ6fIx0QgPy3SZ7ZM+ZWxshSQJy3WY=";
     };
   };
 in
