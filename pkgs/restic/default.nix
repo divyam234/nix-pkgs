@@ -10,17 +10,17 @@
 }:
 
 let
-  version = "0.19.1";
+  version = "0.20.0";
 
   sources = {
     x86_64-linux = {
-      asset = "restic_0.19.1_linux_amd64.bz2";
-      hash = "sha256-9BVBViTcxFLyoCuMM2QXkajG1tO2W7s1Q/z5olFRWFw=";
+      asset = "restic_0.20.0_linux_amd64.bz2";
+      hash = "sha256-DM2fp4hQdKJGA7BR4Bv5vYteRdaheR6dmIfp6TchB/c=";
     };
 
     aarch64-linux = {
-      asset = "restic_0.19.1_linux_arm64.bz2";
-      hash = "sha256-pfZKqrU9UeMR+jgpEkxbcD8tFM8YfYZAtr47K0k3ZGU=";
+      asset = "restic_0.20.0_linux_arm64.bz2";
+      hash = "sha256-EYja3tI5vMtZUqAdKtM+d6DT3DT52fwef92mGNRJOO8=";
     };
   };
 
