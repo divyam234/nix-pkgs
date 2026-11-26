@@ -265,6 +265,6 @@ runCommand "vlc4-${vlc.version}"
     substitute ${vlc}/share/applications/vlc4.desktop $out/share/applications/vlc4.desktop \
       --replace-fail '${vlc}/bin/vlc' "$out/bin/vlc4" \
       --replace-fail 'Icon=vlc' 'Icon=vlc4'
-    sed -i '/^Name\(\[[^]]*\]\)\?=/s/VLC/VLC 4/g' $out/share/applications/vlc4.desktop
+    sed -i '/^Name\(\[[^]]*\]\)\?=/s/=.*/=VLC/' $out/share/applications/vlc4.desktop
     ln -s ${vlc}/share/icons $out/share/icons
   ''
