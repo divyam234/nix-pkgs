@@ -9,19 +9,18 @@
   flex,
   bison,
   gettext,
-  lua5_2_compat,
-  unzip,
+  lua5_4,
   wayland-scanner,
   spirv-tools,
   qt6,
   kdePackages,
-  wrapGAppsHook3,
   patchelf,
   makeWrapper,
   runCommand,
   alsa-lib,
   avahi,
   cairo,
+  dav1d,
   dbus,
   faad2,
   ffmpeg,
@@ -51,6 +50,7 @@
   libpulseaudio,
   librsvg,
   libsamplerate,
+  libsecret,
   libssh2,
   libtheora,
   libva,
@@ -65,12 +65,16 @@
   libxpm,
   libsm,
   live555,
+  mpg123,
   ncurses,
+  pipewire,
   samba,
   speex,
   srt,
   systemdLibs,
   taglib,
+  vulkan-headers,
+  vulkan-loader,
   wayland,
   wayland-protocols,
   zlib,
@@ -78,8 +82,8 @@
 
 let
   vlc = stdenv.mkDerivation (finalAttrs: {
-    pname = "vlc";
-    version = "4.0.0-beta.5";
+    pname = "hakone-unwrapped";
+    version = "1.0.0-beta.1";
     rev = "03fef03b761d38bf4a78b381ad937cdc2856d97d";
 
     src = fetchurl {
@@ -97,14 +101,12 @@ let
       flex
       bison
       gettext
-      lua5_2_compat
-      unzip
+      lua5_4
       wayland-scanner
       # Let qsb find spirv-opt so the Qt shaders get optimized.
       spirv-tools
       qt6.wrapQtAppsHook
       qt6.qttools
-      wrapGAppsHook3
       patchelf
     ];
 
@@ -112,6 +114,7 @@ let
       alsa-lib
       avahi
       cairo
+      dav1d
       dbus
       faad2
       ffmpeg
@@ -141,6 +144,7 @@ let
       libpulseaudio
       librsvg
       libsamplerate
+      libsecret
       libssh2
       libtheora
       libva
@@ -155,30 +159,33 @@ let
       libxpm
       libsm
       live555
-      lua5_2_compat
+      lua5_4
+      mpg123
       ncurses
+      pipewire
       samba
       speex
       srt
       systemdLibs
       taglib
+      vulkan-headers
+      vulkan-loader
       wayland
       wayland-protocols
       zlib
       qt6.qtbase
       qt6.qtdeclarative
+      qt6.qtimageformats
       qt6.qtsvg
       qt6.qtwayland
-      qt6.qt5compat
       qt6.qtshadertools
       kdePackages.kwindowsystem
     ];
 
     strictDeps = true;
-    dontWrapGApps = true; # Qt wrapper adds the gapps args below
 
     postPatch = ''
-      patchShebangs buildsystem
+      patchShebangs buildsystem modules/gui/qt/scripts extras/package/release
       substituteInPlace modules/text_renderer/freetype/platform_fonts.h \
         --replace-fail \
           /usr/share/fonts/truetype/freefont \
@@ -188,12 +195,24 @@ let
     # nixpkgs defaults to auto_features=enabled, which makes optional probes
     # (AArch64 branch protection, every optional codec) hard errors.
     mesonAutoFeatures = "auto";
+    mesonBuildType = "release";
 
     mesonFlags = [
+      "-Dqt=enabled"
+      # Player-only build: no Rust/WASM add-on worker or library indexing.
+      "-Daddon-runtime=disabled"
+      "-Daddon_manager=false"
+      "-Dmedialibrary=disabled"
       "-Drust=disabled"
+      "-Dlua=enabled"
+      "-Dnls=enabled"
+      "-Dxcb=enabled"
+      "-Dwayland=enabled"
+      "-Ddbus=enabled"
+      "-Dupdate-check=disabled"
+      "-Dskins2=disabled"
+      "-Dzvbi=disabled"
       "-Dchromecast=disabled" # protobuf/abseil headers need C++20; VLC builds as C++17
-      # The medialibrary plugin is not packaged in nixpkgs, and the test suite
-      # unconditionally depends on it.
       "-Dtests=disabled"
     ];
 
@@ -202,31 +221,26 @@ let
 
       meson install --no-rebuild
 
-      # The meson install ships no desktop entry or icons, so generate them from
-      # the source tree. VLC 4 dropped --started-from-file; passing it makes vlc
-      # exit with "Unknown option".
+      # Use Hakone's current templates, keeping the existing public desktop ID.
       srcroot="$NIX_BUILD_TOP/$sourceRoot"
-      mimetypes="$(sed 's/\s*#.*$//g' "$srcroot/share/vlc.desktop.mimetypes" | grep -v '^$' | tr '\n' ';')"
+      mimetypes="$(sed 's/\s*#.*$//g' "$srcroot/share/hakone.desktop.mimetypes" | grep -v '^$' | tr '\n' ';')"
       mkdir -p $out/share/applications
       sed -e "s,@bindir@,$out/bin,g" -e "s,@MIMETYPES@,$mimetypes,g" \
         -e 's, --started-from-file,,' \
-        "$srcroot/share/vlc.desktop.in" > $out/share/applications/vlc4.desktop
+        "$srcroot/share/hakone.desktop.in" > $out/share/applications/vlc4.desktop
       for sz in 16x16 32x32 48x48 128x128 256x256; do
-        if [ -f "$srcroot/share/icons/$sz/vlc.png" ]; then
-          install -Dm444 "$srcroot/share/icons/$sz/vlc.png" \
+        if [ -f "$srcroot/share/icons/$sz/hakone.png" ]; then
+          install -Dm444 "$srcroot/share/icons/$sz/hakone.png" \
             $out/share/icons/hicolor/$sz/apps/vlc4.png
         fi
       done
+      install -Dm444 "$srcroot/share/icons/hakone.svg" \
+        $out/share/icons/hicolor/scalable/apps/vlc4.svg
 
       runHook postInstall
     '';
 
-    # VLC 4 does not load the D-Bus control interface by default, so without
-    # this there is no MPRIS service and media keys / playerctl cannot see the
-    # player.
-    preFixup = ''
-      qtWrapperArgs+=("''${gappsWrapperArgs[@]}")
-
+    postFixup = ''
       # The xcb plugins link libvlc_xcb_events.so from $out/lib/vlc, which is
       # not in their RUNPATH, so they fail to load without this.
       for f in $out/lib/vlc/plugins/video_output/libxcb_*_plugin.so; do
@@ -234,16 +248,21 @@ let
           patchelf --add-rpath $out/lib/vlc "$f"
         fi
       done
+
+      # Generate the cache after patching, with the timestamps Nix stores.
+      find $out/lib/vlc/plugins -type f -exec touch -d @1 '{}' +
+      $out/libexec/vlc/vlc-cache-gen $out/lib/vlc/plugins
+      test -s $out/lib/vlc/plugins/plugins.dat
     '';
 
     meta = {
-      description = "Hakone, a VLC 4.0 development build with the Juxtopposed interface redesign";
+      description = "Hakone player-only build, without add-ons or media-library indexing";
       homepage = "https://github.com/hakone-org/hakone";
       license = with lib.licenses; [
         gpl2Plus
-        cc-by-40
+        lgpl21Plus
       ];
-      mainProgram = "vlc";
+      mainProgram = "hakone";
       platforms = lib.platforms.linux;
     };
   });
@@ -255,16 +274,19 @@ runCommand "vlc4-${vlc.version}"
   {
     pname = "vlc4";
     inherit (vlc) version;
-    meta = vlc.meta // { mainProgram = "vlc4"; };
+    meta = vlc.meta // {
+      mainProgram = "vlc4";
+    };
     nativeBuildInputs = [ makeWrapper ];
+    passthru.unwrapped = vlc;
   }
   ''
-    makeWrapper ${vlc}/bin/vlc $out/bin/vlc4 --add-flags "--extraintf dbus"
+    makeWrapper ${vlc}/bin/hakone $out/bin/vlc4 --add-flags "--extraintf dbus"
 
     mkdir -p $out/share/applications
     substitute ${vlc}/share/applications/vlc4.desktop $out/share/applications/vlc4.desktop \
-      --replace-fail '${vlc}/bin/vlc' "$out/bin/vlc4" \
-      --replace-fail 'Icon=vlc' 'Icon=vlc4'
+      --replace-fail '${vlc}/bin/hakone' "$out/bin/vlc4" \
+      --replace-fail 'Icon=hakone' 'Icon=vlc4'
     sed -i '/^Name\(\[[^]]*\]\)\?=/s/=.*/=VLC/' $out/share/applications/vlc4.desktop
     ln -s ${vlc}/share/icons $out/share/icons
   ''
