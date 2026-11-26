@@ -80,11 +80,11 @@ let
   vlc = stdenv.mkDerivation (finalAttrs: {
     pname = "vlc";
     version = "4.0.0-beta.5";
-    rev = "958859ebb3f02e526fc0ec8f99336434e6143739";
+    rev = "03fef03b761d38bf4a78b381ad937cdc2856d97d";
 
     src = fetchurl {
       url = "https://github.com/hakone-org/hakone/archive/${finalAttrs.rev}.tar.gz";
-      hash = "sha256-KWXAlYf4NEmsPrZNtdD6sW5caEa3LjDfG3fClQ+uy9M=";
+      hash = "sha256-h0+O/sNcEqLZOr6wzIm6u0oUuhM3QE9+bV40T9S0a/k=";
     };
 
     sourceRoot = "hakone-${finalAttrs.rev}";
