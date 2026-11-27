@@ -52,7 +52,7 @@
             overlays = [ self.overlays.default ];
           };
           customPackages = import ./pkgs { inherit pkgs prev; };
-          packageNames = builtins.filter (name: name != "vlc4") (builtins.attrNames customPackages);
+          packageNames = builtins.filter (name: name != "hakone") (builtins.attrNames customPackages);
         in
         customPackages
         // {

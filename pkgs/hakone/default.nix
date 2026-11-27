@@ -1,6 +1,7 @@
 {
   lib,
   stdenv,
+  callPackage,
   fetchurl,
   meson,
   ninja,
@@ -71,6 +72,7 @@
   samba,
   speex,
   srt,
+  sqlite,
   systemdLibs,
   taglib,
   vulkan-headers,
@@ -81,15 +83,22 @@
 }:
 
 let
-  vlc = stdenv.mkDerivation (finalAttrs: {
+  rev = "03fef03b761d38bf4a78b381ad937cdc2856d97d";
+  src = fetchurl {
+    url = "https://github.com/hakone-org/hakone/archive/${rev}.tar.gz";
+    hash = "sha256-h0+O/sNcEqLZOr6wzIm6u0oUuhM3QE9+bV40T9S0a/k=";
+  };
+  # Use the media-library patches from the exact same source revision.
+  patchDir = runCommand "hakone-medialibrary-patches" { } ''
+    mkdir -p "$out"
+    tar -xzf ${src} --strip-components=4 -C "$out" \
+      hakone-${rev}/contrib/src/medialibrary
+  '';
+  medialibrary = callPackage ./medialibrary.nix { inherit patchDir; };
+  hakone = stdenv.mkDerivation (finalAttrs: {
     pname = "hakone-unwrapped";
     version = "1.0.0-beta.1";
-    rev = "03fef03b761d38bf4a78b381ad937cdc2856d97d";
-
-    src = fetchurl {
-      url = "https://github.com/hakone-org/hakone/archive/${finalAttrs.rev}.tar.gz";
-      hash = "sha256-h0+O/sNcEqLZOr6wzIm6u0oUuhM3QE9+bV40T9S0a/k=";
-    };
+    inherit src rev;
 
     sourceRoot = "hakone-${finalAttrs.rev}";
 
@@ -160,12 +169,14 @@ let
       libsm
       live555
       lua5_4
+      medialibrary
       mpg123
       ncurses
       pipewire
       samba
       speex
       srt
+      sqlite
       systemdLibs
       taglib
       vulkan-headers
@@ -199,10 +210,10 @@ let
 
     mesonFlags = [
       "-Dqt=enabled"
-      # Player-only build: no Rust/WASM add-on worker or library indexing.
+      # Keep media-library support, but omit the Rust/WASM add-on worker.
       "-Daddon-runtime=disabled"
       "-Daddon_manager=false"
-      "-Dmedialibrary=disabled"
+      "-Dmedialibrary=enabled"
       "-Drust=disabled"
       "-Dlua=enabled"
       "-Dnls=enabled"
@@ -221,21 +232,23 @@ let
 
       meson install --no-rebuild
 
-      # Use Hakone's current templates, keeping the existing public desktop ID.
+      # Install upstream desktop entries and icons without VLC renaming.
       srcroot="$NIX_BUILD_TOP/$sourceRoot"
       mimetypes="$(sed 's/\s*#.*$//g' "$srcroot/share/hakone.desktop.mimetypes" | grep -v '^$' | tr '\n' ';')"
       mkdir -p $out/share/applications
-      sed -e "s,@bindir@,$out/bin,g" -e "s,@MIMETYPES@,$mimetypes,g" \
-        -e 's, --started-from-file,,' \
-        "$srcroot/share/hakone.desktop.in" > $out/share/applications/vlc4.desktop
+      for template in "$srcroot"/share/hakone*.desktop.in; do
+        name="$(basename "$template" .in)"
+        sed -e "s,@bindir@,$out/bin,g" -e "s,@MIMETYPES@,$mimetypes,g" \
+          "$template" > "$out/share/applications/$name"
+      done
       for sz in 16x16 32x32 48x48 128x128 256x256; do
         if [ -f "$srcroot/share/icons/$sz/hakone.png" ]; then
           install -Dm444 "$srcroot/share/icons/$sz/hakone.png" \
-            $out/share/icons/hicolor/$sz/apps/vlc4.png
+            $out/share/icons/hicolor/$sz/apps/hakone.png
         fi
       done
       install -Dm444 "$srcroot/share/icons/hakone.svg" \
-        $out/share/icons/hicolor/scalable/apps/vlc4.svg
+        $out/share/icons/hicolor/scalable/apps/hakone.svg
 
       runHook postInstall
     '';
@@ -256,7 +269,7 @@ let
     '';
 
     meta = {
-      description = "Hakone player-only build, without add-ons or media-library indexing";
+      description = "Hakone media player with media-library support, without add-ons";
       homepage = "https://github.com/hakone-org/hakone";
       license = with lib.licenses; [
         gpl2Plus
@@ -268,25 +281,24 @@ let
   });
 
   # Keep libraries, plugins and data private so stable VLC can share a profile.
-  # The public wrapper also enables MPRIS, which VLC 4 does not load by default.
+  # The public wrapper also enables MPRIS for media keys and playerctl.
 in
-runCommand "vlc4-${vlc.version}"
+runCommand "hakone-${hakone.version}"
   {
-    pname = "vlc4";
-    inherit (vlc) version;
-    meta = vlc.meta // {
-      mainProgram = "vlc4";
-    };
+    pname = "hakone";
+    inherit (hakone) version meta;
     nativeBuildInputs = [ makeWrapper ];
-    passthru.unwrapped = vlc;
+    passthru = {
+      unwrapped = hakone;
+      inherit medialibrary;
+    };
   }
   ''
-    makeWrapper ${vlc}/bin/hakone $out/bin/vlc4 --add-flags "--extraintf dbus"
+    makeWrapper ${hakone}/bin/hakone $out/bin/hakone --add-flags "--extraintf dbus"
 
     mkdir -p $out/share/applications
-    substitute ${vlc}/share/applications/vlc4.desktop $out/share/applications/vlc4.desktop \
-      --replace-fail '${vlc}/bin/hakone' "$out/bin/vlc4" \
-      --replace-fail 'Icon=hakone' 'Icon=vlc4'
-    sed -i '/^Name\(\[[^]]*\]\)\?=/s/=.*/=VLC/' $out/share/applications/vlc4.desktop
-    ln -s ${vlc}/share/icons $out/share/icons
+    cp ${hakone}/share/applications/*.desktop $out/share/applications/
+    substituteInPlace $out/share/applications/*.desktop \
+      --replace-fail '${hakone}/bin/hakone' "$out/bin/hakone"
+    ln -s ${hakone}/share/icons $out/share/icons
   ''

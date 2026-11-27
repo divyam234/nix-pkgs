@@ -76,17 +76,17 @@ packages:
       x86_64-linux:
         name: FluxDown-{version}-linux-x64.tar.gz
 
-  vlc4:
+  hakone:
     source: github-head
     repo: hakone-org/hakone
-    ref: 4.0.0-beta.5
-    file: pkgs/vlc/default.nix
+    ref: HEAD
+    file: pkgs/hakone/default.nix
     archive: true
     version:
-      base: 4.0.0-beta.5
+      base: 1.0.0-beta.1
       dateSuffix: false
     test:
-      command: bin/vlc4
+      command: bin/hakone
       args: [--version]
 
   zed-editor:
