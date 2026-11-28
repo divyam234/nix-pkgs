@@ -17,10 +17,14 @@ BASE_URL = "https://build.stencil.so"
 ARCHES = ("x86_64", "aarch64")
 
 
+class ReleaseValidationError(RuntimeError):
+    """A validation failure whose message is safe to include in CI logs."""
+
+
 class SafeRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         if urllib.parse.urlsplit(newurl).scheme != "https":
-            raise RuntimeError("Refusing a non-HTTPS download redirect")
+            raise ReleaseValidationError("Refusing a non-HTTPS download redirect")
         redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
         if urllib.parse.urlsplit(newurl).netloc != urllib.parse.urlsplit(req.full_url).netloc:
             redirected.remove_header("Cookie")
@@ -38,25 +42,25 @@ def open_url(url, cookie):
 def select_release(data):
     products = [product for product in data["products"] if product["id"] == "tern"]
     if len(products) != 1 or not products[0].get("access"):
-        raise RuntimeError("Stencil account does not have access to Tern")
+        raise ReleaseValidationError("Stencil account does not have access to Tern")
     release = products[0]["latest"]
     if release["channel"] != "stable" or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", release["version"]):
-        raise RuntimeError("Expected a stable Tern semantic version")
+        raise ReleaseValidationError("Expected a stable Tern semantic version")
     files = []
     for arch in ARCHES:
         matches = [file for file in release["files"]
                    if file["platform"] == "linux" and file["arch"] == arch
                    and file["kind"] == "archive"]
         if len(matches) != 1:
-            raise RuntimeError(f"Expected exactly one glibc Linux archive for {arch}")
+            raise ReleaseValidationError(f"Expected exactly one glibc Linux archive for {arch}; found {len(matches)}")
         file = matches[0]
         if file["name"] != f"Tern-{release['version']}-linux-{arch}.tar.gz":
-            raise RuntimeError(f"Unexpected archive name for {arch}")
+            raise ReleaseValidationError(f"Unexpected archive name for {arch}")
         if not re.fullmatch(r"[0-9a-f]{64}", file["sha256"]):
-            raise RuntimeError(f"Invalid SHA-256 for {arch}")
+            raise ReleaseValidationError(f"Invalid SHA-256 for {arch}")
         url = urllib.parse.urljoin(BASE_URL, file["url"])
         if urllib.parse.urlsplit(url).scheme != "https" or urllib.parse.urlsplit(url).netloc != urllib.parse.urlsplit(BASE_URL).netloc:
-            raise RuntimeError("Expected a Stencil download URL")
+            raise ReleaseValidationError("Expected a Stencil download URL")
         files.append((file, url))
     return release, files
 
@@ -71,7 +75,7 @@ def prepare(directory, cookie, repository, force=False):
         capture_output=True, text=True,
     )
     if existing.returncode and "HTTP 404" not in existing.stderr:
-        raise RuntimeError("Unable to check GitHub release; check GH_TOKEN permissions")
+        raise ReleaseValidationError("Unable to check GitHub release; check GH_TOKEN permissions")
     if not existing.returncode and not force:
         published = json.loads(existing.stdout)
         assets = {asset["name"] for asset in published["assets"]}
@@ -91,7 +95,7 @@ def prepare(directory, cookie, repository, force=False):
                     size += len(chunk)
                     output.write(chunk)
             if size != file["size"] or digest.hexdigest() != file["sha256"]:
-                raise RuntimeError(f"Size or SHA-256 mismatch for {file['name']}")
+                raise ReleaseValidationError("Downloaded archive size or SHA-256 does not match upstream metadata")
         except Exception:
             destination.unlink(missing_ok=True)
             raise
@@ -122,6 +126,8 @@ def main():
         # Do not print redirect URLs, response bodies, or authentication headers.
         if isinstance(error, urllib.error.HTTPError):
             parser.exit(1, f"Stencil request failed (HTTP {error.code}); check STENCIL_COOKIE and Tern access\n")
+        if isinstance(error, ReleaseValidationError):
+            parser.exit(1, f"Tern release preparation failed: {error}\n")
         parser.exit(1, f"Tern release preparation failed: {type(error).__name__}\n")
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, "a") as stream:
