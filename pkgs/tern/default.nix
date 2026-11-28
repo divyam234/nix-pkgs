@@ -15,12 +15,12 @@
 }:
 
 let
-  version = "0.9.18";
+  version = "0.9.37";
 
   sources = {
     x86_64-linux = {
-      asset = "Tern-0.9.18-linux-x86_64.tar.gz";
-      hash = "sha256-nhoUi5TPCaaKegmT7um3hlNA+VjSQ3xS194FDw32+ro=";
+      asset = "Tern-0.9.37-linux-x86_64.tar.gz";
+      hash = "sha256-TvZ+XgUCJWuykpl3aDLVPOviaewyrkvSXd9YNrdHuxM=";
     };
   };
 
