@@ -56,7 +56,10 @@ jobs:
 
   update-package:
     needs: publish
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,21 +77,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           uv run --with pyyaml --with semver==3.0.4 python -B scripts/update-releases.py \
-            updates.yml tern --check
-          nix build .#tern
+            updates.yml tern
+          nix build --no-link .#tern-headless
+
+      - name: Build Tern desktop
+        if: runner.arch == 'X64'
+        run: nix build --no-link .#tern
 
       - name: Commit package update
+        if: runner.arch == 'X64'
         env:
           TARGET_BRANCH: ${{ github.event.repository.default_branch }}
           VERSION: ${{ needs.publish.outputs.version }}
         run: |
           set -euo pipefail
-          if git diff --quiet -- pkgs/tern/default.nix; then
+          if git diff --quiet -- pkgs/tern/release.nix; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pkgs/tern/default.nix
+          git add pkgs/tern/release.nix
           git commit -m "tern: $VERSION"
           git pull --rebase origin "$TARGET_BRANCH"
           git push origin HEAD:"$TARGET_BRANCH"

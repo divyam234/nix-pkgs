@@ -52,7 +52,10 @@
             overlays = [ self.overlays.default ];
           };
           customPackages = import ./pkgs { inherit pkgs prev; };
-          packageNames = builtins.filter (name: name != "hakone") (builtins.attrNames customPackages);
+          # Both Tern variants install bin/tern.
+          packageNames = builtins.filter (name: name != "hakone" && name != "tern-headless") (
+            builtins.attrNames customPackages
+          );
         in
         customPackages
         // {

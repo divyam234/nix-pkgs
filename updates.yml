@@ -272,7 +272,7 @@ packages:
 
   tern:
     repo: divyam234/nix-pkgs
-    file: pkgs/tern/default.nix
+    file: pkgs/tern/release.nix
     tagPrefix: tern-v
     release:
       source: list
@@ -283,3 +283,5 @@ packages:
     assets:
       x86_64-linux:
         name: Tern-{version}-linux-x86_64.tar.gz
+      aarch64-linux:
+        name: Tern-{version}-linux-arm64.tar.gz

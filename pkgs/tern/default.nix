@@ -15,27 +15,11 @@
 }:
 
 let
-  version = "0.9.37";
-
-  sources = {
-    x86_64-linux = {
-      asset = "Tern-0.9.37-linux-x86_64.tar.gz";
-      hash = "sha256-TvZ+XgUCJWuykpl3aDLVPOviaewyrkvSXd9YNrdHuxM=";
-    };
-  };
-
-  source =
-    sources.${stdenvNoCC.hostPlatform.system}
-      or (throw "tern is not packaged for ${stdenvNoCC.hostPlatform.system}");
+  release = import ./source.nix { inherit fetchurl stdenvNoCC; };
 in
 gpuiApp {
   pname = "tern";
-  inherit version;
-
-  src = fetchurl {
-    url = "https://github.com/divyam234/nix-pkgs/releases/download/tern-v${version}/${source.asset}";
-    inherit (source) hash;
-  };
+  inherit (release) version src;
 
   sourceRoot = ".";
   dontConfigure = true;

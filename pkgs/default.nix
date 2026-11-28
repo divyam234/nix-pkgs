@@ -57,6 +57,8 @@ in
     inherit gpuiApp;
   };
 
+  tern-headless = pkgs.callPackage ./tern/headless.nix { };
+
   tusk = pkgs.callPackage ./tusk {
     inherit gpuiApp;
   };
