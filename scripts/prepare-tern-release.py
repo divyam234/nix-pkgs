@@ -52,7 +52,17 @@ def select_release(data):
                    if file["platform"] == "linux" and file["arch"] == arch
                    and file["kind"] == "archive"]
         if len(matches) != 1:
-            raise ReleaseValidationError(f"Expected exactly one glibc Linux archive for {arch}; found {len(matches)}")
+            available = [
+                "/".join(
+                    value if re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", value) else "unknown"
+                    for value in (str(file.get("platform", "")), str(file.get("arch", "")), str(file.get("kind", "")))
+                )
+                for file in release["files"]
+            ]
+            raise ReleaseValidationError(
+                f"Expected exactly one glibc Linux archive for {arch}; found {len(matches)}. "
+                f"Available platform/arch/kind: {', '.join(available)}"
+            )
         file = matches[0]
         if file["name"] != f"Tern-{release['version']}-linux-{arch}.tar.gz":
             raise ReleaseValidationError(f"Unexpected archive name for {arch}")
