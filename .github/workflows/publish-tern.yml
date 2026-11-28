@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Download, verify, and patch upstream Linux archives
+      - name: Download and verify upstream amd64 and arm64 Linux archives
         id: prepare
         env:
           STENCIL_COOKIE: ${{ secrets.STENCIL_COOKIE }}
@@ -36,7 +36,7 @@ jobs:
           if [ "$FORCE" = true ]; then args+=(--force); fi
           python3 scripts/prepare-tern-release.py "${args[@]}"
 
-      - name: Publish patched archives
+      - name: Publish unmodified upstream archives
         if: steps.prepare.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}

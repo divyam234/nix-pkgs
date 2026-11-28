@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download, verify, and patch Tern's Linux release using STENCIL_COOKIE."""
+"""Download and verify unmodified Tern Linux releases using STENCIL_COOKIE."""
 
 import argparse
 import hashlib
@@ -8,32 +8,13 @@ import os
 from pathlib import Path
 import re
 import subprocess
-import tarfile
-import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
 
 
 BASE_URL = "https://build.stencil.so"
-ARCHES = ("x86_64",)
-
-
-def patch_archive(source, destination):
-    with tempfile.TemporaryDirectory() as temporary:
-        root = Path(temporary)
-        with tarfile.open(source, "r:gz") as archive:
-            archive.extractall(root, filter="data")
-        binary = root / "tern" / "tern"
-        if not binary.is_file() or binary.is_symlink():
-            raise RuntimeError("Expected a regular tern/tern binary")
-        subprocess.run(
-            ["python3", str(Path(__file__).with_name("patch-tern-gate.py")), str(binary)],
-            check=True,
-        )
-        with tarfile.open(destination, "w:gz") as archive:
-            for entry in sorted(root.iterdir()):
-                archive.add(entry, arcname=entry.name)
+ARCHES = ("x86_64", "aarch64")
 
 
 class SafeRedirect(urllib.request.HTTPRedirectHandler):
@@ -115,12 +96,7 @@ def prepare(directory, cookie, repository, force=False):
             destination.unlink(missing_ok=True)
             raise
         print(f"Verified {file['name']}")
-        patched = directory / (file["name"] + ".patched")
-        patch_archive(destination, patched)
-        patched.replace(destination)
-        with destination.open("rb") as stream:
-            patched_digest = hashlib.file_digest(stream, "sha256").hexdigest()
-        checksums.append(f"{patched_digest}  {destination.name}\n")
+        checksums.append(f"{digest.hexdigest()}  {destination.name}\n")
     (directory / "checksums.txt").write_text("".join(checksums))
     (directory / "release-notes.md").write_text(
         f"Tern {version}\n\nUpstream build: {release['id']}\n\n"

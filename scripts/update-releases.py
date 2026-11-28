@@ -65,7 +65,10 @@ def run_command(command, *, capture=False):
 
 
 def run_gh_releases(repo):
-    return run_json(["gh", "api", f"repos/{repo}/releases?per_page=20"])
+    pages = run_json([
+        "gh", "api", "--paginate", "--slurp", f"repos/{repo}/releases?per_page=100",
+    ])
+    return [release for page in pages for release in page]
 
 
 def run_gh_release_assets(repo, release_id):

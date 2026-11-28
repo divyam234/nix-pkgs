@@ -17,9 +17,6 @@
 let
   version = "0.9.18";
 
-  # Only x86_64-linux: release preparation patches the startup login flow
-  # (see scripts/patch-tern-gate.py), and the patch fingerprints
-  # currently cover the x86_64 build only.
   sources = {
     x86_64-linux = {
       asset = "Tern-0.9.18-linux-x86_64.tar.gz";
@@ -68,17 +65,6 @@ gpuiApp {
       glib.bin
       zenity
     ])
-    # Never phone home: the omp management offer is patched out, so the
-    # build service is unreachable by design. The sign-in card is
-    # non-blocking, but pointing the auth service at a dead address makes
-    # any residual check fail fast instead of hitting the network.
-    # --set-default keeps them overridable via the environment.
-    "--set-default"
-    "TERN_AUTH_URL"
-    "http://127.0.0.1:9"
-    "--set-default"
-    "TERN_BUILD_URL"
-    "http://127.0.0.1:9"
   ];
 
   installPhase = ''
