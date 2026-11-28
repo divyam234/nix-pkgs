@@ -43,6 +43,20 @@
       "source": "config/providers",
       "type": "string"
     },
+    "allow-https-downgrade": {
+      "advanced": false,
+      "cliName": "allow-https-downgrade",
+      "default": false,
+      "defaultStr": "false",
+      "group": "main",
+      "help": "Follow redirects from HTTPS to HTTP (insecure)",
+      "helpType": null,
+      "name": "allow_https_downgrade",
+      "required": false,
+      "sensitive": false,
+      "source": "options/info",
+      "type": "bool"
+    },
     "allow-idmap": {
       "advanced": false,
       "cliName": "allow-idmap",
@@ -211,7 +225,7 @@
       "help": "Set key pair for v4 authorization: access_key_id,secret_access_key",
       "name": "auth_key",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "options/info",
       "type": "stringArray"
     },
@@ -953,7 +967,7 @@
       "cliName": "azurefiles-chunk-size",
       "default": 4194304,
       "defaultStr": "4Mi",
-      "help": "Upload chunk size.\n\nNote that this is stored in memory and there may be up to\n\"--transfers\" * \"--azurefile-upload-concurrency\" chunks stored at once\nin memory.",
+      "help": "Upload chunk size.\n\nNote that this is stored in memory and there may be up to\n\"--transfers\" * \"--azurefiles-upload-concurrency\" chunks stored at once\nin memory.",
       "helpType": "SizeSuffix",
       "name": "chunk_size",
       "required": false,
@@ -1261,7 +1275,7 @@
       "cliName": "azurefiles-upload-concurrency",
       "default": 16,
       "defaultStr": "16",
-      "help": "Concurrency for multipart uploads.\n\nThis is the number of chunks of the same file that are uploaded\nconcurrently.\n\nIf you are uploading small numbers of large files over high-speed\nlinks and these uploads do not fully utilize your bandwidth, then\nincreasing this may help to speed up the transfers.\n\nNote that chunks are stored in memory and there may be up to\n\"--transfers\" * \"--azurefile-upload-concurrency\" chunks stored at once\nin memory.",
+      "help": "Concurrency for multipart uploads.\n\nThis is the number of chunks of the same file that are uploaded\nconcurrently.\n\nIf you are uploading small numbers of large files over high-speed\nlinks and these uploads do not fully utilize your bandwidth, then\nincreasing this may help to speed up the transfers.\n\nNote that chunks are stored in memory and there may be up to\n\"--transfers\" * \"--azurefiles-upload-concurrency\" chunks stored at once\nin memory.",
       "helpType": "int",
       "name": "upload_concurrency",
       "required": false,
@@ -1415,7 +1429,7 @@
       "cliName": "b2-download-url",
       "default": "",
       "defaultStr": "",
-      "help": "Custom endpoint for downloads.\n\nThis is usually set to a Cloudflare CDN URL as Backblaze offers\nfree egress for data downloaded through the Cloudflare network.\nRclone works with private buckets by sending an \"Authorization\" header.\nIf the custom endpoint rewrites the requests for authentication,\ne.g., in Cloudflare Workers, this header needs to be handled properly.\nLeave blank if you want to use the endpoint provided by Backblaze.\n\nThe URL provided here SHOULD have the protocol and SHOULD NOT have\na trailing slash or specify the /file/bucket subpath as rclone will\nrequest files with \"{download_url}/file/{bucket_name}/{path}\".\n\nExample:\n> https://mysubdomain.mydomain.tld\n(No trailing \"/\", \"file\" or \"bucket\")",
+      "help": "Custom endpoint for downloads.\n\nThis is usually set to a Cloudflare CDN URL as Backblaze offers\nfree egress for data downloaded through the Cloudflare network.\nRclone works with private buckets by sending an \"Authorization\" header.\nIf the custom endpoint rewrites the requests for authentication,\ne.g., in Cloudflare Workers, this header needs to be handled properly.\nLeave blank if you want to use the endpoint provided by Backblaze.\n\nRclone will not follow a redirect from this endpoint which downgrades\nHTTPS to HTTP, and will not send the \"Authorization\" header or the\nSSE-C key headers once a redirect has left the host and port of this\nendpoint.\n\nThe URL provided here SHOULD have the protocol and SHOULD NOT have\na trailing slash or specify the /file/bucket subpath as rclone will\nrequest files with \"{download_url}/file/{bucket_name}/{path}\".\n\nExample:\n> https://mysubdomain.mydomain.tld\n(No trailing \"/\", \"file\" or \"bucket\")",
       "helpType": "string",
       "name": "download_url",
       "required": false,
@@ -1555,7 +1569,7 @@
           "Value": ""
         }
       ],
-      "help": "To use SSE-C, you may provide the secret encryption key encoded in a UTF-8 compatible string to encrypt/decrypt your data\n\nAlternatively you can provide --sse-customer-key-base64.",
+      "help": "To use SSE-C, you may provide the secret encryption key encoded in a UTF-8 compatible string to encrypt/decrypt your data\n\nAlternatively you can provide --b2-sse-customer-key-base64.",
       "helpType": "string",
       "name": "sse_customer_key",
       "required": false,
@@ -1575,7 +1589,7 @@
           "Value": ""
         }
       ],
-      "help": "To use SSE-C, you may provide the secret encryption key encoded in Base64 format to encrypt/decrypt your data\n\nAlternatively you can provide --sse-customer-key.",
+      "help": "To use SSE-C, you may provide the secret encryption key encoded in Base64 format to encrypt/decrypt your data\n\nAlternatively you can provide --b2-sse-customer-key.",
       "helpType": "string",
       "name": "sse_customer_key_base64",
       "required": false,
@@ -2980,18 +2994,18 @@
       "type": "string"
     },
     "compress-level": {
-      "advanced": false,
+      "advanced": true,
       "backend": "compress",
       "cliName": "compress-level",
-      "default": "",
-      "defaultStr": "",
-      "help": "GZIP (levels -2 to 9):\n- -2 \u2014 Huffman encoding only. Only use if you know what you're doing.\n- -1 (default) \u2014 recommended; equivalent to level 5.\n- 0 \u2014 turns off compression.\n- 1\u20139 \u2014 increase compression at the cost of speed. Going past 6 generally offers very little return.\n \nZSTD (levels 0 to 4):\n- 0 \u2014 turns off compression entirely.\n- 1 \u2014 fastest compression with the lowest ratio.\n- 2 (default) \u2014 good balance of speed and compression.\n- 3 \u2014 better compression, but uses about 2\u20133x more CPU than the default.\n- 4 \u2014 best possible compression ratio (highest CPU cost).\n \nNotes:\n- Choose GZIP for wide compatibility; ZSTD for better speed/ratio tradeoffs.\n- Negative gzip levels: -2 = Huffman-only, -1 = default (\u2248 level 5).",
-      "helpType": "string",
+      "default": -1,
+      "defaultStr": "-1",
+      "help": "GZIP (levels -2 to 9):\n- -2 \u2014 Huffman encoding only. Only use if you know what you're doing.\n- -1 (default) \u2014 recommended; equivalent to level 5.\n- 0 \u2014 turns off compression.\n- 1\u20139 \u2014 increase compression at the cost of speed. Going past 6 generally offers very little return.\n \nZSTD (levels 0 to 4):\n- 0 \u2014 turns off compression entirely.\n- 1 \u2014 fastest compression with the lowest ratio.\n- 2 (default) \u2014 good balance of speed and compression.\n- 3 \u2014 better compression, but uses about 2\u20133x more CPU than the default.\n- 4 \u2014 best possible compression ratio (highest CPU cost).\n \nNotes:\n- Choose GZIP for wide compatibility; ZSTD for better speed/ratio tradeoffs.\n- Negative gzip levels: -2 = Huffman-only, -1 = default (\u2248 level 5).\n- The default level is -1 which selects the default level of the\n  compression mode, equivalent to level 5 for gzip and level 2 for zstd.",
+      "helpType": "int",
       "name": "level",
-      "required": true,
+      "required": false,
       "sensitive": false,
       "source": "config/providers",
-      "type": "string"
+      "type": "int"
     },
     "compress-mode": {
       "advanced": false,
@@ -3358,7 +3372,7 @@
         }
       ],
       "group": "main",
-      "help": "Mode to stop transfers when reaching the max transfer limit HARD|SOFT|CAUTIOUS",
+      "help": "Mode to stop transfers when reaching the max transfer, duration or errors limit HARD|SOFT|CAUTIOUS",
       "helpType": "HARD|SOFT|CAUTIOUS",
       "name": "cutoff_mode",
       "required": true,
@@ -3536,6 +3550,19 @@
       "group": "mount",
       "help": "Use Direct IO, disables caching of data",
       "name": "direct_io",
+      "required": false,
+      "sensitive": false,
+      "source": "options/info",
+      "type": "bool"
+    },
+    "directory-markers": {
+      "advanced": false,
+      "cliName": "directory-markers",
+      "default": false,
+      "defaultStr": "false",
+      "group": "s3",
+      "help": "List every directory as a directory marker object",
+      "name": "directory_markers",
       "required": false,
       "sensitive": false,
       "source": "options/info",
@@ -4509,7 +4536,7 @@
       "cliName": "drive-size-as-quota",
       "default": false,
       "defaultStr": "false",
-      "help": "Show sizes as storage quota usage, not actual size.\n\nShow the size of a file as the storage quota used. This is the\ncurrent version plus any older versions that have been set to keep\nforever.\n\n**WARNING**: This flag may have some unexpected consequences.\n\nIt is not recommended to set this flag in your config - the\nrecommended usage is using the flag form --drive-size-as-quota when\ndoing rclone ls/lsl/lsf/lsjson/etc only.\n\nIf you do use this flag for syncing (not recommended) then you will\nneed to use --ignore size also.",
+      "help": "Show sizes as storage quota usage, not actual size.\n\nShow the size of a file as the storage quota used. This is the\ncurrent version plus any older versions that have been set to keep\nforever.\n\n**WARNING**: This flag may have some unexpected consequences.\n\nIt is not recommended to set this flag in your config - the\nrecommended usage is using the flag form --drive-size-as-quota when\ndoing rclone ls/lsl/lsf/lsjson/etc only.\n\nIf you do use this flag for syncing (not recommended) then you will\nneed to use --ignore-size also.",
       "helpType": null,
       "name": "size_as_quota",
       "required": false,
@@ -5542,15 +5569,15 @@
       "type": "SizeSuffix"
     },
     "filen-api-key": {
-      "advanced": false,
+      "advanced": true,
       "backend": "filen",
       "cliName": "filen-api-key",
       "default": "",
       "defaultStr": "",
-      "help": "API Key for your Filen account\n\nGet this using the Filen CLI export-api-key command\nYou can download the Filen CLI from https://github.com/FilenCloudDienste/filen-cli",
+      "help": "API Key for your Filen account\n\nLeave blank normally. Rclone fetches this when it logs in to your\naccount and saves it in the config file.\n\nIf you need to set it yourself, get it using the Filen CLI export-api-key command\nYou can download the Filen CLI from https://github.com/FilenCloudDienste/filen-cli",
       "helpType": "string",
       "name": "api_key",
-      "required": true,
+      "required": false,
       "sensitive": true,
       "source": "config/providers",
       "type": "string"
@@ -6239,6 +6266,20 @@
       "sensitive": false,
       "source": "config/providers",
       "type": "int"
+    },
+    "ftp-trust-pasv-ip": {
+      "advanced": true,
+      "backend": "ftp",
+      "cliName": "ftp-trust-pasv-ip",
+      "default": false,
+      "defaultStr": "false",
+      "help": "Trust the IP address in the server's PASV reply.\n\nBy default rclone ignores the IP address in the PASV reply and\nmakes the data connection to the same host as the control\nconnection. Enable this option to trust the IP address in the\nPASV reply instead, which is needed for servers whose PASV reply\nlegitimately points at a different host than the control\nconnection.\n\nThe default is false to prevent a malicious server making direct\nconnections to other hosts on your network.\n\nTry this option if transfers hang or fail with connection-refused\nerrors after upgrading to >= v1.76.0.\n",
+      "helpType": null,
+      "name": "trust_pasv_ip",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "bool"
     },
     "ftp-user": {
       "advanced": false,
@@ -7054,7 +7095,7 @@
       "cliName": "gphotos-client-id",
       "default": "",
       "defaultStr": "",
-      "help": "OAuth Client Id.\n\nCreating your own is now strongly recommended.\nIf you leave this blank rclone uses a shared client_id which is being retired and will stop working during 2026.\nSee https://rclone.org/googlephotos/#making-your-own-client-id for how to create your own.",
+      "help": "OAuth Client Id.\n\nCreating your own is now strongly recommended.\nIf you leave this blank rclone uses a shared client_id which will be heavily rate limited from 1st April 2027.\nSee https://rclone.org/googlephotos/#making-your-own-client-id for how to create your own.",
       "helpType": "string",
       "name": "client_id",
       "required": false,
@@ -7898,7 +7939,7 @@
       "cliName": "http-headers",
       "default": [],
       "defaultStr": "",
-      "help": "Set HTTP headers for all transactions.\n\nUse this to set additional HTTP headers for all transactions.\n\nThe input format is comma separated list of key,value pairs.  Standard\n[CSV encoding](https://godoc.org/encoding/csv) may be used.\n\nFor example, to set a Cookie use 'Cookie,name=value', or '\"Cookie\",\"name=value\"'.\n\nYou can set multiple headers, e.g. '\"Cookie\",\"name=value\",\"Authorization\",\"xxx\"'.\n\nThe headers are only sent to the host in the configured URL. If the\nserver redirects to another host (including a subdomain or a different\nport) the headers are not sent to it, or to any further hop in that\nredirect chain. When headers are set, a redirect from https to http is\nrefused as it would send them in cleartext.",
+      "help": "Set HTTP headers for all transactions.\n\nUse this to set additional HTTP headers for all transactions.\n\nThe input format is comma separated list of key,value pairs.  Standard\n[CSV encoding](https://godoc.org/encoding/csv) may be used.\n\nFor example, to set a Cookie use 'Cookie,name=value', or '\"Cookie\",\"name=value\"'.\n\nYou can set multiple headers, e.g. '\"Cookie\",\"name=value\",\"Authorization\",\"xxx\"'.\n\nThe headers are only sent to the host in the configured URL. If the\nserver redirects to another host (including a subdomain or a different\nport) the headers are not sent to it, or to any further hop in that\nredirect chain. When headers are set, a redirect from https to http is\nrefused as it would send them in cleartext, even with\n--allow-https-downgrade.",
       "helpType": "CommaSepList",
       "name": "headers",
       "required": false,
@@ -7933,6 +7974,34 @@
       "sensitive": false,
       "source": "config/providers",
       "type": "bool"
+    },
+    "http-no-head-size": {
+      "advanced": true,
+      "backend": "http",
+      "cliName": "http-no-head-size",
+      "default": -1,
+      "defaultStr": "off",
+      "help": "Set the reported file size for --http-no-head.\n\nWhen HEAD requests are disabled, rclone normally reports an unknown file size.\nSet this option to a non-negative value to report that size for every file,\nincluding 0. Leave it unset (the default, shown as \"off\") to keep reporting\nan unknown size.\n\nThe configured size is authoritative. If it does not match the actual file\nsize, transfers may fail their size check and retry unless --ignore-size is\nused. It can also make multi-thread transfers request incorrect ranges and\nmake mounted files unreadable past the reported size.",
+      "helpType": "SizeSuffix",
+      "name": "no_head_size",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "SizeSuffix"
+    },
+    "http-no-head-time": {
+      "advanced": true,
+      "backend": "http",
+      "cliName": "http-no-head-time",
+      "default": "0001-01-01T00:00:00Z",
+      "defaultStr": "off",
+      "help": "Set a default modification time for --http-no-head.\n\nWhen HEAD requests are disabled, rclone normally reports an unset modification\ntime. Set this option to report the specified time for every file instead.\nChanging the configured time later makes every file appear modified to a sync.",
+      "helpType": "Time",
+      "name": "no_head_time",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "Time"
     },
     "http-no-slash": {
       "advanced": true,
@@ -8158,6 +8227,19 @@
       "source": "options/info",
       "type": "bool"
     },
+    "iclouddrive--auth-session": {
+      "advanced": false,
+      "backend": "iclouddrive",
+      "cliName": "iclouddrive--auth-session",
+      "default": "",
+      "defaultStr": "",
+      "help": "Authentication session in progress - set automatically.",
+      "name": "_auth_session",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
     "iclouddrive-apple-id": {
       "advanced": false,
       "backend": "iclouddrive",
@@ -8238,6 +8320,30 @@
       "name": "password",
       "required": true,
       "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "iclouddrive-region": {
+      "advanced": true,
+      "backend": "iclouddrive",
+      "cliName": "iclouddrive-region",
+      "default": "global",
+      "defaultStr": "global",
+      "examples": [
+        {
+          "Help": "Global (automatically detects China Mainland accounts).",
+          "Value": "global"
+        },
+        {
+          "Help": "China Mainland (GCBD).",
+          "Value": "china"
+        }
+      ],
+      "help": "Region for iCloud accounts. China Mainland (GCBD) accounts are normally detected automatically.",
+      "helpType": "string",
+      "name": "region",
+      "required": false,
+      "sensitive": false,
       "source": "config/providers",
       "type": "string"
     },
@@ -8711,6 +8817,32 @@
       "source": "config/providers",
       "type": "Duration"
     },
+    "internxt-2fa-code": {
+      "advanced": false,
+      "backend": "internxt",
+      "cliName": "internxt-2fa-code",
+      "default": "",
+      "defaultStr": "",
+      "help": "Two-factor authentication code used during setup - set automatically.",
+      "name": "2fa_code",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "internxt-bucket": {
+      "advanced": false,
+      "backend": "internxt",
+      "cliName": "internxt-bucket",
+      "default": "",
+      "defaultStr": "",
+      "help": "Bucket ID - set automatically.",
+      "name": "bucket",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
     "internxt-chunk-size": {
       "advanced": true,
       "backend": "internxt",
@@ -8808,6 +8940,19 @@
       "source": "config/providers",
       "type": "bool"
     },
+    "internxt-token": {
+      "advanced": false,
+      "backend": "internxt",
+      "cliName": "internxt-token",
+      "default": "",
+      "defaultStr": "",
+      "help": "OAuth Access Token as a JSON blob - set automatically.",
+      "name": "token",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
     "internxt-upload-concurrency": {
       "advanced": true,
       "backend": "internxt",
@@ -8835,6 +8980,19 @@
       "sensitive": false,
       "source": "config/providers",
       "type": "SizeSuffix"
+    },
+    "jottacloud-auth-code": {
+      "advanced": false,
+      "backend": "jottacloud",
+      "cliName": "jottacloud-auth-code",
+      "default": "",
+      "defaultStr": "",
+      "help": "Verification code used during legacy setup - set automatically.",
+      "name": "auth_code",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
     },
     "jottacloud-auth-url": {
       "advanced": true,
@@ -8892,6 +9050,19 @@
       "source": "config/providers",
       "type": "string"
     },
+    "jottacloud-configVersion": {
+      "advanced": false,
+      "backend": "jottacloud",
+      "cliName": "jottacloud-configVersion",
+      "default": "",
+      "defaultStr": "",
+      "help": "Config version - set automatically.",
+      "name": "configVersion",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
     "jottacloud-description": {
       "advanced": true,
       "backend": "jottacloud",
@@ -8901,6 +9072,20 @@
       "help": "Description of the remote.",
       "helpType": "string",
       "name": "description",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "jottacloud-device": {
+      "advanced": true,
+      "backend": "jottacloud",
+      "cliName": "jottacloud-device",
+      "default": "",
+      "defaultStr": "",
+      "help": "Device to use.\n\nLeave blank to use the default device \"Jotta\".",
+      "helpType": "string",
+      "name": "device",
       "required": false,
       "sensitive": false,
       "source": "config/providers",
@@ -8948,6 +9133,20 @@
       "source": "config/providers",
       "type": "SizeSuffix"
     },
+    "jottacloud-mountpoint": {
+      "advanced": true,
+      "backend": "jottacloud",
+      "cliName": "jottacloud-mountpoint",
+      "default": "",
+      "defaultStr": "",
+      "help": "Mountpoint to use.\n\nLeave blank to use the default mountpoint \"Archive\".",
+      "helpType": "string",
+      "name": "mountpoint",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
     "jottacloud-no-versions": {
       "advanced": true,
       "backend": "jottacloud",
@@ -8961,6 +9160,19 @@
       "sensitive": false,
       "source": "config/providers",
       "type": "bool"
+    },
+    "jottacloud-password": {
+      "advanced": false,
+      "backend": "jottacloud",
+      "cliName": "jottacloud-password",
+      "default": "",
+      "defaultStr": "",
+      "help": "Password used during legacy setup - set automatically.",
+      "name": "password",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
     },
     "jottacloud-token": {
       "advanced": true,
@@ -8985,6 +9197,19 @@
       "help": "Token server url.\n\nLeave blank to use the provider defaults.",
       "helpType": "string",
       "name": "token_url",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "jottacloud-tokenURL": {
+      "advanced": false,
+      "backend": "jottacloud",
+      "cliName": "jottacloud-tokenURL",
+      "default": "",
+      "defaultStr": "",
+      "help": "Token server URL - set automatically.",
+      "name": "tokenURL",
       "required": false,
       "sensitive": false,
       "source": "config/providers",
@@ -9017,6 +9242,173 @@
       "sensitive": false,
       "source": "config/providers",
       "type": "SizeSuffix"
+    },
+    "jottacloud-username": {
+      "advanced": false,
+      "backend": "jottacloud",
+      "cliName": "jottacloud-username",
+      "default": "",
+      "defaultStr": "",
+      "help": "Username (e-mail address) - set automatically.",
+      "name": "username",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-auth-url": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-auth-url",
+      "default": "",
+      "defaultStr": "",
+      "help": "Auth server URL.\n\nLeave blank to use the provider defaults.",
+      "helpType": "string",
+      "name": "auth_url",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-chunk-size": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-chunk-size",
+      "default": 20971520,
+      "defaultStr": "20Mi",
+      "help": "Files above this size are uploaded in chunks of this size.\n\nThe kDrive API accepts chunks between 1 MB and 1 GB, up to 10,000\nchunks per file and a total file size of 1 TiB. The chunk size is\nraised automatically for very large files to stay within the 10,000\nchunks limit.",
+      "helpType": "SizeSuffix",
+      "name": "chunk_size",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "SizeSuffix"
+    },
+    "kdrive-client-id": {
+      "advanced": false,
+      "backend": "kdrive",
+      "cliName": "kdrive-client-id",
+      "default": "",
+      "defaultStr": "",
+      "help": "OAuth Client Id.\n\nLeave blank normally.",
+      "helpType": "string",
+      "name": "client_id",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-description": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-description",
+      "default": "",
+      "defaultStr": "",
+      "help": "Description of the remote.",
+      "helpType": "string",
+      "name": "description",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-drive-id": {
+      "advanced": false,
+      "backend": "kdrive",
+      "cliName": "kdrive-drive-id",
+      "default": "",
+      "defaultStr": "",
+      "help": "ID of the kDrive to use.\n\nWhen showing a folder on kdrive, you can find the drive_id here:\nhttps://ksuite.infomaniak.com/{account_id}/kdrive/app/drive/{drive_id}/files/...",
+      "helpType": "string",
+      "name": "drive_id",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-encoding": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-encoding",
+      "default": 52658178,
+      "defaultStr": "Slash,Del,Ctl,LeftSpace,RightSpace,InvalidUtf8,Dot",
+      "help": "The encoding for the backend.\n\nSee the [encoding section in the overview](/overview/#encoding) for more info.",
+      "helpType": "Encoding",
+      "name": "encoding",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "Encoding"
+    },
+    "kdrive-endpoint": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-endpoint",
+      "default": "",
+      "defaultStr": "",
+      "help": "The API endpoint to use.\n\nLeave blank normally. There is no reason to change the endpoint except for internal use or beta-testing.",
+      "helpType": "string",
+      "name": "endpoint",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-root-folder-id": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-root-folder-id",
+      "default": "",
+      "defaultStr": "",
+      "help": "The folder to use as root.\n\nYou may use either one of the convenience shortcuts [private or common]\nor an explicit folder ID.\n\n- private: your user private directory\n- common: the kDrive common directory, shared among users",
+      "helpType": "string",
+      "name": "root_folder_id",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-token": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-token",
+      "default": "",
+      "defaultStr": "",
+      "help": "OAuth Access Token as a JSON blob.",
+      "helpType": "string",
+      "name": "token",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-token-url": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-token-url",
+      "default": "",
+      "defaultStr": "",
+      "help": "Token server url.\n\nLeave blank to use the provider defaults.",
+      "helpType": "string",
+      "name": "token_url",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "kdrive-upload-concurrency": {
+      "advanced": true,
+      "backend": "kdrive",
+      "cliName": "kdrive-upload-concurrency",
+      "default": 4,
+      "defaultStr": "4",
+      "help": "Concurrency for chunked uploads.",
+      "helpType": "int",
+      "name": "upload_concurrency",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "int"
     },
     "key": {
       "advanced": false,
@@ -9249,7 +9641,7 @@
       "help": "Web API login token - set automatically.",
       "name": "web_token",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "config/providers",
       "type": "string"
     },
@@ -9426,7 +9818,7 @@
       "cliName": "local-no-clone",
       "default": false,
       "defaultStr": "false",
-      "help": "Disable reflink cloning for server-side copies.\n\nNormally, for local-to-local transfers, rclone will \"clone\" the file when\npossible, and fall back to \"copying\" only when cloning is not supported.\n\nCloning creates a shallow copy (or \"reflink\") which initially shares blocks with\nthe original file. Unlike a \"hardlink\", the two files are independent and\nneither will affect the other if subsequently modified.\n\nCloning is usually preferable to copying, as it is much faster and is\ndeduplicated by default (i.e. having two identical files does not consume more\nstorage than having just one.)  However, for use cases where data redundancy is\npreferable, --local-no-clone can be used to disable cloning and force \"deep\" copies.\n\nCurrently, cloning is only supported when using APFS on macOS (support for other\nplatforms may be added in the future.)",
+      "help": "Disable reflink cloning for server-side copies.\n\nNormally, for local-to-local transfers, rclone will \"clone\" the file when\npossible, and fall back to \"copying\" only when cloning is not supported.\n\nCloning creates a shallow copy (or \"reflink\") which initially shares blocks with\nthe original file. Unlike a \"hardlink\", the two files are independent and\nneither will affect the other if subsequently modified.\n\nCloning is usually preferable to copying, as it is much faster and is\ndeduplicated by default (i.e. having two identical files does not consume more\nstorage than having just one.)  However, for use cases where data redundancy is\npreferable, --local-no-clone can be used to disable cloning and force \"deep\" copies.\n\nCloning also preserves macOS-specific metadata such as extended attributes,\nwhich a normal copy does not, so this metadata is lost when cloning is disabled.\n\nIf the destination file already exists, cloning replaces it with a new file,\neven with --inplace, so hard links to it are broken. Use --local-no-clone to\nupdate existing files in place.\n\nCurrently, cloning is only supported when using APFS on macOS (support for other\nplatforms may be added in the future.)",
       "helpType": null,
       "name": "no_clone",
       "required": false,
@@ -10197,6 +10589,20 @@
       "source": "options/info",
       "type": "Duration"
     },
+    "max-errors": {
+      "advanced": false,
+      "cliName": "max-errors",
+      "default": 0,
+      "defaultStr": "0",
+      "group": "main",
+      "help": "Stop transferring after this many errors (0 for off)",
+      "helpType": "int",
+      "name": "max_errors",
+      "required": false,
+      "sensitive": false,
+      "source": "options/info",
+      "type": "int"
+    },
     "max-header-bytes": {
       "advanced": false,
       "cliName": "max-header-bytes",
@@ -10553,6 +10959,19 @@
       "source": "options/info",
       "type": "SpaceSepList"
     },
+    "metadata-max-objects": {
+      "advanced": false,
+      "cliName": "metadata-max-objects",
+      "default": 100000,
+      "defaultStr": "100000",
+      "group": "s3",
+      "help": "Maximum number of objects of a user whose metadata is kept in memory, 0 for unlimited",
+      "name": "metadata_max_objects",
+      "required": false,
+      "sensitive": false,
+      "source": "options/info",
+      "type": "int"
+    },
     "metadata-set": {
       "advanced": false,
       "cliName": "metadata-set",
@@ -10699,7 +11118,7 @@
       "helpType": "string",
       "name": "metrics_pass",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "options/info",
       "type": "string"
     },
@@ -10955,6 +11374,19 @@
       "source": "options/info",
       "type": "Duration"
     },
+    "multipart-max-uploads": {
+      "advanced": false,
+      "cliName": "multipart-max-uploads",
+      "default": 1000,
+      "defaultStr": "1000",
+      "group": "s3",
+      "help": "Maximum number of streamed multipart uploads a user can have in progress at once, 0 for unlimited",
+      "name": "multipart_max_uploads",
+      "required": false,
+      "sensitive": false,
+      "source": "options/info",
+      "type": "int"
+    },
     "multipart-streaming-buffer-limit": {
       "advanced": false,
       "cliName": "multipart-streaming-buffer-limit",
@@ -10963,6 +11395,19 @@
       "group": "s3",
       "help": "Maximum memory buffered per streamed multipart upload for parts arriving out of order, 0 for unlimited",
       "name": "multipart_streaming_buffer_limit",
+      "required": false,
+      "sensitive": false,
+      "source": "options/info",
+      "type": "SizeSuffix"
+    },
+    "multipart-streaming-buffer-total": {
+      "advanced": false,
+      "cliName": "multipart-streaming-buffer-total",
+      "default": 1073741824,
+      "defaultStr": "1Gi",
+      "group": "s3",
+      "help": "Maximum memory buffered by all the streamed multipart uploads of a user for parts arriving out of order, 0 for unlimited",
+      "name": "multipart_streaming_buffer_total",
       "required": false,
       "sensitive": false,
       "source": "options/info",
@@ -11207,7 +11652,7 @@
       "default": false,
       "defaultStr": "false",
       "group": "s3",
-      "help": "Not to cleanup empty folder after object is deleted",
+      "help": "Deprecated: use --directory-markers instead",
       "name": "no_cleanup",
       "required": false,
       "sensitive": false,
@@ -12388,7 +12833,7 @@
       "helpType": "string",
       "name": "sse_customer_key",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "config/providers",
       "type": "string"
     },
@@ -12428,7 +12873,7 @@
       "helpType": "string",
       "name": "sse_customer_key_sha256",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "config/providers",
       "type": "string"
     },
@@ -12448,7 +12893,7 @@
       "helpType": "string",
       "name": "sse_kms_key_id",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "config/providers",
       "type": "string"
     },
@@ -12656,7 +13101,7 @@
       "help": "Password for authentication",
       "name": "pass",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "options/info",
       "type": "string"
     },
@@ -12865,6 +13310,19 @@
       "source": "config/providers",
       "type": "string"
     },
+    "pikpak-captcha-token": {
+      "advanced": false,
+      "backend": "pikpak",
+      "cliName": "pikpak-captcha-token",
+      "default": "",
+      "defaultStr": "",
+      "help": "Captcha token - set automatically.",
+      "name": "captcha_token",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
     "pikpak-chunk-size": {
       "advanced": true,
       "backend": "pikpak",
@@ -12972,6 +13430,19 @@
       "help": "ID of the root folder.\nLeave blank normally.\n\nFill in for rclone to use a non root folder as its starting point.\n",
       "helpType": "string",
       "name": "root_folder_id",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
+    "pikpak-token": {
+      "advanced": false,
+      "backend": "pikpak",
+      "cliName": "pikpak-token",
+      "default": "",
+      "defaultStr": "",
+      "help": "OAuth Access Token as a JSON blob - set automatically.",
+      "name": "token",
       "required": false,
       "sensitive": true,
       "source": "config/providers",
@@ -14163,7 +14634,7 @@
       "helpType": "string",
       "name": "rc_pass",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "options/info",
       "type": "string"
     },
@@ -14476,32 +14947,32 @@
       "examples": [
         {
           "Help": "Owner gets FULL_CONTROL.\nNo one else has access rights (default).",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,US3,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,US3,Wasabi,Zata,ZeroServices,Other",
           "Value": "private"
         },
         {
           "Help": "Owner gets FULL_CONTROL.\nThe AllUsers group gets READ access.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,US3,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,US3,Wasabi,Zata,ZeroServices,Other",
           "Value": "public-read"
         },
         {
           "Help": "Owner gets FULL_CONTROL.\nThe AllUsers group gets READ and WRITE access.\nGranting this on a bucket is generally not recommended.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
           "Value": "public-read-write"
         },
         {
           "Help": "Owner gets FULL_CONTROL.\nThe AuthenticatedUsers group gets READ access.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
           "Value": "authenticated-read"
         },
         {
           "Help": "Object owner gets FULL_CONTROL.\nBucket owner gets READ access.\nIf you specify this canned ACL when creating a bucket, Amazon S3 ignores it.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
           "Value": "bucket-owner-read"
         },
         {
           "Help": "Both the object owner and the bucket owner get FULL_CONTROL over the object.\nIf you specify this canned ACL when creating a bucket, Amazon S3 ignores it.",
-          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+          "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
           "Value": "bucket-owner-full-control"
         },
         {
@@ -14881,6 +15352,11 @@
           "Value": "s3.ir-tbz-sh1.arvanstorage.ir"
         },
         {
+          "Help": "Auto Drive mainnet S3 endpoint",
+          "Provider": "Autonomys",
+          "Value": "s3.auto-drive.autonomys.xyz"
+        },
+        {
           "Help": "Hanoi endpoint",
           "Provider": "BizflyCloud",
           "Value": "hn.ss.bfcplatform.vn"
@@ -14889,6 +15365,11 @@
           "Help": "Ho Chi Minh endpoint",
           "Provider": "BizflyCloud",
           "Value": "hcm.ss.bfcplatform.vn"
+        },
+        {
+          "Help": "Paris, France",
+          "Provider": "Cellar",
+          "Value": "cellar-c2.services.clever-cloud.com"
         },
         {
           "Help": "The default endpoint - a good choice if you are unsure.\nEast China (Suzhou)",
@@ -15211,9 +15692,24 @@
           "Value": "nbg1.your-objectstorage.com"
         },
         {
+          "Help": "Hippius S3 endpoint",
+          "Provider": "Hippius",
+          "Value": "s3.hippius.com"
+        },
+        {
+          "Help": "AF-Cairo",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.af-north-1.myhuaweicloud.com"
+        },
+        {
           "Help": "AF-Johannesburg",
           "Provider": "HuaweiOBS",
           "Value": "obs.af-south-1.myhuaweicloud.com"
+        },
+        {
+          "Help": "CN-Hong Kong",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.ap-southeast-1.myhuaweicloud.com"
         },
         {
           "Help": "AP-Bangkok",
@@ -15226,9 +15722,14 @@
           "Value": "obs.ap-southeast-3.myhuaweicloud.com"
         },
         {
-          "Help": "CN East-Shanghai1",
+          "Help": "AP-Jakarta",
           "Provider": "HuaweiOBS",
-          "Value": "obs.cn-east-3.myhuaweicloud.com"
+          "Value": "obs.ap-southeast-4.myhuaweicloud.com"
+        },
+        {
+          "Help": "AP-Manila",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.ap-southeast-5.myhuaweicloud.com"
         },
         {
           "Help": "CN East-Shanghai2",
@@ -15236,9 +15737,29 @@
           "Value": "obs.cn-east-2.myhuaweicloud.com"
         },
         {
+          "Help": "CN East-Shanghai1",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.cn-east-3.myhuaweicloud.com"
+        },
+        {
+          "Help": "CN East-Qingdao",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.cn-east-4.myhuaweicloud.com"
+        },
+        {
+          "Help": "CN East-Suzhou",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.cn-east-5.myhuaweicloud.com"
+        },
+        {
           "Help": "CN North-Beijing1",
           "Provider": "HuaweiOBS",
           "Value": "obs.cn-north-1.myhuaweicloud.com"
+        },
+        {
+          "Help": "CN North-Beijing2",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.cn-north-2.myhuaweicloud.com"
         },
         {
           "Help": "CN North-Beijing4",
@@ -15246,24 +15767,64 @@
           "Value": "obs.cn-north-4.myhuaweicloud.com"
         },
         {
+          "Help": "CN North-Ulanqab",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.cn-north-9.myhuaweicloud.com"
+        },
+        {
+          "Help": "CN North-Hebei",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.cn-north-11.myhuaweicloud.com"
+        },
+        {
+          "Help": "CN North-Hohhot",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.cn-north-12.myhuaweicloud.com"
+        },
+        {
           "Help": "CN South-Guangzhou",
           "Provider": "HuaweiOBS",
           "Value": "obs.cn-south-1.myhuaweicloud.com"
         },
         {
-          "Help": "CN-Hong Kong",
+          "Help": "CN South-Shenzhen",
           "Provider": "HuaweiOBS",
-          "Value": "obs.ap-southeast-1.myhuaweicloud.com"
+          "Value": "obs.cn-south-2.myhuaweicloud.com"
         },
         {
-          "Help": "LA-Buenos Aires1",
+          "Help": "CN South-Guangzhou-InvitationOnly",
           "Provider": "HuaweiOBS",
-          "Value": "obs.sa-argentina-1.myhuaweicloud.com"
+          "Value": "obs.cn-south-4.myhuaweicloud.com"
         },
         {
-          "Help": "LA-Lima1",
+          "Help": "CN Southwest-Guiyang1",
           "Provider": "HuaweiOBS",
-          "Value": "obs.sa-peru-1.myhuaweicloud.com"
+          "Value": "obs.cn-southwest-2.myhuaweicloud.com"
+        },
+        {
+          "Help": "CN Southwest-Chongqing",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.cn-southwest-3.myhuaweicloud.com"
+        },
+        {
+          "Help": "EU-Dublin",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.eu-west-101.myhuaweicloud.eu"
+        },
+        {
+          "Help": "LA-Mexico City2",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.la-north-2.myhuaweicloud.com"
+        },
+        {
+          "Help": "LA-Santiago",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.la-south-2.myhuaweicloud.com"
+        },
+        {
+          "Help": "ME-Riyadh",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.me-east-1.myhuaweicloud.com"
         },
         {
           "Help": "LA-Mexico City1",
@@ -15271,9 +15832,14 @@
           "Value": "obs.na-mexico-1.myhuaweicloud.com"
         },
         {
-          "Help": "LA-Santiago2",
+          "Help": "RU-Moscow2",
           "Provider": "HuaweiOBS",
-          "Value": "obs.sa-chile-1.myhuaweicloud.com"
+          "Value": "obs.ru-northwest-2.myhuaweicloud.com"
+        },
+        {
+          "Help": "LA-Buenos Aires1",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.sa-argentina-1.myhuaweicloud.com"
         },
         {
           "Help": "LA-Sao Paulo1",
@@ -15281,9 +15847,19 @@
           "Value": "obs.sa-brazil-1.myhuaweicloud.com"
         },
         {
-          "Help": "RU-Moscow2",
+          "Help": "LA-Santiago2",
           "Provider": "HuaweiOBS",
-          "Value": "obs.ru-northwest-2.myhuaweicloud.com"
+          "Value": "obs.sa-chile-1.myhuaweicloud.com"
+        },
+        {
+          "Help": "LA-Lima1",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.sa-peru-1.myhuaweicloud.com"
+        },
+        {
+          "Help": "TR-Istanbul",
+          "Provider": "HuaweiOBS",
+          "Value": "obs.tr-west-1.myhuaweicloud.com"
         },
         {
           "Help": "US Cross Region Endpoint",
@@ -15631,6 +16207,26 @@
           "Value": "us-east-1.storage.impossibleapi.net"
         },
         {
+          "Help": "Swiss Backup Location 01",
+          "Provider": "Infomaniak",
+          "Value": "s3.swiss-backup01.infomaniak.com"
+        },
+        {
+          "Help": "Swiss Backup Location 02",
+          "Provider": "Infomaniak",
+          "Value": "s3.swiss-backup02.infomaniak.com"
+        },
+        {
+          "Help": "Swiss Backup Location 03",
+          "Provider": "Infomaniak",
+          "Value": "s3.swiss-backup03.infomaniak.com"
+        },
+        {
+          "Help": "Swiss Backup Location 04",
+          "Provider": "Infomaniak",
+          "Value": "s3.swiss-backup04.infomaniak.com"
+        },
+        {
           "Help": "Frankfurt, Germany",
           "Provider": "Intercolo",
           "Value": "de-fra.i3storage.com"
@@ -15666,9 +16262,14 @@
           "Value": "s3.us-central-1.ionoscloud.com"
         },
         {
-          "Help": "The default endpoint\nLeviia",
+          "Help": "Lyon, France",
           "Provider": "Leviia",
-          "Value": "s3.leviia.com"
+          "Value": "s3.eu-west.leviia.com"
+        },
+        {
+          "Help": "Marseille, France",
+          "Provider": "Leviia",
+          "Value": "s3.eu-south.leviia.com"
         },
         {
           "Help": "The default endpoint\nIran",
@@ -16171,6 +16772,11 @@
           "Value": "s3.pl-waw.scw.cloud"
         },
         {
+          "Help": "Milan Endpoint",
+          "Provider": "Scaleway",
+          "Value": "s3.it-mil.scw.cloud"
+        },
+        {
           "Help": "SeaweedFS S3 localhost",
           "Provider": "SeaweedFS",
           "Value": "localhost:8333"
@@ -16592,6 +17198,22 @@
       "source": "config/providers",
       "type": "bool"
     },
+    "s3-hashes": {
+      "advanced": true,
+      "backend": "s3",
+      "cliName": "s3-hashes",
+      "default": [
+        "md5"
+      ],
+      "defaultStr": "md5",
+      "help": "Comma separated list of the hashes this remote supports.\n\nThis can contain md5 and crc32c.\n\nThe crc32c is the CRC32C checksum the provider stores for objects\nuploaded with a CRC32C of type FULL_OBJECT, such as single part uploads\nwith a CRC32C and multipart uploads with a full object CRC32C. It is\nempty for multipart uploads with a CRC32C of type COMPOSITE and for\nobjects without a CRC32C. It isn't returned in listings, so reading it\ntakes a HEAD request per object.\n\nrclone hashsum crc32c and lsjson --hash-type crc32c read it even if it\nisn't listed here. Add crc32c to use it with rclone check, sync\n--checksum and hashsum --checkfile. If both sides support md5 and\ncrc32c rclone compares the md5, so set this to crc32c to compare the\ncrc32c instead.\n\nWith crc32c listed rclone asks for the checksums in every HEAD request,\nwhich for SSE-KMS encrypted objects needs the kms:Decrypt permission.\nSome S3 compatible providers reject requests with the\nx-amz-checksum-mode header, so check that rclone hashsum crc32c works\nagainst your provider before listing crc32c here.",
+      "helpType": "CommaSepList",
+      "name": "hashes",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "CommaSepList"
+    },
     "s3-ibm-api-key": {
       "advanced": false,
       "backend": "s3",
@@ -16602,7 +17224,7 @@
       "helpType": "string",
       "name": "ibm_api_key",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "config/providers",
       "type": "string"
     },
@@ -17384,7 +18006,7 @@
       "cliName": "s3-no-check-bucket",
       "default": false,
       "defaultStr": "false",
-      "help": "If set, don't attempt to check the bucket exists or create it.\n\nThis can be useful when trying to minimise the number of transactions\nrclone does if you know the bucket exists already.\n\nIt can also be needed if the user you are using does not have bucket\ncreation permissions. Before v1.52.0 this would have passed silently\ndue to a bug.\n",
+      "help": "If set, don't attempt to check the bucket exists or create it.\n\nThis can be useful when trying to minimise the number of transactions\nrclone does if you know the bucket exists already.\n\nIt can also be needed if the user you are using does not have bucket\ncreation permissions. Before v1.52.0 this would have passed silently\ndue to a bug.\n\nSome providers (e.g. Abrha Storage) set this automatically.\n",
       "helpType": null,
       "name": "no_check_bucket",
       "required": false,
@@ -17398,7 +18020,7 @@
       "cliName": "s3-no-head",
       "default": false,
       "defaultStr": "false",
-      "help": "If set, don't HEAD uploaded objects to check integrity.\n\nThis can be useful when trying to minimise the number of transactions\nrclone does.\n\nSetting it means that if rclone receives a 200 OK message after\nuploading an object with PUT then it will assume that it got uploaded\nproperly.\n\nIn particular it will assume:\n\n- the metadata, including modtime, storage class and content type was as uploaded\n- the size was as uploaded\n\nIt reads the following items from the response for a single part PUT:\n\n- the MD5SUM\n- The uploaded date\n\nFor multipart uploads these items aren't read.\n\nIf an source object of unknown length is uploaded then rclone **will** do a\nHEAD request.\n\nSetting this flag increases the chance for undetected upload failures,\nin particular an incorrect size, so it isn't recommended for normal\noperation. In practice the chance of an undetected upload failure is\nvery small even with this flag.\n",
+      "help": "If set, don't HEAD uploaded objects to check integrity.\n\nThis can be useful when trying to minimise the number of transactions\nrclone does.\n\nSetting it means that if rclone receives a 200 OK message after\nuploading an object with PUT then it will assume that it got uploaded\nproperly.\n\nIn particular it will assume:\n\n- the metadata, including modtime, storage class and content type was as uploaded\n- the size was as uploaded\n\nIt reads the following items from the response for a single part PUT:\n\n- the MD5SUM\n- The uploaded date\n\nFor multipart uploads these items aren't read.\n\nIf a source object of unknown length is uploaded then rclone **will** do a\nHEAD request.\n\nSetting this flag increases the chance for undetected upload failures,\nin particular an incorrect size, so it isn't recommended for normal\noperation. In practice the chance of an undetected upload failure is\nvery small even with this flag.\n",
       "helpType": null,
       "name": "no_head",
       "required": false,
@@ -17579,6 +18201,10 @@
           "Value": "AWS"
         },
         {
+          "Help": "Abrha Storage (ParsPack)",
+          "Value": "AbrhaStorage"
+        },
+        {
           "Help": "Alibaba Cloud Object Storage System (OSS) formerly Aliyun",
           "Value": "Alibaba"
         },
@@ -17587,8 +18213,16 @@
           "Value": "ArvanCloud"
         },
         {
+          "Help": "Autonomys Auto Drive",
+          "Value": "Autonomys"
+        },
+        {
           "Help": "Bizfly Cloud Simple Storage",
           "Value": "BizflyCloud"
+        },
+        {
+          "Help": "Clever Cloud Cellar Object Storage",
+          "Value": "Cellar"
         },
         {
           "Help": "Ceph Object Storage",
@@ -17643,6 +18277,10 @@
           "Value": "Hetzner"
         },
         {
+          "Help": "Hippius S3",
+          "Value": "Hippius"
+        },
+        {
           "Help": "Huawei Object Storage Service",
           "Value": "HuaweiOBS"
         },
@@ -17657,6 +18295,10 @@
         {
           "Help": "Impossible Cloud Object Storage",
           "Value": "ImpossibleCloud"
+        },
+        {
+          "Help": "Infomaniak Swiss Backup",
+          "Value": "Infomaniak"
         },
         {
           "Help": "Intercolo Object Storage",
@@ -17693,6 +18335,10 @@
         {
           "Help": "Minio Object Storage",
           "Value": "Minio"
+        },
+        {
+          "Help": "Neon Object Storage",
+          "Value": "Neon"
         },
         {
           "Help": "Netease Object Storage (NOS)",
@@ -17937,6 +18583,16 @@
           "Value": "us-gov-west-1"
         },
         {
+          "Help": "Use this if unsure.\nWill use v4 signatures and an empty region.",
+          "Provider": "AbrhaStorage,Ceph,DigitalOcean,Dreamhost,Exaba,GCS,HCP,IBMCOS,Leviia,LyveCloud,Minio,Netease,Scality,SeaweedFS,Wasabi,Other",
+          "Value": ""
+        },
+        {
+          "Help": "Use this only if v4 signatures don't work.\nE.g. pre Jewel/v10 CEPH.",
+          "Provider": "AbrhaStorage,Ceph,DigitalOcean,Dreamhost,Exaba,GCS,HCP,IBMCOS,Leviia,LyveCloud,Minio,Netease,Scality,SeaweedFS,Wasabi,Other",
+          "Value": "other-v2-signature"
+        },
+        {
           "Help": "Ha Noi",
           "Provider": "BizflyCloud",
           "Value": "hn"
@@ -17945,16 +18601,6 @@
           "Help": "Ho Chi Minh",
           "Provider": "BizflyCloud",
           "Value": "hcm"
-        },
-        {
-          "Help": "Use this if unsure.\nWill use v4 signatures and an empty region.",
-          "Provider": "Ceph,DigitalOcean,Dreamhost,Exaba,GCS,HCP,IBMCOS,Leviia,LyveCloud,Minio,Netease,Scality,SeaweedFS,Wasabi,Other",
-          "Value": ""
-        },
-        {
-          "Help": "Use this only if v4 signatures don't work.\nE.g. pre Jewel/v10 CEPH.",
-          "Provider": "Ceph,DigitalOcean,Dreamhost,Exaba,GCS,HCP,IBMCOS,Leviia,LyveCloud,Minio,Netease,Scality,SeaweedFS,Wasabi,Other",
-          "Value": "other-v2-signature"
         },
         {
           "Help": "R2 buckets are automatically distributed across Cloudflare's data centers for low latency.",
@@ -18067,9 +18713,24 @@
           "Value": "nbg1"
         },
         {
+          "Help": "Hippius decentralized storage network",
+          "Provider": "Hippius",
+          "Value": "decentralized"
+        },
+        {
+          "Help": "AF-Cairo",
+          "Provider": "HuaweiOBS",
+          "Value": "af-north-1"
+        },
+        {
           "Help": "AF-Johannesburg",
           "Provider": "HuaweiOBS",
           "Value": "af-south-1"
+        },
+        {
+          "Help": "CN-Hong Kong",
+          "Provider": "HuaweiOBS",
+          "Value": "ap-southeast-1"
         },
         {
           "Help": "AP-Bangkok",
@@ -18082,9 +18743,14 @@
           "Value": "ap-southeast-3"
         },
         {
-          "Help": "CN East-Shanghai1",
+          "Help": "AP-Jakarta",
           "Provider": "HuaweiOBS",
-          "Value": "cn-east-3"
+          "Value": "ap-southeast-4"
+        },
+        {
+          "Help": "AP-Manila",
+          "Provider": "HuaweiOBS",
+          "Value": "ap-southeast-5"
         },
         {
           "Help": "CN East-Shanghai2",
@@ -18092,9 +18758,29 @@
           "Value": "cn-east-2"
         },
         {
+          "Help": "CN East-Shanghai1",
+          "Provider": "HuaweiOBS",
+          "Value": "cn-east-3"
+        },
+        {
+          "Help": "CN East-Qingdao",
+          "Provider": "HuaweiOBS",
+          "Value": "cn-east-4"
+        },
+        {
+          "Help": "CN East-Suzhou",
+          "Provider": "HuaweiOBS",
+          "Value": "cn-east-5"
+        },
+        {
           "Help": "CN North-Beijing1",
           "Provider": "HuaweiOBS",
           "Value": "cn-north-1"
+        },
+        {
+          "Help": "CN North-Beijing2",
+          "Provider": "HuaweiOBS",
+          "Value": "cn-north-2"
         },
         {
           "Help": "CN North-Beijing4",
@@ -18102,24 +18788,64 @@
           "Value": "cn-north-4"
         },
         {
+          "Help": "CN North-Ulanqab",
+          "Provider": "HuaweiOBS",
+          "Value": "cn-north-9"
+        },
+        {
+          "Help": "CN North-Hebei",
+          "Provider": "HuaweiOBS",
+          "Value": "cn-north-11"
+        },
+        {
+          "Help": "CN North-Hohhot",
+          "Provider": "HuaweiOBS",
+          "Value": "cn-north-12"
+        },
+        {
           "Help": "CN South-Guangzhou",
           "Provider": "HuaweiOBS",
           "Value": "cn-south-1"
         },
         {
-          "Help": "CN-Hong Kong",
+          "Help": "CN South-Shenzhen",
           "Provider": "HuaweiOBS",
-          "Value": "ap-southeast-1"
+          "Value": "cn-south-2"
         },
         {
-          "Help": "LA-Buenos Aires1",
+          "Help": "CN South-Guangzhou-InvitationOnly",
           "Provider": "HuaweiOBS",
-          "Value": "sa-argentina-1"
+          "Value": "cn-south-4"
         },
         {
-          "Help": "LA-Lima1",
+          "Help": "CN Southwest-Guiyang1",
           "Provider": "HuaweiOBS",
-          "Value": "sa-peru-1"
+          "Value": "cn-southwest-2"
+        },
+        {
+          "Help": "CN Southwest-Chongqing",
+          "Provider": "HuaweiOBS",
+          "Value": "cn-southwest-3"
+        },
+        {
+          "Help": "EU-Dublin",
+          "Provider": "HuaweiOBS",
+          "Value": "eu-west-101"
+        },
+        {
+          "Help": "LA-Mexico City2",
+          "Provider": "HuaweiOBS",
+          "Value": "la-north-2"
+        },
+        {
+          "Help": "LA-Santiago",
+          "Provider": "HuaweiOBS",
+          "Value": "la-south-2"
+        },
+        {
+          "Help": "ME-Riyadh",
+          "Provider": "HuaweiOBS",
+          "Value": "me-east-1"
         },
         {
           "Help": "LA-Mexico City1",
@@ -18127,9 +18853,14 @@
           "Value": "na-mexico-1"
         },
         {
-          "Help": "LA-Santiago2",
+          "Help": "RU-Moscow2",
           "Provider": "HuaweiOBS",
-          "Value": "sa-chile-1"
+          "Value": "ru-northwest-2"
+        },
+        {
+          "Help": "LA-Buenos Aires1",
+          "Provider": "HuaweiOBS",
+          "Value": "sa-argentina-1"
         },
         {
           "Help": "LA-Sao Paulo1",
@@ -18137,9 +18868,19 @@
           "Value": "sa-brazil-1"
         },
         {
-          "Help": "RU-Moscow2",
+          "Help": "LA-Santiago2",
           "Provider": "HuaweiOBS",
-          "Value": "ru-northwest-2"
+          "Value": "sa-chile-1"
+        },
+        {
+          "Help": "LA-Lima1",
+          "Provider": "HuaweiOBS",
+          "Value": "sa-peru-1"
+        },
+        {
+          "Help": "TR-Istanbul",
+          "Provider": "HuaweiOBS",
+          "Value": "tr-west-1"
         },
         {
           "Help": "Frankfurt, Germany",
@@ -18177,6 +18918,11 @@
           "Value": "us-east-1"
         },
         {
+          "Help": "Default region for compatibility.\nAll data is stored in Switzerland.",
+          "Provider": "Infomaniak",
+          "Value": "us-east-1"
+        },
+        {
           "Help": "Frankfurt, Germany",
           "Provider": "Intercolo",
           "Value": "de-fra"
@@ -18210,6 +18956,26 @@
           "Help": "Lenexa, USA",
           "Provider": "IONOS",
           "Value": "us-central-1"
+        },
+        {
+          "Help": "US East (N. Virginia)",
+          "Provider": "Neon,Petabox,Rabata",
+          "Value": "us-east-1"
+        },
+        {
+          "Help": "US East (Ohio)",
+          "Provider": "Neon",
+          "Value": "us-east-2"
+        },
+        {
+          "Help": "Europe (Frankfurt)",
+          "Provider": "Neon,Petabox",
+          "Value": "eu-central-1"
+        },
+        {
+          "Help": "Asia Pacific (Singapore)",
+          "Provider": "Neon,Petabox",
+          "Value": "ap-southeast-1"
         },
         {
           "Help": "Paris, France",
@@ -18305,21 +19071,6 @@
           "Help": "Roubaix, France (Cold Archive)",
           "Provider": "OVHcloud",
           "Value": "rbx-archive"
-        },
-        {
-          "Help": "US East (N. Virginia)",
-          "Provider": "Petabox,Rabata",
-          "Value": "us-east-1"
-        },
-        {
-          "Help": "Europe (Frankfurt)",
-          "Provider": "Petabox",
-          "Value": "eu-central-1"
-        },
-        {
-          "Help": "Asia Pacific (Singapore)",
-          "Provider": "Petabox",
-          "Value": "ap-southeast-1"
         },
         {
           "Help": "Middle East (Bahrain)",
@@ -18485,6 +19236,11 @@
           "Help": "Warsaw, Poland",
           "Provider": "Scaleway",
           "Value": "pl-waw"
+        },
+        {
+          "Help": "Milan, Italy",
+          "Provider": "Scaleway",
+          "Value": "it-mil"
         },
         {
           "Help": "St. Petersburg",
@@ -18795,7 +19551,7 @@
           "Value": ""
         }
       ],
-      "help": "To use SSE-C you may provide the secret encryption key used to encrypt/decrypt your data.\n\nAlternatively you can provide --sse-customer-key-base64.",
+      "help": "To use SSE-C you may provide the secret encryption key used to encrypt/decrypt your data.\n\nAlternatively you can provide --s3-sse-customer-key-base64.",
       "helpType": "string",
       "name": "sse_customer_key",
       "required": false,
@@ -18815,7 +19571,7 @@
           "Value": ""
         }
       ],
-      "help": "If using SSE-C you must provide the secret encryption key encoded in base64 format to encrypt/decrypt your data.\n\nAlternatively you can provide --sse-customer-key.",
+      "help": "If using SSE-C you must provide the secret encryption key encoded in base64 format to encrypt/decrypt your data.\n\nAlternatively you can provide --s3-sse-customer-key.",
       "helpType": "string",
       "name": "sse_customer_key_base64",
       "required": false,
@@ -19645,8 +20401,8 @@
       "advanced": true,
       "backend": "sftp",
       "cliName": "sftp-encoding",
-      "default": 33652738,
-      "defaultStr": "Slash,Del,Ctl,Dot",
+      "default": 33554434,
+      "defaultStr": "Slash,Dot",
       "help": "The encoding for the backend.\n\nSee the [encoding section in the overview](/overview/#encoding) for more info.",
       "helpType": "Encoding",
       "name": "encoding",
@@ -20301,7 +21057,7 @@
       "helpType": "string",
       "name": "token",
       "required": false,
-      "sensitive": false,
+      "sensitive": true,
       "source": "config/providers",
       "type": "string"
     },
@@ -21297,6 +22053,19 @@
       "source": "config/providers",
       "type": "string"
     },
+    "sugarsync-username": {
+      "advanced": false,
+      "backend": "sugarsync",
+      "cliName": "sugarsync-username",
+      "default": "",
+      "defaultStr": "",
+      "help": "Username (email address) used during setup - set automatically.",
+      "name": "username",
+      "required": false,
+      "sensitive": true,
+      "source": "config/providers",
+      "type": "string"
+    },
     "swift-application-credential-id": {
       "advanced": false,
       "backend": "swift",
@@ -21373,6 +22142,22 @@
         {
           "Help": "Blomp Cloud Storage",
           "Value": "https://authenticate.ain.net"
+        },
+        {
+          "Help": "Infomaniak Swiss Backup Location 01",
+          "Value": "https://swiss-backup01.infomaniak.com/identity/v3"
+        },
+        {
+          "Help": "Infomaniak Swiss Backup Location 02",
+          "Value": "https://swiss-backup02.infomaniak.com/identity/v3"
+        },
+        {
+          "Help": "Infomaniak Swiss Backup Location 03",
+          "Value": "https://swiss-backup03.infomaniak.com/identity/v3"
+        },
+        {
+          "Help": "Infomaniak Swiss Backup Location 04",
+          "Value": "https://swiss-backup04.infomaniak.com/identity/v3"
         }
       ],
       "help": "Authentication URL for server (OS_AUTH_URL).",
@@ -22002,6 +22787,20 @@
       "source": "config/providers",
       "type": "string"
     },
+    "teldrive-no-pool": {
+      "advanced": true,
+      "backend": "teldrive",
+      "cliName": "teldrive-no-pool",
+      "default": false,
+      "defaultStr": "false",
+      "help": "Add d=1 to content requests to bypass the TelDrive download pool.",
+      "helpType": null,
+      "name": "no_pool",
+      "required": false,
+      "sensitive": false,
+      "source": "config/providers",
+      "type": "bool"
+    },
     "teldrive-page-size": {
       "advanced": false,
       "backend": "teldrive",
@@ -22459,8 +23258,8 @@
     "user-agent": {
       "advanced": false,
       "cliName": "user-agent",
-      "default": "rclone/v1.75.2",
-      "defaultStr": "rclone/v1.75.2",
+      "default": "rclone/v1.76.0",
+      "defaultStr": "rclone/v1.76.0",
       "group": "main",
       "help": "Set the user-agent to a specified string",
       "helpType": "string",
@@ -22506,6 +23305,32 @@
       "sensitive": false,
       "source": "options/info",
       "type": "bool"
+    },
+    "vfs-cache-downloader-idle-time": {
+      "advanced": false,
+      "cliName": "vfs-cache-downloader-idle-time",
+      "default": 5000000000,
+      "defaultStr": "5s",
+      "group": "vfs",
+      "help": "Time a cache downloader can be idle before it stops",
+      "name": "vfs_cache_downloader_idle_time",
+      "required": false,
+      "sensitive": false,
+      "source": "options/info",
+      "type": "Duration"
+    },
+    "vfs-cache-downloader-max-errors": {
+      "advanced": false,
+      "cliName": "vfs-cache-downloader-max-errors",
+      "default": 10,
+      "defaultStr": "10",
+      "group": "vfs",
+      "help": "Number of errors a cache downloader tolerates before giving up",
+      "name": "vfs_cache_downloader_max_errors",
+      "required": false,
+      "sensitive": false,
+      "source": "options/info",
+      "type": "int"
     },
     "vfs-cache-max-age": {
       "advanced": false,
@@ -22880,7 +23705,7 @@
       "cliName": "webdav-headers",
       "default": [],
       "defaultStr": "",
-      "help": "Set HTTP headers for all transactions.\n\nUse this to set additional HTTP headers for all transactions\n\nThe input format is comma separated list of key,value pairs.  Standard\n[CSV encoding](https://godoc.org/encoding/csv) may be used.\n\nFor example, to set a Cookie use 'Cookie,name=value', or '\"Cookie\",\"name=value\"'.\n\nYou can set multiple headers, e.g. '\"Cookie\",\"name=value\",\"Authorization\",\"xxx\"'.\n",
+      "help": "Set HTTP headers for all transactions.\n\nUse this to set additional HTTP headers for all transactions\n\nThe input format is comma separated list of key,value pairs.  Standard\n[CSV encoding](https://godoc.org/encoding/csv) may be used.\n\nFor example, to set a Cookie use 'Cookie,name=value', or '\"Cookie\",\"name=value\"'.\n\nYou can set multiple headers, e.g. '\"Cookie\",\"name=value\",\"Authorization\",\"xxx\"'.\n\nThe headers are only sent to the host in the configured URL. If the\nserver redirects to another host (including a subdomain or a different\nport) the headers are not sent to it, or to any further hop in that\nredirect chain. The exception is the directory listing and file\ndownload requests when auth_redirect is set, as that keeps all\ncredentials across redirects.\n",
       "helpType": "CommaSepList",
       "name": "headers",
       "required": false,
@@ -24129,7 +24954,7 @@
         "Name": "pass",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "string",
         "Value": null,
         "ValueStr": ""
@@ -24456,7 +25281,7 @@
         "Name": "pass",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "string",
         "Value": null,
         "ValueStr": ""
@@ -25002,6 +25827,24 @@
         "Hide": 0,
         "IsPassword": false,
         "Name": "no_check_certificate",
+        "NoPrefix": true,
+        "Required": false,
+        "Sensitive": false,
+        "Type": "bool",
+        "Value": null,
+        "ValueStr": "false"
+      },
+      {
+        "Advanced": false,
+        "Default": false,
+        "DefaultStr": "false",
+        "Exclusive": false,
+        "FieldName": "AllowHTTPSDowngrade",
+        "Groups": "Networking",
+        "Help": "Follow redirects from HTTPS to HTTP (insecure)",
+        "Hide": 0,
+        "IsPassword": false,
+        "Name": "allow_https_downgrade",
         "NoPrefix": true,
         "Required": false,
         "Sensitive": false,
@@ -25588,8 +26431,8 @@
       },
       {
         "Advanced": false,
-        "Default": "rclone/v1.75.2",
-        "DefaultStr": "rclone/v1.75.2",
+        "Default": "rclone/v1.76.0",
+        "DefaultStr": "rclone/v1.76.0",
         "Exclusive": false,
         "FieldName": "UserAgent",
         "Groups": "Networking",
@@ -25602,7 +26445,7 @@
         "Sensitive": false,
         "Type": "string",
         "Value": null,
-        "ValueStr": "rclone/v1.75.2"
+        "ValueStr": "rclone/v1.76.0"
       },
       {
         "Advanced": false,
@@ -25917,6 +26760,24 @@
       {
         "Advanced": false,
         "Default": 0,
+        "DefaultStr": "0",
+        "Exclusive": false,
+        "FieldName": "MaxErrors",
+        "Groups": "Copy",
+        "Help": "Stop transferring after this many errors (0 for off)",
+        "Hide": 0,
+        "IsPassword": false,
+        "Name": "max_errors",
+        "NoPrefix": true,
+        "Required": false,
+        "Sensitive": false,
+        "Type": "int",
+        "Value": null,
+        "ValueStr": "0"
+      },
+      {
+        "Advanced": false,
+        "Default": 0,
         "DefaultStr": "HARD",
         "Examples": [
           {
@@ -25935,7 +26796,7 @@
         "Exclusive": true,
         "FieldName": "CutoffMode",
         "Groups": "Copy",
-        "Help": "Mode to stop transfers when reaching the max transfer limit HARD|SOFT|CAUTIOUS",
+        "Help": "Mode to stop transfers when reaching the max transfer, duration or errors limit HARD|SOFT|CAUTIOUS",
         "Hide": 0,
         "IsPassword": false,
         "Name": "cutoff_mode",
@@ -27672,7 +28533,7 @@
         "Name": "rc_pass",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "string",
         "Value": null,
         "ValueStr": ""
@@ -27996,7 +28857,7 @@
         "Name": "metrics_pass",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "string",
         "Value": null,
         "ValueStr": ""
@@ -28377,7 +29238,7 @@
         "Name": "pass",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "string",
         "Value": null,
         "ValueStr": ""
@@ -28464,7 +29325,7 @@
         "Name": "auth_key",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "stringArray",
         "Value": null,
         "ValueStr": ""
@@ -28475,7 +29336,7 @@
         "DefaultStr": "false",
         "Exclusive": false,
         "FieldName": "NoCleanup",
-        "Help": "Not to cleanup empty folder after object is deleted",
+        "Help": "Deprecated: use --directory-markers instead",
         "Hide": 0,
         "IsPassword": false,
         "Name": "no_cleanup",
@@ -28519,6 +29380,74 @@
         "Type": "SizeSuffix",
         "Value": null,
         "ValueStr": "256Mi"
+      },
+      {
+        "Advanced": false,
+        "Default": 1073741824,
+        "DefaultStr": "1Gi",
+        "Exclusive": false,
+        "FieldName": "MultipartStreamingBufferTotal",
+        "Help": "Maximum memory buffered by all the streamed multipart uploads of a user for parts arriving out of order, 0 for unlimited",
+        "Hide": 0,
+        "IsPassword": false,
+        "Name": "multipart_streaming_buffer_total",
+        "NoPrefix": true,
+        "Required": false,
+        "Sensitive": false,
+        "Type": "SizeSuffix",
+        "Value": null,
+        "ValueStr": "1Gi"
+      },
+      {
+        "Advanced": false,
+        "Default": 1000,
+        "DefaultStr": "1000",
+        "Exclusive": false,
+        "FieldName": "MultipartMaxUploads",
+        "Help": "Maximum number of streamed multipart uploads a user can have in progress at once, 0 for unlimited",
+        "Hide": 0,
+        "IsPassword": false,
+        "Name": "multipart_max_uploads",
+        "NoPrefix": true,
+        "Required": false,
+        "Sensitive": false,
+        "Type": "int",
+        "Value": null,
+        "ValueStr": "1000"
+      },
+      {
+        "Advanced": false,
+        "Default": 100000,
+        "DefaultStr": "100000",
+        "Exclusive": false,
+        "FieldName": "MetadataMaxObjects",
+        "Help": "Maximum number of objects of a user whose metadata is kept in memory, 0 for unlimited",
+        "Hide": 0,
+        "IsPassword": false,
+        "Name": "metadata_max_objects",
+        "NoPrefix": true,
+        "Required": false,
+        "Sensitive": false,
+        "Type": "int",
+        "Value": null,
+        "ValueStr": "100000"
+      },
+      {
+        "Advanced": false,
+        "Default": false,
+        "DefaultStr": "false",
+        "Exclusive": false,
+        "FieldName": "DirectoryMarkers",
+        "Help": "List every directory as a directory marker object",
+        "Hide": 0,
+        "IsPassword": false,
+        "Name": "directory_markers",
+        "NoPrefix": true,
+        "Required": false,
+        "Sensitive": false,
+        "Type": "bool",
+        "Value": null,
+        "ValueStr": "false"
       },
       {
         "Advanced": false,
@@ -28789,7 +29718,7 @@
         "Name": "pass",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "string",
         "Value": null,
         "ValueStr": ""
@@ -28910,7 +29839,7 @@
         "Name": "pass",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "string",
         "Value": null,
         "ValueStr": ""
@@ -29421,6 +30350,42 @@
       },
       {
         "Advanced": false,
+        "Default": 5000000000,
+        "DefaultStr": "5s",
+        "Exclusive": false,
+        "FieldName": "DownloaderIdleTime",
+        "Groups": "VFS",
+        "Help": "Time a cache downloader can be idle before it stops",
+        "Hide": 0,
+        "IsPassword": false,
+        "Name": "vfs_cache_downloader_idle_time",
+        "NoPrefix": true,
+        "Required": false,
+        "Sensitive": false,
+        "Type": "Duration",
+        "Value": null,
+        "ValueStr": "5s"
+      },
+      {
+        "Advanced": false,
+        "Default": 10,
+        "DefaultStr": "10",
+        "Exclusive": false,
+        "FieldName": "DownloaderMaxErrors",
+        "Groups": "VFS",
+        "Help": "Number of errors a cache downloader tolerates before giving up",
+        "Hide": 0,
+        "IsPassword": false,
+        "Name": "vfs_cache_downloader_max_errors",
+        "NoPrefix": true,
+        "Required": false,
+        "Sensitive": false,
+        "Type": "int",
+        "Value": null,
+        "ValueStr": "10"
+      },
+      {
+        "Advanced": false,
         "Default": false,
         "DefaultStr": "false",
         "Exclusive": false,
@@ -29868,7 +30833,7 @@
         "Name": "pass",
         "NoPrefix": true,
         "Required": false,
-        "Sensitive": false,
+        "Sensitive": true,
         "Type": "string",
         "Value": null,
         "ValueStr": ""
@@ -30710,7 +31675,7 @@
           "cliName": "azurefiles-chunk-size",
           "default": 4194304,
           "defaultStr": "4Mi",
-          "help": "Upload chunk size.\n\nNote that this is stored in memory and there may be up to\n\"--transfers\" * \"--azurefile-upload-concurrency\" chunks stored at once\nin memory.",
+          "help": "Upload chunk size.\n\nNote that this is stored in memory and there may be up to\n\"--transfers\" * \"--azurefiles-upload-concurrency\" chunks stored at once\nin memory.",
           "helpType": "SizeSuffix",
           "name": "chunk_size",
           "required": false,
@@ -31018,7 +31983,7 @@
           "cliName": "azurefiles-upload-concurrency",
           "default": 16,
           "defaultStr": "16",
-          "help": "Concurrency for multipart uploads.\n\nThis is the number of chunks of the same file that are uploaded\nconcurrently.\n\nIf you are uploading small numbers of large files over high-speed\nlinks and these uploads do not fully utilize your bandwidth, then\nincreasing this may help to speed up the transfers.\n\nNote that chunks are stored in memory and there may be up to\n\"--transfers\" * \"--azurefile-upload-concurrency\" chunks stored at once\nin memory.",
+          "help": "Concurrency for multipart uploads.\n\nThis is the number of chunks of the same file that are uploaded\nconcurrently.\n\nIf you are uploading small numbers of large files over high-speed\nlinks and these uploads do not fully utilize your bandwidth, then\nincreasing this may help to speed up the transfers.\n\nNote that chunks are stored in memory and there may be up to\n\"--transfers\" * \"--azurefiles-upload-concurrency\" chunks stored at once\nin memory.",
           "helpType": "int",
           "name": "upload_concurrency",
           "required": false,
@@ -31180,7 +32145,7 @@
           "cliName": "b2-download-url",
           "default": "",
           "defaultStr": "",
-          "help": "Custom endpoint for downloads.\n\nThis is usually set to a Cloudflare CDN URL as Backblaze offers\nfree egress for data downloaded through the Cloudflare network.\nRclone works with private buckets by sending an \"Authorization\" header.\nIf the custom endpoint rewrites the requests for authentication,\ne.g., in Cloudflare Workers, this header needs to be handled properly.\nLeave blank if you want to use the endpoint provided by Backblaze.\n\nThe URL provided here SHOULD have the protocol and SHOULD NOT have\na trailing slash or specify the /file/bucket subpath as rclone will\nrequest files with \"{download_url}/file/{bucket_name}/{path}\".\n\nExample:\n> https://mysubdomain.mydomain.tld\n(No trailing \"/\", \"file\" or \"bucket\")",
+          "help": "Custom endpoint for downloads.\n\nThis is usually set to a Cloudflare CDN URL as Backblaze offers\nfree egress for data downloaded through the Cloudflare network.\nRclone works with private buckets by sending an \"Authorization\" header.\nIf the custom endpoint rewrites the requests for authentication,\ne.g., in Cloudflare Workers, this header needs to be handled properly.\nLeave blank if you want to use the endpoint provided by Backblaze.\n\nRclone will not follow a redirect from this endpoint which downgrades\nHTTPS to HTTP, and will not send the \"Authorization\" header or the\nSSE-C key headers once a redirect has left the host and port of this\nendpoint.\n\nThe URL provided here SHOULD have the protocol and SHOULD NOT have\na trailing slash or specify the /file/bucket subpath as rclone will\nrequest files with \"{download_url}/file/{bucket_name}/{path}\".\n\nExample:\n> https://mysubdomain.mydomain.tld\n(No trailing \"/\", \"file\" or \"bucket\")",
           "helpType": "string",
           "name": "download_url",
           "required": false,
@@ -31320,7 +32285,7 @@
               "Value": ""
             }
           ],
-          "help": "To use SSE-C, you may provide the secret encryption key encoded in a UTF-8 compatible string to encrypt/decrypt your data\n\nAlternatively you can provide --sse-customer-key-base64.",
+          "help": "To use SSE-C, you may provide the secret encryption key encoded in a UTF-8 compatible string to encrypt/decrypt your data\n\nAlternatively you can provide --b2-sse-customer-key-base64.",
           "helpType": "string",
           "name": "sse_customer_key",
           "required": false,
@@ -31340,7 +32305,7 @@
               "Value": ""
             }
           ],
-          "help": "To use SSE-C, you may provide the secret encryption key encoded in Base64 format to encrypt/decrypt your data\n\nAlternatively you can provide --sse-customer-key.",
+          "help": "To use SSE-C, you may provide the secret encryption key encoded in Base64 format to encrypt/decrypt your data\n\nAlternatively you can provide --b2-sse-customer-key.",
           "helpType": "string",
           "name": "sse_customer_key_base64",
           "required": false,
@@ -32520,18 +33485,18 @@
           "type": "string"
         },
         "level": {
-          "advanced": false,
+          "advanced": true,
           "backend": "compress",
           "cliName": "compress-level",
-          "default": "",
-          "defaultStr": "",
-          "help": "GZIP (levels -2 to 9):\n- -2 \u2014 Huffman encoding only. Only use if you know what you're doing.\n- -1 (default) \u2014 recommended; equivalent to level 5.\n- 0 \u2014 turns off compression.\n- 1\u20139 \u2014 increase compression at the cost of speed. Going past 6 generally offers very little return.\n \nZSTD (levels 0 to 4):\n- 0 \u2014 turns off compression entirely.\n- 1 \u2014 fastest compression with the lowest ratio.\n- 2 (default) \u2014 good balance of speed and compression.\n- 3 \u2014 better compression, but uses about 2\u20133x more CPU than the default.\n- 4 \u2014 best possible compression ratio (highest CPU cost).\n \nNotes:\n- Choose GZIP for wide compatibility; ZSTD for better speed/ratio tradeoffs.\n- Negative gzip levels: -2 = Huffman-only, -1 = default (\u2248 level 5).",
-          "helpType": "string",
+          "default": -1,
+          "defaultStr": "-1",
+          "help": "GZIP (levels -2 to 9):\n- -2 \u2014 Huffman encoding only. Only use if you know what you're doing.\n- -1 (default) \u2014 recommended; equivalent to level 5.\n- 0 \u2014 turns off compression.\n- 1\u20139 \u2014 increase compression at the cost of speed. Going past 6 generally offers very little return.\n \nZSTD (levels 0 to 4):\n- 0 \u2014 turns off compression entirely.\n- 1 \u2014 fastest compression with the lowest ratio.\n- 2 (default) \u2014 good balance of speed and compression.\n- 3 \u2014 better compression, but uses about 2\u20133x more CPU than the default.\n- 4 \u2014 best possible compression ratio (highest CPU cost).\n \nNotes:\n- Choose GZIP for wide compatibility; ZSTD for better speed/ratio tradeoffs.\n- Negative gzip levels: -2 = Huffman-only, -1 = default (\u2248 level 5).\n- The default level is -1 which selects the default level of the\n  compression mode, equivalent to level 5 for gzip and level 2 for zstd.",
+          "helpType": "int",
           "name": "level",
-          "required": true,
+          "required": false,
           "sensitive": false,
           "source": "config/providers",
-          "type": "string"
+          "type": "int"
         },
         "mode": {
           "advanced": false,
@@ -33746,7 +34711,7 @@
           "cliName": "drive-size-as-quota",
           "default": false,
           "defaultStr": "false",
-          "help": "Show sizes as storage quota usage, not actual size.\n\nShow the size of a file as the storage quota used. This is the\ncurrent version plus any older versions that have been set to keep\nforever.\n\n**WARNING**: This flag may have some unexpected consequences.\n\nIt is not recommended to set this flag in your config - the\nrecommended usage is using the flag form --drive-size-as-quota when\ndoing rclone ls/lsl/lsf/lsjson/etc only.\n\nIf you do use this flag for syncing (not recommended) then you will\nneed to use --ignore size also.",
+          "help": "Show sizes as storage quota usage, not actual size.\n\nShow the size of a file as the storage quota used. This is the\ncurrent version plus any older versions that have been set to keep\nforever.\n\n**WARNING**: This flag may have some unexpected consequences.\n\nIt is not recommended to set this flag in your config - the\nrecommended usage is using the flag form --drive-size-as-quota when\ndoing rclone ls/lsl/lsf/lsjson/etc only.\n\nIf you do use this flag for syncing (not recommended) then you will\nneed to use --ignore-size also.",
           "helpType": null,
           "name": "size_as_quota",
           "required": false,
@@ -34651,15 +35616,15 @@
       "name": "filen",
       "options": {
         "api_key": {
-          "advanced": false,
+          "advanced": true,
           "backend": "filen",
           "cliName": "filen-api-key",
           "default": "",
           "defaultStr": "",
-          "help": "API Key for your Filen account\n\nGet this using the Filen CLI export-api-key command\nYou can download the Filen CLI from https://github.com/FilenCloudDienste/filen-cli",
+          "help": "API Key for your Filen account\n\nLeave blank normally. Rclone fetches this when it logs in to your\naccount and saves it in the config file.\n\nIf you need to set it yourself, get it using the Filen CLI export-api-key command\nYou can download the Filen CLI from https://github.com/FilenCloudDienste/filen-cli",
           "helpType": "string",
           "name": "api_key",
-          "required": true,
+          "required": false,
           "sensitive": true,
           "source": "config/providers",
           "type": "string"
@@ -35239,6 +36204,20 @@
           "sensitive": false,
           "source": "config/providers",
           "type": "int"
+        },
+        "trust_pasv_ip": {
+          "advanced": true,
+          "backend": "ftp",
+          "cliName": "ftp-trust-pasv-ip",
+          "default": false,
+          "defaultStr": "false",
+          "help": "Trust the IP address in the server's PASV reply.\n\nBy default rclone ignores the IP address in the PASV reply and\nmakes the data connection to the same host as the control\nconnection. Enable this option to trust the IP address in the\nPASV reply instead, which is needed for servers whose PASV reply\nlegitimately points at a different host than the control\nconnection.\n\nThe default is false to prevent a malicious server making direct\nconnections to other hosts on your network.\n\nTry this option if transfers hang or fail with connection-refused\nerrors after upgrading to >= v1.76.0.\n",
+          "helpType": null,
+          "name": "trust_pasv_ip",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "bool"
         },
         "user": {
           "advanced": false,
@@ -36052,7 +37031,7 @@
           "cliName": "gphotos-client-id",
           "default": "",
           "defaultStr": "",
-          "help": "OAuth Client Id.\n\nCreating your own is now strongly recommended.\nIf you leave this blank rclone uses a shared client_id which is being retired and will stop working during 2026.\nSee https://rclone.org/googlephotos/#making-your-own-client-id for how to create your own.",
+          "help": "OAuth Client Id.\n\nCreating your own is now strongly recommended.\nIf you leave this blank rclone uses a shared client_id which will be heavily rate limited from 1st April 2027.\nSee https://rclone.org/googlephotos/#making-your-own-client-id for how to create your own.",
           "helpType": "string",
           "name": "client_id",
           "required": false,
@@ -36859,7 +37838,7 @@
           "cliName": "http-headers",
           "default": [],
           "defaultStr": "",
-          "help": "Set HTTP headers for all transactions.\n\nUse this to set additional HTTP headers for all transactions.\n\nThe input format is comma separated list of key,value pairs.  Standard\n[CSV encoding](https://godoc.org/encoding/csv) may be used.\n\nFor example, to set a Cookie use 'Cookie,name=value', or '\"Cookie\",\"name=value\"'.\n\nYou can set multiple headers, e.g. '\"Cookie\",\"name=value\",\"Authorization\",\"xxx\"'.\n\nThe headers are only sent to the host in the configured URL. If the\nserver redirects to another host (including a subdomain or a different\nport) the headers are not sent to it, or to any further hop in that\nredirect chain. When headers are set, a redirect from https to http is\nrefused as it would send them in cleartext.",
+          "help": "Set HTTP headers for all transactions.\n\nUse this to set additional HTTP headers for all transactions.\n\nThe input format is comma separated list of key,value pairs.  Standard\n[CSV encoding](https://godoc.org/encoding/csv) may be used.\n\nFor example, to set a Cookie use 'Cookie,name=value', or '\"Cookie\",\"name=value\"'.\n\nYou can set multiple headers, e.g. '\"Cookie\",\"name=value\",\"Authorization\",\"xxx\"'.\n\nThe headers are only sent to the host in the configured URL. If the\nserver redirects to another host (including a subdomain or a different\nport) the headers are not sent to it, or to any further hop in that\nredirect chain. When headers are set, a redirect from https to http is\nrefused as it would send them in cleartext, even with\n--allow-https-downgrade.",
           "helpType": "CommaSepList",
           "name": "headers",
           "required": false,
@@ -36894,6 +37873,34 @@
           "sensitive": false,
           "source": "config/providers",
           "type": "bool"
+        },
+        "no_head_size": {
+          "advanced": true,
+          "backend": "http",
+          "cliName": "http-no-head-size",
+          "default": -1,
+          "defaultStr": "off",
+          "help": "Set the reported file size for --http-no-head.\n\nWhen HEAD requests are disabled, rclone normally reports an unknown file size.\nSet this option to a non-negative value to report that size for every file,\nincluding 0. Leave it unset (the default, shown as \"off\") to keep reporting\nan unknown size.\n\nThe configured size is authoritative. If it does not match the actual file\nsize, transfers may fail their size check and retry unless --ignore-size is\nused. It can also make multi-thread transfers request incorrect ranges and\nmake mounted files unreadable past the reported size.",
+          "helpType": "SizeSuffix",
+          "name": "no_head_size",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "SizeSuffix"
+        },
+        "no_head_time": {
+          "advanced": true,
+          "backend": "http",
+          "cliName": "http-no-head-time",
+          "default": "0001-01-01T00:00:00Z",
+          "defaultStr": "off",
+          "help": "Set a default modification time for --http-no-head.\n\nWhen HEAD requests are disabled, rclone normally reports an unset modification\ntime. Set this option to report the specified time for every file instead.\nChanging the configured time later makes every file appear modified to a sync.",
+          "helpType": "Time",
+          "name": "no_head_time",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "Time"
         },
         "no_slash": {
           "advanced": true,
@@ -37107,6 +38114,19 @@
       "description": "iCloud Drive and Photos",
       "name": "iclouddrive",
       "options": {
+        "_auth_session": {
+          "advanced": false,
+          "backend": "iclouddrive",
+          "cliName": "iclouddrive--auth-session",
+          "default": "",
+          "defaultStr": "",
+          "help": "Authentication session in progress - set automatically.",
+          "name": "_auth_session",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
         "apple_id": {
           "advanced": false,
           "backend": "iclouddrive",
@@ -37187,6 +38207,30 @@
           "name": "password",
           "required": true,
           "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "region": {
+          "advanced": true,
+          "backend": "iclouddrive",
+          "cliName": "iclouddrive-region",
+          "default": "global",
+          "defaultStr": "global",
+          "examples": [
+            {
+              "Help": "Global (automatically detects China Mainland accounts).",
+              "Value": "global"
+            },
+            {
+              "Help": "China Mainland (GCBD).",
+              "Value": "china"
+            }
+          ],
+          "help": "Region for iCloud accounts. China Mainland (GCBD) accounts are normally detected automatically.",
+          "helpType": "string",
+          "name": "region",
+          "required": false,
+          "sensitive": false,
           "source": "config/providers",
           "type": "string"
         },
@@ -37503,6 +38547,32 @@
       "description": "Internxt Drive",
       "name": "internxt",
       "options": {
+        "2fa_code": {
+          "advanced": false,
+          "backend": "internxt",
+          "cliName": "internxt-2fa-code",
+          "default": "",
+          "defaultStr": "",
+          "help": "Two-factor authentication code used during setup - set automatically.",
+          "name": "2fa_code",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "bucket": {
+          "advanced": false,
+          "backend": "internxt",
+          "cliName": "internxt-bucket",
+          "default": "",
+          "defaultStr": "",
+          "help": "Bucket ID - set automatically.",
+          "name": "bucket",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
         "chunk_size": {
           "advanced": true,
           "backend": "internxt",
@@ -37600,6 +38670,19 @@
           "source": "config/providers",
           "type": "bool"
         },
+        "token": {
+          "advanced": false,
+          "backend": "internxt",
+          "cliName": "internxt-token",
+          "default": "",
+          "defaultStr": "",
+          "help": "OAuth Access Token as a JSON blob - set automatically.",
+          "name": "token",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
         "upload_concurrency": {
           "advanced": true,
           "backend": "internxt",
@@ -37636,6 +38719,19 @@
       "description": "Jottacloud",
       "name": "jottacloud",
       "options": {
+        "auth_code": {
+          "advanced": false,
+          "backend": "jottacloud",
+          "cliName": "jottacloud-auth-code",
+          "default": "",
+          "defaultStr": "",
+          "help": "Verification code used during legacy setup - set automatically.",
+          "name": "auth_code",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
         "auth_url": {
           "advanced": true,
           "backend": "jottacloud",
@@ -37692,6 +38788,19 @@
           "source": "config/providers",
           "type": "string"
         },
+        "configVersion": {
+          "advanced": false,
+          "backend": "jottacloud",
+          "cliName": "jottacloud-configVersion",
+          "default": "",
+          "defaultStr": "",
+          "help": "Config version - set automatically.",
+          "name": "configVersion",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
         "description": {
           "advanced": true,
           "backend": "jottacloud",
@@ -37701,6 +38810,20 @@
           "help": "Description of the remote.",
           "helpType": "string",
           "name": "description",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "device": {
+          "advanced": true,
+          "backend": "jottacloud",
+          "cliName": "jottacloud-device",
+          "default": "",
+          "defaultStr": "",
+          "help": "Device to use.\n\nLeave blank to use the default device \"Jotta\".",
+          "helpType": "string",
+          "name": "device",
           "required": false,
           "sensitive": false,
           "source": "config/providers",
@@ -37748,6 +38871,20 @@
           "source": "config/providers",
           "type": "SizeSuffix"
         },
+        "mountpoint": {
+          "advanced": true,
+          "backend": "jottacloud",
+          "cliName": "jottacloud-mountpoint",
+          "default": "",
+          "defaultStr": "",
+          "help": "Mountpoint to use.\n\nLeave blank to use the default mountpoint \"Archive\".",
+          "helpType": "string",
+          "name": "mountpoint",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
         "no_versions": {
           "advanced": true,
           "backend": "jottacloud",
@@ -37762,6 +38899,19 @@
           "source": "config/providers",
           "type": "bool"
         },
+        "password": {
+          "advanced": false,
+          "backend": "jottacloud",
+          "cliName": "jottacloud-password",
+          "default": "",
+          "defaultStr": "",
+          "help": "Password used during legacy setup - set automatically.",
+          "name": "password",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
         "token": {
           "advanced": true,
           "backend": "jottacloud",
@@ -37773,6 +38923,19 @@
           "name": "token",
           "required": false,
           "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "tokenURL": {
+          "advanced": false,
+          "backend": "jottacloud",
+          "cliName": "jottacloud-tokenURL",
+          "default": "",
+          "defaultStr": "",
+          "help": "Token server URL - set automatically.",
+          "name": "tokenURL",
+          "required": false,
+          "sensitive": false,
           "source": "config/providers",
           "type": "string"
         },
@@ -37817,9 +38980,184 @@
           "sensitive": false,
           "source": "config/providers",
           "type": "SizeSuffix"
+        },
+        "username": {
+          "advanced": false,
+          "backend": "jottacloud",
+          "cliName": "jottacloud-username",
+          "default": "",
+          "defaultStr": "",
+          "help": "Username (e-mail address) - set automatically.",
+          "name": "username",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
         }
       },
       "prefix": "jottacloud"
+    },
+    "kdrive": {
+      "aliases": [],
+      "description": "Infomaniak kDrive",
+      "name": "kdrive",
+      "options": {
+        "auth_url": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-auth-url",
+          "default": "",
+          "defaultStr": "",
+          "help": "Auth server URL.\n\nLeave blank to use the provider defaults.",
+          "helpType": "string",
+          "name": "auth_url",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "chunk_size": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-chunk-size",
+          "default": 20971520,
+          "defaultStr": "20Mi",
+          "help": "Files above this size are uploaded in chunks of this size.\n\nThe kDrive API accepts chunks between 1 MB and 1 GB, up to 10,000\nchunks per file and a total file size of 1 TiB. The chunk size is\nraised automatically for very large files to stay within the 10,000\nchunks limit.",
+          "helpType": "SizeSuffix",
+          "name": "chunk_size",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "SizeSuffix"
+        },
+        "client_id": {
+          "advanced": false,
+          "backend": "kdrive",
+          "cliName": "kdrive-client-id",
+          "default": "",
+          "defaultStr": "",
+          "help": "OAuth Client Id.\n\nLeave blank normally.",
+          "helpType": "string",
+          "name": "client_id",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "description": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-description",
+          "default": "",
+          "defaultStr": "",
+          "help": "Description of the remote.",
+          "helpType": "string",
+          "name": "description",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "drive_id": {
+          "advanced": false,
+          "backend": "kdrive",
+          "cliName": "kdrive-drive-id",
+          "default": "",
+          "defaultStr": "",
+          "help": "ID of the kDrive to use.\n\nWhen showing a folder on kdrive, you can find the drive_id here:\nhttps://ksuite.infomaniak.com/{account_id}/kdrive/app/drive/{drive_id}/files/...",
+          "helpType": "string",
+          "name": "drive_id",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "encoding": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-encoding",
+          "default": 52658178,
+          "defaultStr": "Slash,Del,Ctl,LeftSpace,RightSpace,InvalidUtf8,Dot",
+          "help": "The encoding for the backend.\n\nSee the [encoding section in the overview](/overview/#encoding) for more info.",
+          "helpType": "Encoding",
+          "name": "encoding",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "Encoding"
+        },
+        "endpoint": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-endpoint",
+          "default": "",
+          "defaultStr": "",
+          "help": "The API endpoint to use.\n\nLeave blank normally. There is no reason to change the endpoint except for internal use or beta-testing.",
+          "helpType": "string",
+          "name": "endpoint",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "root_folder_id": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-root-folder-id",
+          "default": "",
+          "defaultStr": "",
+          "help": "The folder to use as root.\n\nYou may use either one of the convenience shortcuts [private or common]\nor an explicit folder ID.\n\n- private: your user private directory\n- common: the kDrive common directory, shared among users",
+          "helpType": "string",
+          "name": "root_folder_id",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "token": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-token",
+          "default": "",
+          "defaultStr": "",
+          "help": "OAuth Access Token as a JSON blob.",
+          "helpType": "string",
+          "name": "token",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "token_url": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-token-url",
+          "default": "",
+          "defaultStr": "",
+          "help": "Token server url.\n\nLeave blank to use the provider defaults.",
+          "helpType": "string",
+          "name": "token_url",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "upload_concurrency": {
+          "advanced": true,
+          "backend": "kdrive",
+          "cliName": "kdrive-upload-concurrency",
+          "default": 4,
+          "defaultStr": "4",
+          "help": "Concurrency for chunked uploads.",
+          "helpType": "int",
+          "name": "upload_concurrency",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "int"
+        }
+      },
+      "prefix": "kdrive"
     },
     "koofr": {
       "aliases": [],
@@ -38025,7 +39363,7 @@
           "help": "Web API login token - set automatically.",
           "name": "web_token",
           "required": false,
-          "sensitive": false,
+          "sensitive": true,
           "source": "config/providers",
           "type": "string"
         }
@@ -38182,7 +39520,7 @@
           "cliName": "local-no-clone",
           "default": false,
           "defaultStr": "false",
-          "help": "Disable reflink cloning for server-side copies.\n\nNormally, for local-to-local transfers, rclone will \"clone\" the file when\npossible, and fall back to \"copying\" only when cloning is not supported.\n\nCloning creates a shallow copy (or \"reflink\") which initially shares blocks with\nthe original file. Unlike a \"hardlink\", the two files are independent and\nneither will affect the other if subsequently modified.\n\nCloning is usually preferable to copying, as it is much faster and is\ndeduplicated by default (i.e. having two identical files does not consume more\nstorage than having just one.)  However, for use cases where data redundancy is\npreferable, --local-no-clone can be used to disable cloning and force \"deep\" copies.\n\nCurrently, cloning is only supported when using APFS on macOS (support for other\nplatforms may be added in the future.)",
+          "help": "Disable reflink cloning for server-side copies.\n\nNormally, for local-to-local transfers, rclone will \"clone\" the file when\npossible, and fall back to \"copying\" only when cloning is not supported.\n\nCloning creates a shallow copy (or \"reflink\") which initially shares blocks with\nthe original file. Unlike a \"hardlink\", the two files are independent and\nneither will affect the other if subsequently modified.\n\nCloning is usually preferable to copying, as it is much faster and is\ndeduplicated by default (i.e. having two identical files does not consume more\nstorage than having just one.)  However, for use cases where data redundancy is\npreferable, --local-no-clone can be used to disable cloning and force \"deep\" copies.\n\nCloning also preserves macOS-specific metadata such as extended attributes,\nwhich a normal copy does not, so this metadata is lost when cloning is disabled.\n\nIf the destination file already exists, cloning replaces it with a new file,\neven with --inplace, so hard links to it are broken. Use --local-no-clone to\nupdate existing files in place.\n\nCurrently, cloning is only supported when using APFS on macOS (support for other\nplatforms may be added in the future.)",
           "helpType": null,
           "name": "no_clone",
           "required": false,
@@ -40089,7 +41427,7 @@
           "helpType": "string",
           "name": "sse_customer_key",
           "required": false,
-          "sensitive": false,
+          "sensitive": true,
           "source": "config/providers",
           "type": "string"
         },
@@ -40129,7 +41467,7 @@
           "helpType": "string",
           "name": "sse_customer_key_sha256",
           "required": false,
-          "sensitive": false,
+          "sensitive": true,
           "source": "config/providers",
           "type": "string"
         },
@@ -40149,7 +41487,7 @@
           "helpType": "string",
           "name": "sse_kms_key_id",
           "required": false,
-          "sensitive": false,
+          "sensitive": true,
           "source": "config/providers",
           "type": "string"
         },
@@ -40403,6 +41741,19 @@
       "description": "PikPak",
       "name": "pikpak",
       "options": {
+        "captcha_token": {
+          "advanced": false,
+          "backend": "pikpak",
+          "cliName": "pikpak-captcha-token",
+          "default": "",
+          "defaultStr": "",
+          "help": "Captcha token - set automatically.",
+          "name": "captcha_token",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
         "chunk_size": {
           "advanced": true,
           "backend": "pikpak",
@@ -40510,6 +41861,19 @@
           "help": "ID of the root folder.\nLeave blank normally.\n\nFill in for rclone to use a non root folder as its starting point.\n",
           "helpType": "string",
           "name": "root_folder_id",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
+        },
+        "token": {
+          "advanced": false,
+          "backend": "pikpak",
+          "cliName": "pikpak-token",
+          "default": "",
+          "defaultStr": "",
+          "help": "OAuth Access Token as a JSON blob - set automatically.",
+          "name": "token",
           "required": false,
           "sensitive": true,
           "source": "config/providers",
@@ -41455,7 +42819,7 @@
     },
     "s3": {
       "aliases": [],
-      "description": "Amazon S3 Compliant Storage Providers including AWS, Alibaba, ArvanCloud, BizflyCloud, Ceph, ChinaMobile, Cloudflare, Cubbit, DigitalOcean, Dreamhost, Exaba, Fastly, FileLu, FlashBlade, GCS, HCP, Hetzner, HuaweiOBS, IBMCOS, IDrive, ImpossibleCloud, Intercolo, IONOS, Leviia, Liara, Linode, LyveCloud, Magalu, Mega, Minio, Netease, Outscale, OVHcloud, Petabox, Qiniu, Rabata, RackCorp, Rclone, RelAix, Scaleway, Scality, SeaweedFS, Selectel, Servercore, SpectraLogic, Storj, Synology, TencentCOS, US3, Wasabi, Zadara, Zata, ZeroServices, Other",
+      "description": "Amazon S3 Compliant Storage Providers including AWS, AbrhaStorage, Alibaba, ArvanCloud, Autonomys, BizflyCloud, Cellar, Ceph, ChinaMobile, Cloudflare, Cubbit, DigitalOcean, Dreamhost, Exaba, Fastly, FileLu, FlashBlade, GCS, HCP, Hetzner, Hippius, HuaweiOBS, IBMCOS, IDrive, ImpossibleCloud, Infomaniak, Intercolo, IONOS, Leviia, Liara, Linode, LyveCloud, Magalu, Mega, Minio, Neon, Netease, Outscale, OVHcloud, Petabox, Qiniu, Rabata, RackCorp, Rclone, RelAix, Scaleway, Scality, SeaweedFS, Selectel, Servercore, SpectraLogic, Storj, Synology, TencentCOS, US3, Wasabi, Zadara, Zata, ZeroServices, Other",
       "name": "s3",
       "options": {
         "access_key_id": {
@@ -41481,32 +42845,32 @@
           "examples": [
             {
               "Help": "Owner gets FULL_CONTROL.\nNo one else has access rights (default).",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,US3,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,US3,Wasabi,Zata,ZeroServices,Other",
               "Value": "private"
             },
             {
               "Help": "Owner gets FULL_CONTROL.\nThe AllUsers group gets READ access.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,US3,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,US3,Wasabi,Zata,ZeroServices,Other",
               "Value": "public-read"
             },
             {
               "Help": "Owner gets FULL_CONTROL.\nThe AllUsers group gets READ and WRITE access.\nGranting this on a bucket is generally not recommended.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
               "Value": "public-read-write"
             },
             {
               "Help": "Owner gets FULL_CONTROL.\nThe AuthenticatedUsers group gets READ access.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,ChinaMobile,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
               "Value": "authenticated-read"
             },
             {
               "Help": "Object owner gets FULL_CONTROL.\nBucket owner gets READ access.\nIf you specify this canned ACL when creating a bucket, Amazon S3 ignores it.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
               "Value": "bucket-owner-read"
             },
             {
               "Help": "Both the object owner and the bucket owner get FULL_CONTROL over the object.\nIf you specify this canned ACL when creating a bucket, Amazon S3 ignores it.",
-              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
+              "Provider": "AWS,Alibaba,ArvanCloud,BizflyCloud,Cellar,Ceph,Cubbit,DigitalOcean,Dreamhost,Exaba,FileLu,GCS,HCP,Hetzner,HuaweiOBS,IDrive,ImpossibleCloud,Infomaniak,Intercolo,IONOS,Leviia,Liara,Linode,LyveCloud,Magalu,Minio,Netease,Outscale,OVHcloud,Petabox,Qiniu,RackCorp,RelAix,Scaleway,Scality,SeaweedFS,TencentCOS,Wasabi,Zata,ZeroServices,Other",
               "Value": "bucket-owner-full-control"
             },
             {
@@ -41886,6 +43250,11 @@
               "Value": "s3.ir-tbz-sh1.arvanstorage.ir"
             },
             {
+              "Help": "Auto Drive mainnet S3 endpoint",
+              "Provider": "Autonomys",
+              "Value": "s3.auto-drive.autonomys.xyz"
+            },
+            {
               "Help": "Hanoi endpoint",
               "Provider": "BizflyCloud",
               "Value": "hn.ss.bfcplatform.vn"
@@ -41894,6 +43263,11 @@
               "Help": "Ho Chi Minh endpoint",
               "Provider": "BizflyCloud",
               "Value": "hcm.ss.bfcplatform.vn"
+            },
+            {
+              "Help": "Paris, France",
+              "Provider": "Cellar",
+              "Value": "cellar-c2.services.clever-cloud.com"
             },
             {
               "Help": "The default endpoint - a good choice if you are unsure.\nEast China (Suzhou)",
@@ -42216,9 +43590,24 @@
               "Value": "nbg1.your-objectstorage.com"
             },
             {
+              "Help": "Hippius S3 endpoint",
+              "Provider": "Hippius",
+              "Value": "s3.hippius.com"
+            },
+            {
+              "Help": "AF-Cairo",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.af-north-1.myhuaweicloud.com"
+            },
+            {
               "Help": "AF-Johannesburg",
               "Provider": "HuaweiOBS",
               "Value": "obs.af-south-1.myhuaweicloud.com"
+            },
+            {
+              "Help": "CN-Hong Kong",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.ap-southeast-1.myhuaweicloud.com"
             },
             {
               "Help": "AP-Bangkok",
@@ -42231,9 +43620,14 @@
               "Value": "obs.ap-southeast-3.myhuaweicloud.com"
             },
             {
-              "Help": "CN East-Shanghai1",
+              "Help": "AP-Jakarta",
               "Provider": "HuaweiOBS",
-              "Value": "obs.cn-east-3.myhuaweicloud.com"
+              "Value": "obs.ap-southeast-4.myhuaweicloud.com"
+            },
+            {
+              "Help": "AP-Manila",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.ap-southeast-5.myhuaweicloud.com"
             },
             {
               "Help": "CN East-Shanghai2",
@@ -42241,9 +43635,29 @@
               "Value": "obs.cn-east-2.myhuaweicloud.com"
             },
             {
+              "Help": "CN East-Shanghai1",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.cn-east-3.myhuaweicloud.com"
+            },
+            {
+              "Help": "CN East-Qingdao",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.cn-east-4.myhuaweicloud.com"
+            },
+            {
+              "Help": "CN East-Suzhou",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.cn-east-5.myhuaweicloud.com"
+            },
+            {
               "Help": "CN North-Beijing1",
               "Provider": "HuaweiOBS",
               "Value": "obs.cn-north-1.myhuaweicloud.com"
+            },
+            {
+              "Help": "CN North-Beijing2",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.cn-north-2.myhuaweicloud.com"
             },
             {
               "Help": "CN North-Beijing4",
@@ -42251,24 +43665,64 @@
               "Value": "obs.cn-north-4.myhuaweicloud.com"
             },
             {
+              "Help": "CN North-Ulanqab",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.cn-north-9.myhuaweicloud.com"
+            },
+            {
+              "Help": "CN North-Hebei",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.cn-north-11.myhuaweicloud.com"
+            },
+            {
+              "Help": "CN North-Hohhot",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.cn-north-12.myhuaweicloud.com"
+            },
+            {
               "Help": "CN South-Guangzhou",
               "Provider": "HuaweiOBS",
               "Value": "obs.cn-south-1.myhuaweicloud.com"
             },
             {
-              "Help": "CN-Hong Kong",
+              "Help": "CN South-Shenzhen",
               "Provider": "HuaweiOBS",
-              "Value": "obs.ap-southeast-1.myhuaweicloud.com"
+              "Value": "obs.cn-south-2.myhuaweicloud.com"
             },
             {
-              "Help": "LA-Buenos Aires1",
+              "Help": "CN South-Guangzhou-InvitationOnly",
               "Provider": "HuaweiOBS",
-              "Value": "obs.sa-argentina-1.myhuaweicloud.com"
+              "Value": "obs.cn-south-4.myhuaweicloud.com"
             },
             {
-              "Help": "LA-Lima1",
+              "Help": "CN Southwest-Guiyang1",
               "Provider": "HuaweiOBS",
-              "Value": "obs.sa-peru-1.myhuaweicloud.com"
+              "Value": "obs.cn-southwest-2.myhuaweicloud.com"
+            },
+            {
+              "Help": "CN Southwest-Chongqing",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.cn-southwest-3.myhuaweicloud.com"
+            },
+            {
+              "Help": "EU-Dublin",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.eu-west-101.myhuaweicloud.eu"
+            },
+            {
+              "Help": "LA-Mexico City2",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.la-north-2.myhuaweicloud.com"
+            },
+            {
+              "Help": "LA-Santiago",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.la-south-2.myhuaweicloud.com"
+            },
+            {
+              "Help": "ME-Riyadh",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.me-east-1.myhuaweicloud.com"
             },
             {
               "Help": "LA-Mexico City1",
@@ -42276,9 +43730,14 @@
               "Value": "obs.na-mexico-1.myhuaweicloud.com"
             },
             {
-              "Help": "LA-Santiago2",
+              "Help": "RU-Moscow2",
               "Provider": "HuaweiOBS",
-              "Value": "obs.sa-chile-1.myhuaweicloud.com"
+              "Value": "obs.ru-northwest-2.myhuaweicloud.com"
+            },
+            {
+              "Help": "LA-Buenos Aires1",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.sa-argentina-1.myhuaweicloud.com"
             },
             {
               "Help": "LA-Sao Paulo1",
@@ -42286,9 +43745,19 @@
               "Value": "obs.sa-brazil-1.myhuaweicloud.com"
             },
             {
-              "Help": "RU-Moscow2",
+              "Help": "LA-Santiago2",
               "Provider": "HuaweiOBS",
-              "Value": "obs.ru-northwest-2.myhuaweicloud.com"
+              "Value": "obs.sa-chile-1.myhuaweicloud.com"
+            },
+            {
+              "Help": "LA-Lima1",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.sa-peru-1.myhuaweicloud.com"
+            },
+            {
+              "Help": "TR-Istanbul",
+              "Provider": "HuaweiOBS",
+              "Value": "obs.tr-west-1.myhuaweicloud.com"
             },
             {
               "Help": "US Cross Region Endpoint",
@@ -42636,6 +44105,26 @@
               "Value": "us-east-1.storage.impossibleapi.net"
             },
             {
+              "Help": "Swiss Backup Location 01",
+              "Provider": "Infomaniak",
+              "Value": "s3.swiss-backup01.infomaniak.com"
+            },
+            {
+              "Help": "Swiss Backup Location 02",
+              "Provider": "Infomaniak",
+              "Value": "s3.swiss-backup02.infomaniak.com"
+            },
+            {
+              "Help": "Swiss Backup Location 03",
+              "Provider": "Infomaniak",
+              "Value": "s3.swiss-backup03.infomaniak.com"
+            },
+            {
+              "Help": "Swiss Backup Location 04",
+              "Provider": "Infomaniak",
+              "Value": "s3.swiss-backup04.infomaniak.com"
+            },
+            {
               "Help": "Frankfurt, Germany",
               "Provider": "Intercolo",
               "Value": "de-fra.i3storage.com"
@@ -42671,9 +44160,14 @@
               "Value": "s3.us-central-1.ionoscloud.com"
             },
             {
-              "Help": "The default endpoint\nLeviia",
+              "Help": "Lyon, France",
               "Provider": "Leviia",
-              "Value": "s3.leviia.com"
+              "Value": "s3.eu-west.leviia.com"
+            },
+            {
+              "Help": "Marseille, France",
+              "Provider": "Leviia",
+              "Value": "s3.eu-south.leviia.com"
             },
             {
               "Help": "The default endpoint\nIran",
@@ -43176,6 +44670,11 @@
               "Value": "s3.pl-waw.scw.cloud"
             },
             {
+              "Help": "Milan Endpoint",
+              "Provider": "Scaleway",
+              "Value": "s3.it-mil.scw.cloud"
+            },
+            {
               "Help": "SeaweedFS S3 localhost",
               "Provider": "SeaweedFS",
               "Value": "localhost:8333"
@@ -43597,6 +45096,22 @@
           "source": "config/providers",
           "type": "bool"
         },
+        "hashes": {
+          "advanced": true,
+          "backend": "s3",
+          "cliName": "s3-hashes",
+          "default": [
+            "md5"
+          ],
+          "defaultStr": "md5",
+          "help": "Comma separated list of the hashes this remote supports.\n\nThis can contain md5 and crc32c.\n\nThe crc32c is the CRC32C checksum the provider stores for objects\nuploaded with a CRC32C of type FULL_OBJECT, such as single part uploads\nwith a CRC32C and multipart uploads with a full object CRC32C. It is\nempty for multipart uploads with a CRC32C of type COMPOSITE and for\nobjects without a CRC32C. It isn't returned in listings, so reading it\ntakes a HEAD request per object.\n\nrclone hashsum crc32c and lsjson --hash-type crc32c read it even if it\nisn't listed here. Add crc32c to use it with rclone check, sync\n--checksum and hashsum --checkfile. If both sides support md5 and\ncrc32c rclone compares the md5, so set this to crc32c to compare the\ncrc32c instead.\n\nWith crc32c listed rclone asks for the checksums in every HEAD request,\nwhich for SSE-KMS encrypted objects needs the kms:Decrypt permission.\nSome S3 compatible providers reject requests with the\nx-amz-checksum-mode header, so check that rclone hashsum crc32c works\nagainst your provider before listing crc32c here.",
+          "helpType": "CommaSepList",
+          "name": "hashes",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "CommaSepList"
+        },
         "ibm_api_key": {
           "advanced": false,
           "backend": "s3",
@@ -43607,7 +45122,7 @@
           "helpType": "string",
           "name": "ibm_api_key",
           "required": false,
-          "sensitive": false,
+          "sensitive": true,
           "source": "config/providers",
           "type": "string"
         },
@@ -44389,7 +45904,7 @@
           "cliName": "s3-no-check-bucket",
           "default": false,
           "defaultStr": "false",
-          "help": "If set, don't attempt to check the bucket exists or create it.\n\nThis can be useful when trying to minimise the number of transactions\nrclone does if you know the bucket exists already.\n\nIt can also be needed if the user you are using does not have bucket\ncreation permissions. Before v1.52.0 this would have passed silently\ndue to a bug.\n",
+          "help": "If set, don't attempt to check the bucket exists or create it.\n\nThis can be useful when trying to minimise the number of transactions\nrclone does if you know the bucket exists already.\n\nIt can also be needed if the user you are using does not have bucket\ncreation permissions. Before v1.52.0 this would have passed silently\ndue to a bug.\n\nSome providers (e.g. Abrha Storage) set this automatically.\n",
           "helpType": null,
           "name": "no_check_bucket",
           "required": false,
@@ -44403,7 +45918,7 @@
           "cliName": "s3-no-head",
           "default": false,
           "defaultStr": "false",
-          "help": "If set, don't HEAD uploaded objects to check integrity.\n\nThis can be useful when trying to minimise the number of transactions\nrclone does.\n\nSetting it means that if rclone receives a 200 OK message after\nuploading an object with PUT then it will assume that it got uploaded\nproperly.\n\nIn particular it will assume:\n\n- the metadata, including modtime, storage class and content type was as uploaded\n- the size was as uploaded\n\nIt reads the following items from the response for a single part PUT:\n\n- the MD5SUM\n- The uploaded date\n\nFor multipart uploads these items aren't read.\n\nIf an source object of unknown length is uploaded then rclone **will** do a\nHEAD request.\n\nSetting this flag increases the chance for undetected upload failures,\nin particular an incorrect size, so it isn't recommended for normal\noperation. In practice the chance of an undetected upload failure is\nvery small even with this flag.\n",
+          "help": "If set, don't HEAD uploaded objects to check integrity.\n\nThis can be useful when trying to minimise the number of transactions\nrclone does.\n\nSetting it means that if rclone receives a 200 OK message after\nuploading an object with PUT then it will assume that it got uploaded\nproperly.\n\nIn particular it will assume:\n\n- the metadata, including modtime, storage class and content type was as uploaded\n- the size was as uploaded\n\nIt reads the following items from the response for a single part PUT:\n\n- the MD5SUM\n- The uploaded date\n\nFor multipart uploads these items aren't read.\n\nIf a source object of unknown length is uploaded then rclone **will** do a\nHEAD request.\n\nSetting this flag increases the chance for undetected upload failures,\nin particular an incorrect size, so it isn't recommended for normal\noperation. In practice the chance of an undetected upload failure is\nvery small even with this flag.\n",
           "helpType": null,
           "name": "no_head",
           "required": false,
@@ -44584,6 +46099,10 @@
               "Value": "AWS"
             },
             {
+              "Help": "Abrha Storage (ParsPack)",
+              "Value": "AbrhaStorage"
+            },
+            {
               "Help": "Alibaba Cloud Object Storage System (OSS) formerly Aliyun",
               "Value": "Alibaba"
             },
@@ -44592,8 +46111,16 @@
               "Value": "ArvanCloud"
             },
             {
+              "Help": "Autonomys Auto Drive",
+              "Value": "Autonomys"
+            },
+            {
               "Help": "Bizfly Cloud Simple Storage",
               "Value": "BizflyCloud"
+            },
+            {
+              "Help": "Clever Cloud Cellar Object Storage",
+              "Value": "Cellar"
             },
             {
               "Help": "Ceph Object Storage",
@@ -44648,6 +46175,10 @@
               "Value": "Hetzner"
             },
             {
+              "Help": "Hippius S3",
+              "Value": "Hippius"
+            },
+            {
               "Help": "Huawei Object Storage Service",
               "Value": "HuaweiOBS"
             },
@@ -44662,6 +46193,10 @@
             {
               "Help": "Impossible Cloud Object Storage",
               "Value": "ImpossibleCloud"
+            },
+            {
+              "Help": "Infomaniak Swiss Backup",
+              "Value": "Infomaniak"
             },
             {
               "Help": "Intercolo Object Storage",
@@ -44698,6 +46233,10 @@
             {
               "Help": "Minio Object Storage",
               "Value": "Minio"
+            },
+            {
+              "Help": "Neon Object Storage",
+              "Value": "Neon"
             },
             {
               "Help": "Netease Object Storage (NOS)",
@@ -44942,6 +46481,16 @@
               "Value": "us-gov-west-1"
             },
             {
+              "Help": "Use this if unsure.\nWill use v4 signatures and an empty region.",
+              "Provider": "AbrhaStorage,Ceph,DigitalOcean,Dreamhost,Exaba,GCS,HCP,IBMCOS,Leviia,LyveCloud,Minio,Netease,Scality,SeaweedFS,Wasabi,Other",
+              "Value": ""
+            },
+            {
+              "Help": "Use this only if v4 signatures don't work.\nE.g. pre Jewel/v10 CEPH.",
+              "Provider": "AbrhaStorage,Ceph,DigitalOcean,Dreamhost,Exaba,GCS,HCP,IBMCOS,Leviia,LyveCloud,Minio,Netease,Scality,SeaweedFS,Wasabi,Other",
+              "Value": "other-v2-signature"
+            },
+            {
               "Help": "Ha Noi",
               "Provider": "BizflyCloud",
               "Value": "hn"
@@ -44950,16 +46499,6 @@
               "Help": "Ho Chi Minh",
               "Provider": "BizflyCloud",
               "Value": "hcm"
-            },
-            {
-              "Help": "Use this if unsure.\nWill use v4 signatures and an empty region.",
-              "Provider": "Ceph,DigitalOcean,Dreamhost,Exaba,GCS,HCP,IBMCOS,Leviia,LyveCloud,Minio,Netease,Scality,SeaweedFS,Wasabi,Other",
-              "Value": ""
-            },
-            {
-              "Help": "Use this only if v4 signatures don't work.\nE.g. pre Jewel/v10 CEPH.",
-              "Provider": "Ceph,DigitalOcean,Dreamhost,Exaba,GCS,HCP,IBMCOS,Leviia,LyveCloud,Minio,Netease,Scality,SeaweedFS,Wasabi,Other",
-              "Value": "other-v2-signature"
             },
             {
               "Help": "R2 buckets are automatically distributed across Cloudflare's data centers for low latency.",
@@ -45072,9 +46611,24 @@
               "Value": "nbg1"
             },
             {
+              "Help": "Hippius decentralized storage network",
+              "Provider": "Hippius",
+              "Value": "decentralized"
+            },
+            {
+              "Help": "AF-Cairo",
+              "Provider": "HuaweiOBS",
+              "Value": "af-north-1"
+            },
+            {
               "Help": "AF-Johannesburg",
               "Provider": "HuaweiOBS",
               "Value": "af-south-1"
+            },
+            {
+              "Help": "CN-Hong Kong",
+              "Provider": "HuaweiOBS",
+              "Value": "ap-southeast-1"
             },
             {
               "Help": "AP-Bangkok",
@@ -45087,9 +46641,14 @@
               "Value": "ap-southeast-3"
             },
             {
-              "Help": "CN East-Shanghai1",
+              "Help": "AP-Jakarta",
               "Provider": "HuaweiOBS",
-              "Value": "cn-east-3"
+              "Value": "ap-southeast-4"
+            },
+            {
+              "Help": "AP-Manila",
+              "Provider": "HuaweiOBS",
+              "Value": "ap-southeast-5"
             },
             {
               "Help": "CN East-Shanghai2",
@@ -45097,9 +46656,29 @@
               "Value": "cn-east-2"
             },
             {
+              "Help": "CN East-Shanghai1",
+              "Provider": "HuaweiOBS",
+              "Value": "cn-east-3"
+            },
+            {
+              "Help": "CN East-Qingdao",
+              "Provider": "HuaweiOBS",
+              "Value": "cn-east-4"
+            },
+            {
+              "Help": "CN East-Suzhou",
+              "Provider": "HuaweiOBS",
+              "Value": "cn-east-5"
+            },
+            {
               "Help": "CN North-Beijing1",
               "Provider": "HuaweiOBS",
               "Value": "cn-north-1"
+            },
+            {
+              "Help": "CN North-Beijing2",
+              "Provider": "HuaweiOBS",
+              "Value": "cn-north-2"
             },
             {
               "Help": "CN North-Beijing4",
@@ -45107,24 +46686,64 @@
               "Value": "cn-north-4"
             },
             {
+              "Help": "CN North-Ulanqab",
+              "Provider": "HuaweiOBS",
+              "Value": "cn-north-9"
+            },
+            {
+              "Help": "CN North-Hebei",
+              "Provider": "HuaweiOBS",
+              "Value": "cn-north-11"
+            },
+            {
+              "Help": "CN North-Hohhot",
+              "Provider": "HuaweiOBS",
+              "Value": "cn-north-12"
+            },
+            {
               "Help": "CN South-Guangzhou",
               "Provider": "HuaweiOBS",
               "Value": "cn-south-1"
             },
             {
-              "Help": "CN-Hong Kong",
+              "Help": "CN South-Shenzhen",
               "Provider": "HuaweiOBS",
-              "Value": "ap-southeast-1"
+              "Value": "cn-south-2"
             },
             {
-              "Help": "LA-Buenos Aires1",
+              "Help": "CN South-Guangzhou-InvitationOnly",
               "Provider": "HuaweiOBS",
-              "Value": "sa-argentina-1"
+              "Value": "cn-south-4"
             },
             {
-              "Help": "LA-Lima1",
+              "Help": "CN Southwest-Guiyang1",
               "Provider": "HuaweiOBS",
-              "Value": "sa-peru-1"
+              "Value": "cn-southwest-2"
+            },
+            {
+              "Help": "CN Southwest-Chongqing",
+              "Provider": "HuaweiOBS",
+              "Value": "cn-southwest-3"
+            },
+            {
+              "Help": "EU-Dublin",
+              "Provider": "HuaweiOBS",
+              "Value": "eu-west-101"
+            },
+            {
+              "Help": "LA-Mexico City2",
+              "Provider": "HuaweiOBS",
+              "Value": "la-north-2"
+            },
+            {
+              "Help": "LA-Santiago",
+              "Provider": "HuaweiOBS",
+              "Value": "la-south-2"
+            },
+            {
+              "Help": "ME-Riyadh",
+              "Provider": "HuaweiOBS",
+              "Value": "me-east-1"
             },
             {
               "Help": "LA-Mexico City1",
@@ -45132,9 +46751,14 @@
               "Value": "na-mexico-1"
             },
             {
-              "Help": "LA-Santiago2",
+              "Help": "RU-Moscow2",
               "Provider": "HuaweiOBS",
-              "Value": "sa-chile-1"
+              "Value": "ru-northwest-2"
+            },
+            {
+              "Help": "LA-Buenos Aires1",
+              "Provider": "HuaweiOBS",
+              "Value": "sa-argentina-1"
             },
             {
               "Help": "LA-Sao Paulo1",
@@ -45142,9 +46766,19 @@
               "Value": "sa-brazil-1"
             },
             {
-              "Help": "RU-Moscow2",
+              "Help": "LA-Santiago2",
               "Provider": "HuaweiOBS",
-              "Value": "ru-northwest-2"
+              "Value": "sa-chile-1"
+            },
+            {
+              "Help": "LA-Lima1",
+              "Provider": "HuaweiOBS",
+              "Value": "sa-peru-1"
+            },
+            {
+              "Help": "TR-Istanbul",
+              "Provider": "HuaweiOBS",
+              "Value": "tr-west-1"
             },
             {
               "Help": "Frankfurt, Germany",
@@ -45182,6 +46816,11 @@
               "Value": "us-east-1"
             },
             {
+              "Help": "Default region for compatibility.\nAll data is stored in Switzerland.",
+              "Provider": "Infomaniak",
+              "Value": "us-east-1"
+            },
+            {
               "Help": "Frankfurt, Germany",
               "Provider": "Intercolo",
               "Value": "de-fra"
@@ -45215,6 +46854,26 @@
               "Help": "Lenexa, USA",
               "Provider": "IONOS",
               "Value": "us-central-1"
+            },
+            {
+              "Help": "US East (N. Virginia)",
+              "Provider": "Neon,Petabox,Rabata",
+              "Value": "us-east-1"
+            },
+            {
+              "Help": "US East (Ohio)",
+              "Provider": "Neon",
+              "Value": "us-east-2"
+            },
+            {
+              "Help": "Europe (Frankfurt)",
+              "Provider": "Neon,Petabox",
+              "Value": "eu-central-1"
+            },
+            {
+              "Help": "Asia Pacific (Singapore)",
+              "Provider": "Neon,Petabox",
+              "Value": "ap-southeast-1"
             },
             {
               "Help": "Paris, France",
@@ -45310,21 +46969,6 @@
               "Help": "Roubaix, France (Cold Archive)",
               "Provider": "OVHcloud",
               "Value": "rbx-archive"
-            },
-            {
-              "Help": "US East (N. Virginia)",
-              "Provider": "Petabox,Rabata",
-              "Value": "us-east-1"
-            },
-            {
-              "Help": "Europe (Frankfurt)",
-              "Provider": "Petabox",
-              "Value": "eu-central-1"
-            },
-            {
-              "Help": "Asia Pacific (Singapore)",
-              "Provider": "Petabox",
-              "Value": "ap-southeast-1"
             },
             {
               "Help": "Middle East (Bahrain)",
@@ -45490,6 +47134,11 @@
               "Help": "Warsaw, Poland",
               "Provider": "Scaleway",
               "Value": "pl-waw"
+            },
+            {
+              "Help": "Milan, Italy",
+              "Provider": "Scaleway",
+              "Value": "it-mil"
             },
             {
               "Help": "St. Petersburg",
@@ -45800,7 +47449,7 @@
               "Value": ""
             }
           ],
-          "help": "To use SSE-C you may provide the secret encryption key used to encrypt/decrypt your data.\n\nAlternatively you can provide --sse-customer-key-base64.",
+          "help": "To use SSE-C you may provide the secret encryption key used to encrypt/decrypt your data.\n\nAlternatively you can provide --s3-sse-customer-key-base64.",
           "helpType": "string",
           "name": "sse_customer_key",
           "required": false,
@@ -45820,7 +47469,7 @@
               "Value": ""
             }
           ],
-          "help": "If using SSE-C you must provide the secret encryption key encoded in base64 format to encrypt/decrypt your data.\n\nAlternatively you can provide --sse-customer-key.",
+          "help": "If using SSE-C you must provide the secret encryption key encoded in base64 format to encrypt/decrypt your data.\n\nAlternatively you can provide --s3-sse-customer-key.",
           "helpType": "string",
           "name": "sse_customer_key_base64",
           "required": false,
@@ -46613,8 +48262,8 @@
           "advanced": true,
           "backend": "sftp",
           "cliName": "sftp-encoding",
-          "default": 33652738,
-          "defaultStr": "Slash,Del,Ctl,Dot",
+          "default": 33554434,
+          "defaultStr": "Slash,Dot",
           "help": "The encoding for the backend.\n\nSee the [encoding section in the overview](/overview/#encoding) for more info.",
           "helpType": "Encoding",
           "name": "encoding",
@@ -47277,7 +48926,7 @@
           "helpType": "string",
           "name": "token",
           "required": false,
-          "sensitive": false,
+          "sensitive": true,
           "source": "config/providers",
           "type": "string"
         },
@@ -48082,6 +49731,19 @@
           "sensitive": true,
           "source": "config/providers",
           "type": "string"
+        },
+        "username": {
+          "advanced": false,
+          "backend": "sugarsync",
+          "cliName": "sugarsync-username",
+          "default": "",
+          "defaultStr": "",
+          "help": "Username (email address) used during setup - set automatically.",
+          "name": "username",
+          "required": false,
+          "sensitive": true,
+          "source": "config/providers",
+          "type": "string"
         }
       },
       "prefix": "sugarsync"
@@ -48167,6 +49829,22 @@
             {
               "Help": "Blomp Cloud Storage",
               "Value": "https://authenticate.ain.net"
+            },
+            {
+              "Help": "Infomaniak Swiss Backup Location 01",
+              "Value": "https://swiss-backup01.infomaniak.com/identity/v3"
+            },
+            {
+              "Help": "Infomaniak Swiss Backup Location 02",
+              "Value": "https://swiss-backup02.infomaniak.com/identity/v3"
+            },
+            {
+              "Help": "Infomaniak Swiss Backup Location 03",
+              "Value": "https://swiss-backup03.infomaniak.com/identity/v3"
+            },
+            {
+              "Help": "Infomaniak Swiss Backup Location 04",
+              "Value": "https://swiss-backup04.infomaniak.com/identity/v3"
             }
           ],
           "help": "Authentication URL for server (OS_AUTH_URL).",
@@ -48786,6 +50464,20 @@
           "source": "config/providers",
           "type": "string"
         },
+        "no_pool": {
+          "advanced": true,
+          "backend": "teldrive",
+          "cliName": "teldrive-no-pool",
+          "default": false,
+          "defaultStr": "false",
+          "help": "Add d=1 to content requests to bypass the TelDrive download pool.",
+          "helpType": null,
+          "name": "no_pool",
+          "required": false,
+          "sensitive": false,
+          "source": "config/providers",
+          "type": "bool"
+        },
         "page_size": {
           "advanced": false,
           "backend": "teldrive",
@@ -49124,7 +50816,7 @@
           "cliName": "webdav-headers",
           "default": [],
           "defaultStr": "",
-          "help": "Set HTTP headers for all transactions.\n\nUse this to set additional HTTP headers for all transactions\n\nThe input format is comma separated list of key,value pairs.  Standard\n[CSV encoding](https://godoc.org/encoding/csv) may be used.\n\nFor example, to set a Cookie use 'Cookie,name=value', or '\"Cookie\",\"name=value\"'.\n\nYou can set multiple headers, e.g. '\"Cookie\",\"name=value\",\"Authorization\",\"xxx\"'.\n",
+          "help": "Set HTTP headers for all transactions.\n\nUse this to set additional HTTP headers for all transactions\n\nThe input format is comma separated list of key,value pairs.  Standard\n[CSV encoding](https://godoc.org/encoding/csv) may be used.\n\nFor example, to set a Cookie use 'Cookie,name=value', or '\"Cookie\",\"name=value\"'.\n\nYou can set multiple headers, e.g. '\"Cookie\",\"name=value\",\"Authorization\",\"xxx\"'.\n\nThe headers are only sent to the host in the configured URL. If the\nserver redirects to another host (including a subdomain or a different\nport) the headers are not sent to it, or to any further hop in that\nredirect chain. The exception is the directory listing and file\ndownload requests when auth_redirect is set, as that keeps all\ncredentials across redirects.\n",
           "helpType": "CommaSepList",
           "name": "headers",
           "required": false,
@@ -49730,5 +51422,5 @@
       "prefix": "zoho"
     }
   },
-  "version": "1.75.2"
+  "version": "1.76.0"
 }
