@@ -14,7 +14,7 @@ import urllib.request
 
 
 BASE_URL = "https://build.stencil.so"
-ARCHES = ("x86_64", "aarch64")
+ARCHES = ("x86_64", "arm64")
 
 
 class ReleaseValidationError(RuntimeError):
